@@ -1,0 +1,11 @@
+cubes = g395h, ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
+user_ra = 23h03m15.614s
+user_dec = 08d52m26.23s
+user_center = True
+centering = True
+lambda_cent = 5.4
+nx_steps = 3
+ny_steps = 3
+spax_size = 0.5
+step_size = -1 
+convolve = False

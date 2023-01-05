@@ -1,0 +1,28 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: NAME, datatype: string}
+# - {name: B_C, datatype: float64}
+# - {name: A_MIN, datatype: float64}
+# - {name: A_MAX, datatype: float64}
+# - {name: C_G, datatype: float64}
+# - {name: C_S, datatype: float64}
+# - {name: ALPHA_G, datatype: float64}
+# - {name: ALPHA_S, datatype: float64}
+# - {name: A_T_G, datatype: float64}
+# - {name: A_T_S, datatype: float64}
+# - {name: A_C_G, datatype: float64}
+# - {name: A_C_S, datatype: float64}
+# - {name: BETA_G, datatype: float64}
+# - {name: BETA_S, datatype: float64}
+# - {name: GAMMA_MAX, datatype: float64}
+# meta: !!omap
+# - B_C: [asdfasdfasdf]
+# schema: astropy-2.0
+NAME B_C A_MIN A_MAX C_G C_S ALPHA_G ALPHA_S A_T_G A_T_S A_C_G A_C_S BETA_G BETA_S GAMMA_MAX
+MRN 0.0 50.0 0.25 2.37e-14 2.48e-14 2.5 2.5 0.25 0.25 0.1 0.1 0.0 0.0 1e+30
+MRN-4_00 0.0 50.0 0.25 3.36e-15 3.51e-15 3.0 3.0 0.25 0.25 0.1 0.1 0.0 0.0 1e+30
+MRN-4_50 0.0 50.0 0.25 4.75e-16 4.97e-16 3.5 3.5 0.25 0.25 0.1 0.1 0.0 0.0 1e+30
+WD01-RV31 55.8 3.5 10.0 9.99e-12 1e-13 1.54 2.21 0.0107 0.164 0.428 0.1 -0.165 0.3 3.0
+WD01-RV40 47.2 3.5 10.0 5.83e-12 3.94e-14 1.64 2.09 0.0152 0.183 0.536 0.1 -0.247 1.58 3.0
+WD01-RV55 42.6 3.5 10.0 7.58e-13 3.2e-14 1.61 1.59 0.0418 0.193 0.72 0.1 -0.722 2.12 3.0

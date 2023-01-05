@@ -1,0 +1,20 @@
+;+
+;> _B_C = 'Carbon abundance (C/H) in VSG components [ppm]'
+;> _A_MIN = 'Absolute minimum grain-size [A]'
+;> _C_G = 'Graphite abundance'
+;> _C_S = 'Silicate abundance'
+;> _ALPHA_i = 'Grain-size DF power-law (MRN=2.5)'
+;> _A_T_i = 'Turnover wavelength [um]'
+;> _A_C_i = 'Cuttoff wavelength [um]'
+;> _BETA_i = 'Curvature function F(a) argument'
+;> _GAMMA_MIN = 'Small grain-size cutoff power'
+;> _GAMMA_MAX = 'Large grain-size cutoff power'
+;-
+
+;~      NAME    B_C  A_MIN  A_MAX       C_G       C_S  ALPHA_G  ALPHA_S   A_T_G  A_T_S  A_C_G  A_C_S  BETA_G  BETA_S  GAMMA_MAX
+         MRN   0.0   50.0   0.25  2.37E-14  2.48E-14     2.50     2.50  0.2500  0.250  0.100    0.1   0.000   0.000       1E30
+    MRN-4_00   0.0   50.0   0.25  3.36E-15  3.51E-15     3.00     3.00  0.2500  0.250  0.100    0.1   0.000   0.000       1E30
+    MRN-4_50   0.0   50.0   0.25  4.75E-16  4.97E-16     3.50     3.50  0.2500  0.250  0.100    0.1   0.000   0.000       1E30
+   WD01-RV31  55.8    3.5   10.0  9.99E-12  1.00E-13     1.54     2.21  0.0107  0.164  0.428    0.1  -0.165   0.300        3.0
+   WD01-RV40  47.2    3.5   10.0  5.83E-12  3.94E-14     1.64     2.09  0.0152  0.183  0.536    0.1  -0.247   1.580        3.0
+   WD01-RV55  42.6    3.5   10.0  7.58E-13  3.20E-14     1.61     1.59  0.0418  0.193  0.720    0.1  -0.722   2.120        3.0

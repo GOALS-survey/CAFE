@@ -1,0 +1,136 @@
+;/ DESCRIPTION / ---------------------------------------------------------------
+;
+; Hydrogen recombination lines (Paschen, Brackett, Pfund, and Humphreys series)
+;
+; 0.85 um -- 5 um from GEMNI Observatory webpage:
+;
+;   https://www.gemini.edu/sciops/instruments/nearir-resources/astronomical-lines/h-lines
+;   
+; Missing features have been integrated with:
+;   
+;    https://subarutelescope.org/Science/Resources/lines/hi.html
+;
+;/ HISTORY / -------------------------------------------------------------------
+;
+; 28/3/2021: added Balmer lines for JWST, from SDSS public linelist
+; 
+; 27/08/2018: library/tables/lines.HI_recombination.txt /
+;
+;/ MEMO / ----------------------------------------------------------------------
+;
+; > Extend below 0.85 um
+;
+; > HI line lists do not match for the lines in common between the used
+;   references
+;
+; > Look for line intensities to mask/unmask
+;
+;/ NOTICE / --------------------------------------------------------------------
+;
+;-------------------------------------------------------------------------------
+;
+;~           NAME         WAVE0  MASK  DOUBLE
+       Lyman(2-1)   0.12152E+00     1       0
+      Balmer(6-2)   0.41029E+00     1       0
+      Balmer(5-2)   0.43417E+00     1       0
+      Balmer(4-2)   0.48627E+00     1       0
+      Balmer(3-2)   0.65646E+00     1       0
+    Paschen(18-3)   0.84403E+00     1       0
+    Paschen(17-3)   0.84696E+00     1       0
+    Paschen(16-3)   0.85048E+00     1       0
+    Paschen(15-3)   0.85477E+00     1       0
+    Paschen(14-3)   0.86008E+00     1       0
+    Paschen(13-3)   0.86674E+00     1       0
+    Paschen(12-3)   0.87529E+00     1       0
+    Paschen(11-3)   0.88652E+00     1       0
+    Paschen(10-3)   0.90174E+00     1       0
+     Paschen(9-3)   0.92315E+00     1       0
+     Paschen(8-3)   0.95486E+00     0       0
+     Paschen(7-3)   1.00521E+00     0       1
+     Paschen(6-3)   1.09411E+00     0       1
+     Paschen(5-3)   1.28216E+00     0       1
+     Paschen(4-3)   1.87561E+00     0       1
+   Brackett(21-4)   1.51374E+00     1       0
+   Brackett(20-4)   1.51960E+00     1       0
+   Brackett(19-4)   1.52647E+00     1       0
+   Brackett(18-4)   1.53460E+00     1       0
+   Brackett(17-4)   1.54431E+00     1       0
+   Brackett(16-4)   1.55607E+00     1       0
+   Brackett(15-4)   1.57050E+00     1       0
+   Brackett(14-4)   1.58849E+00     1       0
+   Brackett(13-4)   1.61137E+00     1       0
+   Brackett(12-4)   1.64117E+00     1       0
+   Brackett(11-4)   1.68111E+00     1       0
+   Brackett(10-4)   1.73669E+00     1       0
+    Brackett(9-4)   1.81791E+00     1       0
+    Brackett(8-4)   1.94509E+00     0       0
+    Brackett(7-4)   2.16612E+00     0       0
+    Brackett(6-4)   2.62587E+00     0       1
+    Brackett(5-4)   4.05226E+00     0       1
+      Pfund(34-5)   2.32979E+00     1       0
+      Pfund(33-5)   2.33296E+00     1       0
+      Pfund(32-5)   2.33644E+00     1       0
+      Pfund(31-5)   2.34028E+00     1       0
+      Pfund(30-5)   2.34453E+00     1       0
+      Pfund(29-5)   2.34924E+00     1       0
+      Pfund(28-5)   2.35448E+00     1       0
+      Pfund(27-5)   2.36035E+00     1       0
+      Pfund(26-5)   2.36694E+00     1       0
+      Pfund(25-5)   2.37438E+00     1       0
+      Pfund(24-5)   2.38282E+00     1       0
+      Pfund(23-5)   2.39248E+00     1       0
+      Pfund(22-5)   2.40355E+00     1       0
+      Pfund(21-5)   2.41639E+00     1       0
+      Pfund(20-5)   2.43136E+00     1       0
+      Pfund(19-5)   2.44900E+00     1       0
+      Pfund(18-5)   2.46999E+00     1       0
+      Pfund(17-5)   2.49525E+00     1       0
+      Pfund(16-5)   2.52609E+00     1       0
+      Pfund(15-5)   2.56433E+00     1       0
+      Pfund(14-5)   2.61265E+00     1       0
+      Pfund(13-5)   2.67513E+00     1       0
+      Pfund(12-5)   2.75827E+00     1       0
+      Pfund(11-5)   2.87300E+00     1       0
+      Pfund(10-5)   3.03920E+00     1       0
+       Pfund(9-5)   3.29699E+00     0       0
+       Pfund(8-5)   3.74056E+00     0       0
+       Pfund(7-5)   4.65378E+00     0       0
+       Pfund(6-5)   7.45780E+00     0       1
+  Humphreys(30-6)   3.14900E+00     1       0
+  Humphreys(29-6)   3.42900E+00     1       0
+  Humphreys(28-6)   3.44000E+00     1       0
+  Humphreys(27-6)   3.45300E+00     1       0
+  Humphreys(26-6)   3.46700E+00     1       0
+  Humphreys(25-6)   3.48296E+00     1       0
+  Humphreys(24-6)   3.50116E+00     1       0
+  Humphreys(23-6)   3.52203E+00     1       0
+  Humphreys(22-6)   3.54610E+00     1       0
+  Humphreys(21-6)   3.57410E+00     1       0
+  Humphreys(20-6)   3.60697E+00     1       0
+  Humphreys(19-6)   3.64593E+00     1       0
+  Humphreys(18-6)   3.69264E+00     1       0
+  Humphreys(17-6)   3.74940E+00     1       0
+  Humphreys(16-6)   3.81945E+00     1       0
+  Humphreys(15-6)   3.90755E+00     1       0
+  Humphreys(14-6)   4.02087E+00     1       0
+  Humphreys(13-6)   4.17080E+00     1       0
+  Humphreys(12-6)   4.37645E+00     1       0
+  Humphreys(11-6)   4.67251E+00     1       0
+  Humphreys(10-6)   5.12865E+00     1       0
+   Humphreys(9-6)   5.90660E+00     1       0
+   Humphreys(8-6)   7.50050E+00     0       0
+   Humphreys(7-6)  12.36800E+00     0       0
+         H7(10-7)   8.76000E+00     1       0
+          H7(9-7)  11.30900E+00     1       0
+          H7(8-7)  19.06000E+00     1       0
+         H8(17-8)   7.49500E+00     1       0
+         H8(16-8)   7.78000E+00     1       0
+         H8(15-8)   8.15500E+00     1       0
+         H8(14-8)   8.66500E+00     1       0
+         H8(13-8)   9.39200E+00     1       0
+         H8(12-8)  10.50400E+00     1       0
+         H8(11-8)  12.38700E+00     1       0
+; WHERE IS H9(10-9) ???		             
+          H8(9-8)  27.80000E+00     1       0
+         H9(11-9)  22.34000E+00     1       0
+         H9(12-9)  16.88000E+00     1       0

@@ -1,0 +1,105 @@
+#   This file contains input for the Continuum And Feature Extractor
+#   (aka, CAFE) fitting tool for astronomical SEDs comprised of both
+#   spectral and photometric data.
+#
+#   Note: Each line beginning with "#>" contains a parameter or setting
+#         for the fitting routine. The "#+" and "#-" lines at the
+#         beginning and end of the file must remain in place (to indicate
+#         the block of header data). All other lines are ignored as comments.
+#         Text after a "#" character on data lines is ignored as a comment.
+# 
+
+[PATHS]
+#  Note that overriding the input path requires editing the source code, since
+#  that's what tells pyCafe where to find this file.
+# Override default spectrum input path, otherwise input/data/
+datapath = ''
+# Override default output path, otherwise output/<tgtname>
+outpath  = ''		
+# Override default plot path, otheriwse output/<tgtname>	
+plotpath = ''		
+# Override default table path, otherwise tables/
+tabpath  = ''			
+
+[FIT OPTIONS]
+#  These are parameters for lmfit (the least-squares fitting routine
+#  used in the fit). In most cases, they do not need to be changed.
+# Required relative lmfit accuracy for fit
+ftol  = 1e-5       		
+# Number of processes to use if parallel. No effect on 1D fitting
+NPROC   = 4				
+# Replace dust temperature interpolation with nearest
+FASTTEMP = False
+# Fit atomic/molecular and PAH features				
+FitLINs = True             
+FitPAHs = True
+FitOPCs = True
+# Run fit quality checks. turn off at your own risk             
+FIT_CHK = True			
+MAX_LOOPS = 5
+# Specify max relative error in line parameters to keep a feature		
+REL_ERR_G_W0 = 1.			
+REL_ERR_G_SIG = 2.		
+REL_ERR_G_AMP = 2.		
+REL_ERR_D_W0 = 1.			
+REL_ERR_D_SIG = 2.		
+REL_ERR_D_AMP = 2.		
+REL_ERR_O_W0 = 1.			
+REL_ERR_O_SIG = 2.		
+REL_ERR_O_AMP = 2.		
+REL_ERR_C_FEAT = 2.
+
+[OUTPUT FILE OPTIONS]
+#  The fitting routine optionally outputs a number of text files, plots,
+#  and pickle files. Choose which files to output to disk here.
+#  Files are saved to the output directory indicated above
+Overwrite = False 
+PAH_TAB = True
+PRINT_PAH_TAB = True       	         
+
+[PLOT OPTIONS]
+#  Specify what plots you want to make. If you want to make new kinds of 
+#  plots or adjust the plot options, either alter the source code in pycafe
+#  (not recommended) or load the 'pycafe_result_dump.p' file from the 
+#  output directory and go nuts. See 'result_loader.py' for a basic script
+#  to load fit params and load/preprocess flux. MIR and overal SED plots are
+#  always generated, it's important to do a visual check of the fit!!!
+#  Note that these plots are made for every fit, so be careful using them
+#  with a large grid. Saving the plots can slow the code significantly - 
+#  consider making the plots you need after the fitting is done.
+# Correlation matrix plot
+Make_Corr = True	 
+# Fractional contribution to continuum (possibly borked)
+Frac_CON_Plot = True		 
+
+[MODEL OPTIONS]
+#  The following options control how the CAFE fitting is implemented and run.
+#  In particular, the number of logarithmic wavelength weighting bins in which
+#  to divide up the SED is set here. Read more about this in the CAFE_WEIGHTS
+#  routine in cafe.pro.
+# Number of logarithmic weighting bins to divide SED into.
+WeightBins = 10.       
+# Whether to fit photometry. If photometry doesn't exist, this does nothing.
+FitPhot = False
+# Integrate over photometric filters if available when fitting photometric data. 
+# Set to 0 to just fit the wavelength point. Does nothing if fitphot is false
+DoFilter = False           
+# Use 'EXT'=K_Ext (absorption + scattering) -or- 'ABS'=K_Abs (absorption only) 
+# model when creating extinction curves.
+ExtOrAbs = 'EXT'         
+# Use 'Draine' or 'OHMc' dust model (the primary difference is in the 9.7 and 18
+# micron silicate features). See Marshall et al. (2018) and references therein.
+Draine_Or_OHMc = 'OHMc' 
+
+[REFERENCE WAVELENGTHS]
+# Reference wavelengths for different components, in um.
+Wave_CIR = 450.
+Wave_CLD = 70.
+Wave_COO = 24.
+Wave_WRM = 14.
+Wave_HOT = 3.5
+Wave_STR = 1.6
+Wave_STB = 2.          
+Wave_DSK = 10.
+Wave_DST = 9.7
+Wave_PAH = 6.22

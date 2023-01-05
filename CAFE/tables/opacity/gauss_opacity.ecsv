@@ -1,0 +1,15 @@
+# %ECSV 1.0
+# ---
+# datatype:
+# - {name: name, datatype: string}
+# - {name: wave, datatype: float32}
+# - {name: gamma, datatype: float32}
+# - {name: peak, datatype: float64}
+# - {name: mask, datatype: int8}
+# meta: {name: opacity parameters}
+# schema: astropy-2.0
+name        wave     gamma     peak  mask
+CO2ice      4.2736   0.0085    0.1   0
+CO11ice     4.381    0.10      0.1   0
+CO12ice     4.544    0.048     0.1   0
+CO13ice     4.6822   0.0017    0.1   0

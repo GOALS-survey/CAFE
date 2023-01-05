@@ -1,0 +1,71 @@
+;+ ===========================================================================
+; DESCRIPTION: 
+;       Linear dependence of resolving power from wavelength, for the
+;           JWST MIRI (MRS)
+;       instrument, expressed in the form:
+;           R(nu) = R_SLOPE * nu + R_BIAS
+;
+;       The Medium Resolution Spectrographer (MRS) is organized in
+;       4 (slightly overlapping) channels:
+;           [ CH1 | CH2 | CH3 | CH4 ]
+;       Each channel is split in 3 (slightly overlapping) modules:
+;           [ Short | Medium | Long ]
+;       In this file, a specific element is coded using this information.
+;       For example:
+;           'MRSCH2L'
+;       stands for 'MRS', channel 'CH2', element 'Long'.
+;
+;       The linear relations are obtained using the calibration performed by:
+;           Wells et al. (2015), PASP, 127, 646
+;           https://iopscience.iop.org/article/10.1086/682281
+;       See table and plots here:
+;           https://jwst-docs.stsci.edu/mid-infrared-instrument/miri-observing-modes/miri-medium-resolution-spectroscopy#MIRIMediumResolutionSpectroscopy-mrsdithersMRSspatialresolutionanddithering
+;
+;       These report -- for each MRS module -- the lower (WAVE_MIN) and upper
+;       (WAVE_MAX) wavelengths, and the corresponding resolving power
+;       (R_MIN, R_MAX).
+;       The R_SLOPE and R_BIAS have been simply derived as:
+;           R_SLOPE = (R_MAX - R_MIN) / (WAVE_MAX - WAVE_MIN)
+;           R_BIAS  = R_MAX - R_SLOPE * WAVE_MAX
+;
+; MODIFICATION HISTORY:
+;       
+;       02/03/2022: modified (TL)
+;       04/10/2019: created
+;
+;       > Updated:   -
+;       > Corrected: -
+;       > Fixed:     -  
+;
+; MEMO:
+; 
+; NOTICE:
+;
+;       Wells et al. (2015) argue that the resolving powers they report
+;           "may be underestimated by around 10%"
+;
+;-
+;-------------------------------------------------------------------------------
+
+;+
+;> Instrument module  = ''
+;> Wavelength - min   = 'um'
+;> Wavelength - MAX   = 'um'
+;> Resolution - slope = ''
+;> Resolution - bias  = ''
+;-
+
+;~ MODULE WAVE_MIN  WAVE_MAX  R_SLOPE  R_BIAS
+;
+; 'MRSCH1S'    4.87      5.82  410.5263  1320.7368
+; 'MRSCH1M'    5.62      6.73  504.5045   354.6847
+; 'MRSCH1L'    6.49      7.76  401.5748   493.7795
+; 'MRSCH2S'    7.45      8.90   82.7586  2373.4483
+; 'MRSCH2M'    8.61     10.28  251.4970   584.6108
+; 'MRSCH2L'    9.91     11.87  224.4898   635.3061
+; 'MRSCH3S'   11.47     13.67  159.0909   705.2273
+ 'MRSCH3M'   13.25     15.80  333.3333 -2626.6667
+; 'MRSCH3L'   15.30     18.24  275.5102 -2235.3061 
+; 'MRSCH4S'   17.54     21.10  132.0225  -855.6742
+; 'MRSCH4M'   20.44     24.72   21.0280  1250.1869
+; 'MRSCH4L'   23.84     28.82  -60.2410  3066.1446

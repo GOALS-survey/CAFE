@@ -1,0 +1,46 @@
+;+ ===========================================================================
+; DESCRIPTION: 
+;       Linear dependence of resolving power from wavelength, for the
+;           JWST NIRSpec
+;       instrument, expressed in the form:
+;           R(nu) = R_SLOPE * nu + R_BIAS
+;
+;       The values are obtained based on Fig. 4 in 
+;       https://jwst-docs.stsci.edu/jwst-near-infrared-spectrograph/nirspec-instrumentation/nirspec-dispersers-and-filters 
+;
+;       These report -- for each NIRSpec module -- the lower (WAVE_MIN) and upper
+;       (WAVE_MAX) wavelengths, and the corresponding resolving power
+;       (R_MIN, R_MAX).
+;       The R_SLOPE and R_BIAS have been simply derived as:
+;           R_SLOPE = (R_MAX - R_MIN) / (WAVE_MAX - WAVE_MIN)
+;           R_BIAS  = R_MAX - R_SLOPE * WAVE_MAX
+;
+; MODIFICATION HISTORY:
+;       
+;       07/10/2022: created
+;
+;       > Updated:   -
+;       > Corrected: -
+;       > Fixed:     -  
+;
+; MEMO:
+; 
+; NOTICE:
+;
+;
+;
+;-------------------------------------------------------------------------------
+
+;+
+;> Instrument module  = ''
+;> Wavelength - min   = 'um'
+;> Wavelength - MAX   = 'um'
+;> Resolution - slope = ''
+;> Resolution - bias  = ''
+;-
+
+;~ MODULE WAVE_MIN  WAVE_MAX  R_SLOPE  R_BIAS
+;
+; 'G140M'     0.5     1.99    715.4362   2.2819
+; 'G235M'     1.51    3.49    430.8081   -14.5203
+  'G395M'     2.51    6.00    255.3009   -10.8052     

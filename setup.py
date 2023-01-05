@@ -1,0 +1,28 @@
+from setuptools import setup, find_packages
+
+setup(
+    name='CAFE',
+    version='1.0.1',    
+    url='',
+    author='Thomas Lai, Tanio Diaz-Santos, Luke Finnerty, and the GOALS Team',
+    author_email='goals.lirg.survey',
+    license='GPL-3',
+    long_description='Astronomical spectroscopy decomposition.',
+
+    packages=find_packages(),
+
+    include_package_data = True,
+
+    install_requires=[
+        'astropy>=4.3.1',
+        'lmfit>=1.0.3',
+        'matplotlib>=3.5.1',
+        'numpy>=1.21.5',
+        'pandas>=1.3.5',
+        'photutils>=1.5.0',
+        'plotbin>=3.1.3',
+        'ppxf>=7.4.5',
+        'scikit-image>=0.19.1',
+        'scipy>=1.7.3'
+    ]
+)
