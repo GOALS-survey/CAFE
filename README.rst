@@ -1,2 +1,4 @@
-# CAFE
-Continuum And Feature Extraction (CAFE) for JWST IFU data
+CAFE
+====
+
+**CAFE** si a Python library for spectral decomposition of astronomial data.
