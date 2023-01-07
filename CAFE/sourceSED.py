@@ -142,7 +142,7 @@ def sourceSED_AGN(wave, lTot=1e11, r=None, T_bb=None):
     return fWave
 
 
-def sourceSED_SB(wave, age, path='tables/', nebular=False):
+def sourceSED_SB(wave, age, tablePath, nebular=False):
     ''' Compute a starburst SED
 
     Port of the coresponding function in jam_sourceSED
@@ -152,7 +152,7 @@ def sourceSED_SB(wave, age, path='tables/', nebular=False):
     age -- whcih sb99 grid age to use
 
     Keyword Arguments:
-    path -- location of the sb99 tables (default 'tables/')
+    tablePath -- location of the sb99 tables (default 'tables/')
     nebular -- whether to use flux or nebular (default False, flux)
 
     Returns: Array of fluxes at specified wavelengths, in erg s-1 cm-2 um-1
@@ -161,7 +161,7 @@ def sourceSED_SB(wave, age, path='tables/', nebular=False):
     if age not in ['2', '10', '100']:
         raise ValueError('Invalid starburst age')
     fname = 'sb99-'+age+'myr.txt'
-    data =  np.genfromtxt(path+fname, comments=';')
+    data =  np.genfromtxt(tablePath+fname, comments=';')
     waveTab = data[:,1]
     if nebular: fWave = 10**data[:,2]
     else: fWave = 10**data[:,3]
@@ -184,7 +184,7 @@ def sourceSED_SB(wave, age, path='tables/', nebular=False):
     return fWave
 
 
-def sourceSED(wave, source, norm=False, Jy=False, tablePath='tables/'):
+def sourceSED(wave, source, tablePath, norm=False, Jy=False):
     ''' Returns SED from specified source 
     
     Port of the corespondig function in jam_sourceSED, wrapper 
@@ -207,11 +207,11 @@ def sourceSED(wave, source, norm=False, Jy=False, tablePath='tables/'):
     elif source == 'AGN':
         f_Wave = sourceSED_AGN(fullWave)
     elif source == 'SB2Myr':
-        f_Wave = sourceSED_SB(fullWave, '2', path=tablePath)
+        f_Wave = sourceSED_SB(fullWave, '2', tablePath)
     elif source == 'SB10Myr':
-        f_Wave = sourceSED_SB(fullWave, '10', path=tablePath)
+        f_Wave = sourceSED_SB(fullWave, '10', tablePath)
     elif source == 'SB100Myr':
-        f_Wave = sourceSED_SB(fullWave, '100', path=tablePath)
+        f_Wave = sourceSED_SB(fullWave, '100', tablePath)
 
     if norm:
         f_Wave/=np.trapz(f_Wave*fullWave, np.log(fullWave))
@@ -233,11 +233,11 @@ def load_opacity(wave, fname):
 
     Returns: Second column from file fname, resampled to wave
     '''
-    if fname.split('.')[1] == 'txt':
+    if fname.split('.')[-1] == 'txt':
         tab = np.loadtxt(fname, comments=';')
         tWave = tab[:,0]
         tKap = tab[:,1]
-    if fname.split('.')[1] == 'ecsv':
+    if fname.split('.')[-1] == 'ecsv':
         tab = Table.read(fname)
         tWave = tab['wav']
         tKap = tab['tau']

@@ -67,7 +67,7 @@ def grain_radii(numRad=81, minRad=1e-3, maxRad=10.):
     
     return radii
 
-def grain_crosssection(wave, rad, scaleSIL, tablePath='tables/'):
+def grain_crosssection(wave, rad, scaleSIL, tablePath):
 #def grain_crosssection(wave, rad, scaleSIL):
     ''' Compute dust grain cross sections
 
@@ -193,7 +193,7 @@ def grain_crosssection(wave, rad, scaleSIL, tablePath='tables/'):
     return cAbs, cExt
 
 
-def grainEQTemp(a, T_bb, sourceType, scaleSIL=None, cAbs=None, TTable=None):
+def grainEQTemp(a, T_bb, sourceType, tablePath, scaleSIL=None, cAbs=None, TTable=None):
     """
     Compute equilibrium temperatures of grains in radiation field as function of size (T_eq)
 
@@ -238,7 +238,7 @@ def grainEQTemp(a, T_bb, sourceType, scaleSIL=None, cAbs=None, TTable=None):
         # Load an ISRF sed if unspecified
         #sourceType = 'ISRF'
         print(sourceType)
-        sWave, sFlux = sourceSED(wave, sourceType)
+        sWave, sFlux = sourceSED(wave, sourceType, tablePath)
     else:
         ## Interpolate the specified SED onto the wave grid
         # This functionality is disabled and the user needs to select
@@ -252,7 +252,7 @@ def grainEQTemp(a, T_bb, sourceType, scaleSIL=None, cAbs=None, TTable=None):
 
     # Calculate absorption cross sections
     if cAbs is None:
-        cAbs, _ = grain_crosssection(wave, a, scaleSIL)
+        cAbs, _ = grain_crosssection(wave, a, scaleSIL, tablePath)
     cSil = cAbs['Sil']
     cCarb = cAbs['Gra']
 
@@ -318,7 +318,7 @@ def grainEQTemp(a, T_bb, sourceType, scaleSIL=None, cAbs=None, TTable=None):
     return {'rad':a, 'T':T_bb, 'Sil':TSil, 'Carb':TCarb}, cAbs, TTable # old
 
 
-def grainSizeDF(rad, T_bb, sourceType, model='WD01-RV31', dndaTab=None, cutoff=None, scaleSIL=None, cAbs=None, TTable=None):
+def grainSizeDF(rad, T_bb, sourceType, tablePath, model='WD01-RV31', dndaTab=None, cutoff=None, scaleSIL=None, cAbs=None, TTable=None):
     ''' Calculate grain size distribution of graphitic and silicate dusts
 
     Port of jam_grainsizedf. Appears to match IDL functionality 8/26/20
@@ -345,7 +345,7 @@ def grainSizeDF(rad, T_bb, sourceType, model='WD01-RV31', dndaTab=None, cutoff=N
 
     ### Load parameter values
     if dndaTab is None:
-        dndaTab = np.genfromtxt('tables/grainsizedf_params.txt', comments=';', dtype='str')
+        dndaTab = np.genfromtxt(tablePath+'grainsizedf_params.txt', comments=';', dtype='str')
     names = dndaTab[:,0]
     row = 0
     for i in range(len(names)):
@@ -420,7 +420,7 @@ def grainSizeDF(rad, T_bb, sourceType, model='WD01-RV31', dndaTab=None, cutoff=N
     #dndaSil[tEQ['Sil'] > tSubSil] = 0.
     #dndaCarb[tEQ['Carb'] > tSubSil] = 0.
 
-    tEQ, cAbs, TTable = grainEQTemp(a, T_bb, sourceType, scaleSIL=scaleSIL, cAbs=cAbs, TTable=TTable)
+    tEQ, cAbs, TTable = grainEQTemp(a, T_bb, sourceType, tablePath, scaleSIL=scaleSIL, cAbs=cAbs, TTable=TTable)
 
     for i in range(T_bb.size):
         dndaSil[:,i] = dndaSil0
@@ -447,52 +447,10 @@ def grainSizeDF(rad, T_bb, sourceType, model='WD01-RV31', dndaTab=None, cutoff=N
 
     return {'rad':rad, 'T_bb':T_bb, 'Sil':dndaSil, 'Carb':dndaCarb}
 
-    # Remove by TL 4/8
-    """
-    # for i in range(T_bb.size):
-    #     ### If something goes wrong, check here first
-    #     if T_bb.size == 1: 
-    #         print(T_bb)
-    #         tEQ, TTable = grainEQTemp(a, T_bb)
-    #     else: 
-    #         tEQ, TTable = grainEQTemp(a, T_bb)
-    #         #tEQ, TTable = grainEQTemp(a, T_bb[i]) old
-    #     dndaSil[:,i] = dndaSil0
-    #     dndaSil[tEQ['Sil'] > tSubSil,i] = 0.
-    #     dndaCarb[:,i] = dndaCarb0
-    #     dndaCarb[tEQ['Carb'] > tSubSil,i] = 0.
-    # dndaSil = np.squeeze(dndaSil)
-    # dndaCarb = np.squeeze(dndaCarb)
-
-    # # Apply big and small cutoffs
-    # if cutoff is not None:
-    #     if cutoff == 'big':
-    #         dndaSil[a < 50e-4] = 0.
-    #         dndaCarb[a < 50e-4] = 0.
-    #     elif cutoff == 'small':
-    #         dndaSil[a > 50e-4] = 0.
-    #         dndaCarb[a > 50e-4] = 0.
-    #     else: 
-    #         raise ValueError
-
-    # # # Interpolate to find values at input radii - not yet needed
-    # # if not (np.shape(rad) == np.shape(a) and np.allclose(rad, a)):
-    # #   logRad = np.log(rad)
-    # #   if T_bb.size == 1:
-    # #       dndaSil = np.exp(np.interp(logRad, loga, np.log(dndaSil)))
-    # #       dndaCarb = np.exp(np.interp(logRad, loga, np.log(dndaCarb)))
-    # #   else:
-    # #       ### This section isn't implemented becauese it doesn't come up
-    # #       ### in the CAFE test cases, and it's going to be a pain to match
-    # #       ### the interpolation routine outputs
-
-    # if np.size(dndaSil) == 1: dndaSil = float(dndaSil)
-    # if np.size(dndaCarb) == 1: dndaCarb = float(dndaCarb)
-    """
     
 
-def grain_opacity(wave, T_bb, scaleSIL, 
-                  tablePath='tables/', cAbs_wR=None, cExt_wR=None, 
+def grain_opacity(wave, T_bb, scaleSIL, tablePath,
+                  cAbs_wR=None, cExt_wR=None, 
                   dnda=None, noPAH=True, gra=None, cutoff=None, 
                   kExt=True, fstTab=None, ensTab=None):
     ''' Calculate grain opacities at different blackbody temperatures
@@ -546,7 +504,7 @@ def grain_opacity(wave, T_bb, scaleSIL,
         cExtCarb = 0.5 * (cExt_wR['CarbNeu'][0]+cExt_wR['CarbNeu'][1]+cExt_wR['CarbIon'][0]+cExt_wR['CarbIon'][1])
 
     if dnda is None:
-        dnda = grainSizeDF(a, T_bb, None, scaleSIL=scaleSIL, cutoff=cutoff) # None is given to imply there is no sourceType
+        dnda = grainSizeDF(a, T_bb, None, tablePath, scaleSIL=scaleSIL, cutoff=cutoff) # None is given to imply there is no sourceType
 
     # Calculate total silicate opacities
     bigDndaSil = np.tile(dnda['Sil'][:,0], (waveRed.size, T_bb.size)) # Note: only consider dnda with T_bb=3 K. 
@@ -673,8 +631,7 @@ def grain_opacity(wave, T_bb, scaleSIL,
         return kAbsOut
 
 
-def grain_emissivity(wave, T_bb, sourceType, scaleSIL,
-                     tablePath='tables/',
+def grain_emissivity(wave, T_bb, sourceType, scaleSIL, tablePath,
                      fstTab=None, ensTab=None, T_EQ=None):
     ''' Calculates grain emissivity at varying blackbody temperatures
 
@@ -720,11 +677,11 @@ def grain_emissivity(wave, T_bb, sourceType, scaleSIL,
     # ---
     # Obtain grain temperatures
     if T_EQ is None:
-        #T_EQ = grainEQTemp(a, T_bb, sourceType, scaleSIL) # (TL) remove TTable
-        T_EQ, cAbs, TTable = grainEQTemp(a, T_bb, sourceType, scaleSIL=scaleSIL) #old
+        #T_EQ = grainEQTemp(a, T_bb, sourceType, scaleSIL, tablePath) # (TL) remove TTable
+        T_EQ, cAbs, TTable = grainEQTemp(a, T_bb, sourceType, tablePath, scaleSIL=scaleSIL) #old
     # ---
     # Obtain grain-size DF
-    dnda = grainSizeDF(a, T_bb, sourceType, scaleSIL=scaleSIL, cAbs=cAbs, TTable=TTable) #, cutoff='big' Removed by TDS
+    dnda = grainSizeDF(a, T_bb, sourceType, tablePath, scaleSIL=scaleSIL, cAbs=cAbs, TTable=TTable) #, cutoff='big' Removed by TDS
 
     # Planck functions - need to figure out transposes
     planckSil = np.zeros((waveRed.size, a.size, T_bb.size))

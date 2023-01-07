@@ -1,19 +1,19 @@
 import sys
-import astropy.units as u
-import pdb, ipdb
+sys.path.insert(0, '../CAFE')
+sys.path.insert(0, '../CRETA')
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.ticker
 from matplotlib.backends.backend_pdf import PdfPages
 
-import cafe
+import creta
 import cafe_io
-import cafe_lib
 import cafe_helper
+import cafe
 
-#source = 'NGC7469'
-source = 'IIZw096'
+source = 'NGC7469'
+#source = 'IIZw096'
 
 # Read parameter file with extraction keywords
 #pf = open('./CRETA/param_files/'+source+'_single_params.txt','r')
@@ -27,22 +27,22 @@ source = 'IIZw096'
 #c.singleExtraction(parameter_file=True, perband_cent=True, parfile_name=source+'_single_params.txt', data_path='./CRETA/data/'+source+'/', output_filebase_name=source)
 
 if source == 'NGC7469':
-    z=0.01627
+    z=0.01630
     tplt='AGN'
 elif source == 'IIZw096':
     z=0.03637
     tplt='SB'
 
-source_fd = './CRETA/extractions/'
+source_fd = '../CRETA/extractions/'
 source_fn = source+'_SingleExt_r0.3as_cube.fits'
 source_fnb = source_fn.split('.fits')[0].replace('.','')
-inppar_fn = './inp_parfiles/inpars_jwst_nirspec-miri_'+tplt+'.ini'
+inppar_fn = '../CAFE/inp_parfiles/inpars_jwst_nirspec-miri_'+tplt+'.ini'
 
 #source_fd = './input/data/'
 #source_fn = source+'_NIRSpec+MIRI_reg1_04arcsec.dat'
 #inppar_fn = './inp_parfiles/inpars_jwst_NGC7469_NIRSpec+MIRI_reg.ini'
 
-optpar_fn = './opt_parfiles/default_opt.cafe'
+optpar_fn = '../CAFE/opt_parfiles/default_opt.cafe'
 
 s = cafe.specmod()
 

@@ -96,13 +96,14 @@ def cafe_grinder(self, params, wave, flux, flux_unc, weight):
 
 class cubemod:
 
-    def __init__(self):
+    def __init__(self, cafe_dir='../CAFE/'):
 
-        pass
+        self.cafe_dir = cafe_dir
 
 
-    def read_parcube_file(self, file_name, file_dir='./output/'):
+    def read_parcube_file(self, file_name, file_dir='output/'):
 
+        if file_dir == 'output/': file_dir = self.cafe_dir + file_dir
         parcube = fits.open(file_dir+file_name)
         parcube.info()
         self.parcube = parcube
@@ -110,7 +111,9 @@ class cubemod:
 
 
 
-    def read_cube(self, file_name, file_dir='./input/data/', extract='Flux_st', trim=True, keep_next=False, z=None):
+    def read_cube(self, file_name, file_dir='input/data/', extract='Flux_st', trim=True, keep_next=False, z=None):
+
+        if file_dir == 'input/data/': file_dir = self.cafe_dir + file_dir
 
         try:
             cube = cafeio.read_cretacube(file_dir+file_name, extract)
@@ -219,7 +222,7 @@ class cubemod:
         param_gen = CAFE_param_generator(spec, inparfile, optfile)
         self.inpars = param_gen.inpars
         self.inopts = param_gen.inopts
-        tablePath, outPath = cafeio.init_paths(param_gen.inopts, ''.join(self.file_name.split('.')[0:-1]))
+        tablePath, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
 
         # Make parameter object with all features available
         init_params = param_gen.make_parobj(get_all=True)
@@ -388,20 +391,23 @@ class specmod:
     """ 
     CAFE model. When initialized, it contains the spec
     """
-    def __init__(self):
+    def __init__(self, cafe_dir='../CAFE/'):
                 
-        pass
+        self.cafe_dir = cafe_dir
 
 
-    def read_parcube_file(self, file_name, file_dir='./output/'):
+    def read_parcube_file(self, file_name, file_dir='output/'):
 
+        if file_dir == 'output/': file_dir = self.cafe_dir + file_dir
         parcube = fits.open(file_dir+file_name)
         parcube.info()
         self.parcube = parcube
         #parcube.close()
 
 
-    def read_spec(self, file_name, file_dir='./input/data/', extract='Flux_st', trim=True, keep_next=False, z=0.):
+    def read_spec(self, file_name, file_dir='input/data/', extract='Flux_st', trim=True, keep_next=False, z=0.):
+
+        if file_dir == 'input/data/': file_dir = self.cafe_dir + file_dir
 
         print('Load data:',file_dir+file_name)
         try:
@@ -442,6 +448,7 @@ class specmod:
             cube.bandnames = np.full(len(cube.waves),'UNKNOWN')
             trim = False
             cube.close()
+            os.remove('./dummy.fits')
         else:
             cube.header = cube.cube['FLUX'].header
             if cube.cube['FLUX'].header['CUNIT3'] != 'um':
@@ -494,7 +501,7 @@ class specmod:
         param_gen = CAFE_param_generator(spec, inparfile, optfile)
         self.inpars = param_gen.inpars
         self.inopts = param_gen.inopts
-        tablePath, outPath = cafeio.init_paths(param_gen.inopts, ''.join(self.file_name.split('.')[0:-1]))
+        tablePath, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
 
         init_params = param_gen.make_parobj()
         self.init_params = init_params

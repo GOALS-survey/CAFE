@@ -31,7 +31,8 @@ class CAFE_param_generator:
 
         self.inpars = inpars
         self.inopts = inopts
-        self.tablePath = 'tables/'
+        tablePath, _ = cafeio.init_paths(inopts)
+        self.tablePath = tablePath
         
 
     @staticmethod
@@ -170,7 +171,7 @@ class CAFE_param_generator:
         '''
 
         # Read the instrument wavelength coverages as DataFrames
-        inst_df = cafeio.read_inst(instnames)
+        inst_df = cafeio.read_inst(instnames, tablePath)
 
         minWave = np.nanmin(wave)
         maxWave = np.nanmax(wave)
@@ -706,7 +707,8 @@ class CAFE_prof_generator:
 
         self.inpars = inpars
         self.inopts = inopts
-        self.tablePath = 'tables/'
+        tablePath, _ = cafeio.init_paths(inopts)
+        self.tablePath = tablePath
 
         # Define blackbody temperatures of ambient radiation field
         #self.T_bb = np.geomspace(3., 1750., num=30)
@@ -777,15 +779,15 @@ class CAFE_prof_generator:
             scaleOHMc[:,1] = np.ones(scaleOHMc.shape[1])
         
         if 'AGN' in sourceTypes:
-            E_AGN = grain_emissivity(waveSED, T_bb, 'AGN', scaleOHMc)
+            E_AGN = grain_emissivity(waveSED, T_bb, 'AGN', scaleOHMc, tablePath)
         if 'ISRF' in sourceTypes:
-            E_ISRF = grain_emissivity(waveSED, T_bb, 'ISRF', scaleOHMc)
+            E_ISRF = grain_emissivity(waveSED, T_bb, 'ISRF', scaleOHMc, tablePath)
         if 'SB2Myr' in sourceTypes:
-            E_SB2Myr = grain_emissivity(waveSED, T_bb, 'SB2Myr', scaleOHMc)
+            E_SB2Myr = grain_emissivity(waveSED, T_bb, 'SB2Myr', scaleOHMc, tablePath)
         if 'SB10Myr' in sourceTypes:
-            E_SB10Myr = grain_emissivity(waveSED, T_bb, 'SB10Myr', scaleOHMc)
+            E_SB10Myr = grain_emissivity(waveSED, T_bb, 'SB10Myr', scaleOHMc, tablePath)
         if 'SB100Myr' in sourceTypes:
-            E_SB100Myr = grain_emissivity(waveSED, T_bb, 'SB100Myr', scaleOHMc)
+            E_SB100Myr = grain_emissivity(waveSED, T_bb, 'SB100Myr', scaleOHMc, tablePath)
         
         if srcs['SOURCE_HOT'] == 'AGN': E_HOT = E_AGN
         elif srcs['SOURCE_HOT'] == 'ISRF': E_HOT = E_ISRF
@@ -855,7 +857,7 @@ class CAFE_prof_generator:
         kCrySi_233 = load_opacity(waveSED, tablePath+'opacity/crystallineSi_opacity_233.ecsv')
 
         # Temperature is set to 0 to get grain opacities
-        kAbs, kExt = grain_opacity(waveSED, 0., scaleOHMc, tablePath=tablePath, noPAH=False) #, cutoff='big'
+        kAbs, kExt = grain_opacity(waveSED, 0., scaleOHMc, tablePath, noPAH=False) #, cutoff='big'
 
         # Consider absorption or absorption+scattering 
         Ext_or_Abs = inopts['MODEL OPTIONS']['EXTORABS']
@@ -885,11 +887,11 @@ class CAFE_prof_generator:
         waveSED = self.waveSED
         tablePath = self.tablePath        
 
-        source2Myr = sourceSED(waveSED, 'SB2Myr', norm=True, Jy=True, tablePath=tablePath)[1]
-        source10Myr = sourceSED(waveSED, 'SB10Myr', norm=True, Jy=True, tablePath=tablePath)[1]
-        source100Myr = sourceSED(waveSED, 'SB100Myr', norm=True, Jy=True, tablePath=tablePath)[1]
-        sourceStr = sourceSED(waveSED, 'ISRF', norm=True, Jy=True)[1]
-        sourceDsk = sourceSED(waveSED, 'AGN', norm=True, Jy=True)[1]
+        source2Myr = sourceSED(waveSED, 'SB2Myr', tablePath, norm=True, Jy=True)[1]
+        source10Myr = sourceSED(waveSED, 'SB10Myr', tablePath, norm=True, Jy=True)[1]
+        source100Myr = sourceSED(waveSED, 'SB100Myr', tablePath, norm=True, Jy=True)[1]
+        sourceStr = sourceSED(waveSED, 'ISRF', tablePath, norm=True, Jy=True)[1]
+        sourceDsk = sourceSED(waveSED, 'AGN', tablePath, norm=True, Jy=True)[1]
 
         ## Neet to convert to um for integral for normalization
         #const = 3e14/waveSED
