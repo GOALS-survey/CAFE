@@ -27,13 +27,14 @@ import write_single_fitscube, write_grid_fitscube
 preprocess = cube_preproc()
 user = userAPI()
 #current_path = os.path.abspath(os.getcwd())+'/'
-current_path = './CRETA/'
 start_time = time.time()
 
 
 class creta:
 
-    def __init__(self):
+    def __init__(self, creta_dir='../CRETA/'):
+
+        self.creta_dir = creta_dir
         print('CAFE Region Extraction Tool Automaton (CRETA) initialized')
     
 #%%
@@ -61,9 +62,8 @@ class creta:
     # @sp1d: The spectrum 1D element. (Spectrum1D)        
     ###############################################################################   
         
-    def singleExtraction(self, data_path=current_path+'data/', PSFs_path=current_path+'PSFs/',
-                         output_path=current_path+'extractions/', output_filebase_name='last_result',
-                         parfile_path=current_path+'param_files/', parfile_name=current_path+'single_params.txt',
+    def singleExtraction(self, data_path='', PSFs_path='', output_path='', output_filebase_name='last_result',
+                         parfile_path='', parfile_name='single_params.txt',
                          aperture_type=0, convolve=False, user_ra=0, user_dec=0,
                          user_r_ap=[0.25], point_source=False, lambda_ap=None, aperture_correction=False, centering=False,
                          lambda_cent=None, perband_cent=False, background=False, r_ann_in=None, ann_width=None, parameter_file=True):
@@ -78,9 +78,15 @@ class creta:
         user = userAPI()
         # print(parfile_name)
         
+        if data_path == '': data_path = self.creta_dir+'data/'
         if data_path[-1] != '/': data_path+'/'
+        if PSFs_path == '': PSFs_path = self.creta_dir+'PSFs/'
         if PSFs_path[-1] != '/': PSFs_path+'/'
+        if output_path == '': output_path = self.creta_dir+'extractions/'
         if output_path[-1] != '/': output_path+'/'
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        if parfile_path == '': parfile_path = self.creta_dir+'param_files/'
         if parfile_path[-1] != '/': parfile_path+'/'
 
         # Read the parameter file
@@ -251,7 +257,7 @@ class creta:
         if aperture_correction:
             for i in range(len(PSF_all)):
 
-                filename = current_path+"centroids/xys_"+PSF_all[i].name_band+".csv"                
+                filename = self.creta_path+"centroids/xys_"+PSF_all[i].name_band+".csv"                
                 # PSF Centroids
                 if os.path.isfile(filename):
                     if i == 0: print('Loading PSF XY Centers')
@@ -261,7 +267,7 @@ class creta:
                     user.writeCubeCentroids(PSF_all[i])  #PSF centroids in file
                     
                 # INF Fluxes
-                PSF_inf_filename = current_path+"PSF_infaps/inf_"+PSF_all[i].name_band+".csv"
+                PSF_inf_filename = self.creta_path+"PSF_infaps/inf_"+PSF_all[i].name_band+".csv"
                 if os.path.isfile(PSF_inf_filename):
                     if i == 0: print('Loading PSF Total Fluxes')
                     PSF_all[i].PSF_inf_flux = user.readPSFInfFlux(PSF_inf_filename) #read PSF centroids from file
@@ -735,21 +741,26 @@ class creta:
     ########### --> Return cube_data  ############################
     # @res_spec1d: A list of data sub-channels. (list of SubCube)        
     ###############################################################################     
-    def gridExtraction(self, data_path=current_path+'data/', PSFs_path=current_path+'PSFs/',
-                       output_path=current_path+'extractions/', output_filebase_name='last_result',
-                       parfile_path=current_path+'param_files/', parfile_name=current_path+'grid_params.txt',
-                       point_source=False, lambda_ap=None,  centering=False, lambda_cent=None, perband_cent=False, parameter_file=True,
-                       plots=False, nx_steps=-1, ny_steps=-1, spax_size=-1, step_size=-1,
+    def gridExtraction(self, data_path='', PSFs_path='', output_path='', output_filebase_name='last_result',
+                       parfile_path='', parfile_name='grid_params.txt',
+                       point_source=False, lambda_ap=None,  centering=False, lambda_cent=None, perband_cent=False,
+                       parameter_file=True, plots=False, nx_steps=-1, ny_steps=-1, spax_size=-1, step_size=-1,
                        user_ra=0., user_dec=0., user_center=True, aperture_correction=False, convolve=False):
         
 
+        if data_path == '': data_path = self.creta_dir+'data/'
         if data_path[-1] != '/': data_path+'/'
+        if PSFs_path == '': PSFs_path = self.creta_dir+'PSFs/'
         if PSFs_path[-1] != '/': PSFs_path+'/'
+        if output_path == '': output_path = self.creta_dir+'extractions/'
         if output_path[-1] != '/': output_path+'/'
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        if parfile_path == '': parfile_path = self.creta_dir+'param_files/'
         if parfile_path[-1] != '/': parfile_path+'/'
         
         if parameter_file:
-            #grid_params = userAPI.loadUserParams(userAPI,current_path+'grid_params.txt')
+            #grid_params = userAPI.loadUserParams(userAPI,'../CRETA/grid_params.txt')
             grid_params = userAPI.read_inipars(parfile_path+parfile_name)
             grid_params = grid_params['FAKE SECTION']
             
@@ -961,7 +972,7 @@ class creta:
                 PSF_all[i].rs = [PSF_all[i].rs]
                 
                 # Centroid positions in detector coordinates
-                filename = current_path+"PSF_centroids/xys_"+PSF_all[i].name_band+".csv"                   
+                filename = self.creta_path+"PSF_centroids/xys_"+PSF_all[i].name_band+".csv"                   
                 print(filename)
                 if os.path.isfile(filename):
                     if i == 0: print('Loading PSF XY Centers')
@@ -972,7 +983,7 @@ class creta:
                     
                     
                 #Load PSF "infitite-aperture" fluxes
-                PSF_inf_filename = current_path+"PSF_infaps/inf_"+PSF_all[i].name_band+".csv"
+                PSF_inf_filename = self.creta_path+"PSF_infaps/inf_"+PSF_all[i].name_band+".csv"
                 if os.path.isfile(PSF_inf_filename):
                     if i == 0: print('Loading PSF Total Fluxes')
                     PSF_all[i].PSF_inf_flux = user.readPSFInfFlux(PSF_inf_filename) #read PSF centroids from file
@@ -983,7 +994,7 @@ class creta:
             
             # Center grid to PSF
             for i in range(len(PSF_all)):
-                PSF_sky_cnt_filename =  current_path+"PSF_centroids_sky/sky_"+PSF_all[i].name_band+".csv"
+                PSF_sky_cnt_filename =  self.creta_path+"PSF_centroids_sky/sky_"+PSF_all[i].name_band+".csv"
                 if   os.path.isfile(PSF_sky_cnt_filename):
                     if i == 0: print('Loading PSF Sky Centers')
                     PSF_all[i].xys_sky = user.readCentroidSky(PSF_sky_cnt_filename) #read PSF centroids from file

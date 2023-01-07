@@ -19,35 +19,37 @@ from astropy.io import fits
 class cafe_io:
 
     def __init__(self):
+        
         pass
 
 
     @staticmethod
-    def init_paths(inopts, filename):
+    def init_paths(inopts, cafe_path='../CAFE/', file_name=None):
         # Path to load external tables
         if not inopts['PATHS']['TABPATH']:
-            tablePath = 'tables/'
+            tablePath = cafe_path+'tables/'
         else: 
             tablePath = inopts['PATHS']['TABPATH']
-            
-        if not inopts['PATHS']['OUTPATH']:
-            if not os.path.exists('output/'+filename):
-                os.mkdir('output/'+filename)
-            outPath = 'output/'+filename+'/'
+        
+        if file_name is not None:
+            if not inopts['PATHS']['OUTPATH']:
+                if not os.path.exists(cafe_path+'output/'+file_name):
+                    os.mkdir(cafe_path+'output/'+file_name)
+                outPath = cafe_path+'output/'+file_name+'/'
+            else:
+                if not os.path.exists(inopts['PATHS']['OUTPATH']):
+                    os.mkdir(inopts['PATHS']['OUTPATH'])
+                outPath = inopts['PATHS']['OUTPATH']
         else:
-            if not os.path.exists(inopts['PATHS']['OUTPATH']):
-                os.mkdir(inopts['PATHS']['OUTPATH'])
-            outPath = inopts['PATHS']['OUTPATH']
-            
+            outPath = './'
+
         return tablePath, outPath
 
     
     ##### Function that reads a multi-extension .fits file from CRETA           ###
     ###############################################################################    
-    # @filename: The fits filename . (string)
+    # @file_name: The fits filename . (string)
     ########### --> Return res_spec1d  ############################
-    # @cube: A trimmed cube with overlapping wavelengths removed      
-    ###############################################################################   
         
     def read_cretacube(self, file_name, extract):
         
@@ -130,28 +132,28 @@ class cafe_io:
     
 
     @staticmethod
-    def read_inst(instnames, tablePath='tables/resolving_power/'):
+    def read_inst(instnames, tablePath):
         wMins = np.asarray([]) ; wMaxs = np.asarray([]) ; rSlopes = np.asarray([]) ; rBiases = np.asarray([])
         
-        files = os.listdir(tablePath)
+        files = os.listdir(tablePath+'resolving_power/')
         for i in files: #exclude hidden files from mac
             if i.startswith('.'):
                 files.remove(i)
                 
         inst_files = []
-        for inst in instnames:
+        for inst in list(map(str.upper,instnames)):
             if any(inst in file for file in files):
                 for file in files:
                     if inst in file: inst_files.append(file)
             else:
-                raise IOError('One or more resolving-power files not in directory')
+                raise IOError('One or more resolving-power files not in directory. Or check the names.')
                 
         for inst_fn in inst_files:
             try:
-                data = np.genfromtxt(tablePath+inst_fn, comments=';')
+                data = np.genfromtxt(tablePath+'resolving_power/'+inst_fn, comments=';')
             except:
                 try:
-                    rfitstable = fits.open(tablePath+inst_fn)
+                    rfitstable = fits.open(tablePath+'resolving_power/'+inst_fn)
                     data = np.full(5, np.nan)
                     data[1] = rfitstable[1].data[0][0]  # Min wave
                     data[2] = rfitstable[1].data[-1][0] # Max wave

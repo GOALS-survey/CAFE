@@ -27,6 +27,7 @@ current_path = os.path.abspath(os.getcwd())
 class userAPI:
 
     def __init__(self):
+
         print('User API Created')
 
 
@@ -190,7 +191,7 @@ class userAPI:
              f.close()    
              return res                
 #%%
-    def writeResultsFile(self, filename, user_params, df, final_ratio, output_path, new_ra, new_dec, ap_l_iss, grid_extraction, grid_NX, grid_NY, step_size, PSF_path, Data_path):
+    def writeResultsFile(self, filename, user_params, df, final_ratio, output_path, new_ra, new_dec, ap_l_iss, grid_extraction, grid_NX, grid_NY, step_size, PSFs_path, Data_path):
 
         df.to_csv(output_path+filename,index=False)
         
