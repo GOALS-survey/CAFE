@@ -30,7 +30,7 @@ The user can use ``CAFE`` from two starting points:
 
 1. **Extraction**. JWST IFU cubes:
 
-   The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the data directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. In it, the user can specify:
+The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the data directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. In it, the user can specify:
 
    ``cubes``: The cubes to be extracted (currently, only MIRI/MRS)
 
@@ -54,34 +54,34 @@ The user can use ``CAFE`` from two starting points:
 
    ``ann_width``: Width of the background annulus (ignored otherwise)
 
-   Options for directory setup (specified in the command execution only):
+Options for directory setup (specified in the command execution only):
 
-   ``data_path`` (default: CRETA/data/)
+   ``data_path`` (default: *CRETA/data/*)
 
-   ``PSFs_path`` (default: CRETA/PSFs/)
+   ``PSFs_path`` (default: *CRETA/PSFs/*)
 
-   ``output_path`` (default: CRETA/extractions/)
+   ``output_path`` (default: *CRETA/extractions/*)
 
-   ``output_filebase_name`` (default: ‘last_result’)
+   ``output_filebase_name`` (default: *‘last_result’*)
 
-   ``parfile_path`` (default: CRETA/param_files/)
+   ``parfile_path`` (default: *CRETA/param_files/*)
 
-   ``parfile_name`` (default: ‘single_params.txt’)
+   ``parfile_name`` (default: *‘single_params.txt’*)
 
-|
+
 ``CRETA`` will return a *‘_cube.fits’* file containing the extracted spectrum, which can be fed directly to ``CAFE`` for fitting.
 
 The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *notebooks/* folder in the Git repository.
 
 2. **Fitting**. An individual, 1D spectrum (``CAFE`` v1.0):
 
-   ``CAFE`` is able to read spectra that have been either extracted from ``CRETA`` (see above 1.) or provided by the user in a simple *‘.txt’* file containing a table with columns reporting wavelength, flux, and error flux.
+``CAFE`` is able to read spectra that have been either extracted from ``CRETA`` (see above 1.) or provided by the user in a simple *‘.txt’* file containing a table with columns reporting wavelength, flux, and error flux.
 
-   Once the spectrum is read, it can be plotted together with the initial (default) model decomposition for visual inspection. The user can tweak the initial model by modifying keywords in a number of files (described in the following section). These keywords refer either to model parameters themselves (e.g., peak line fluxes, dust component temperatures, etc.), constraints for each or a combination of model parameters (e.g., line width variation limits, optical depth variation limits for dust components, etc.), specific names of files, or in general info needed for the setup.
+Once the spectrum is read, it can be plotted together with the initial (default) model decomposition for visual inspection. The user can tweak the initial model by modifying keywords in a number of files (described in the following section). These keywords refer either to model parameters themselves (e.g., peak line fluxes, dust component temperatures, etc.), constraints for each or a combination of model parameters (e.g., line width variation limits, optical depth variation limits for dust components, etc.), specific names of files, or in general info needed for the setup.
 
-   Once the user is satisfied with the initial, guess model, the spectral fitting can be run. ``CAFE`` uses the ``LMFIT`` python package to minimize the data-model residuals using the Trust Region Reflective least-squares method (``least_squares``), and based on the χ2 statistic.
+Once the user is satisfied with the initial, guess model, the spectral fitting can be run. ``CAFE`` uses the ``LMFIT`` python package to minimize the data-model residuals using the Trust Region Reflective least-squares method (``least_squares``), and based on the χ2 statistic.
 
-   The ``CAFE`` fitter returns a parameter object containing the best/optimized parameters from which physical quantities and observables can be extracted (e.g., temperatures) or constructed (e.g., fluxes, based on the feature peak and width). The parameter information can be dumped into python dictionaries for further use, or stored in data tables. In addition, the parameter object is saved to disk as a .fits file in a ‘parameter cube’, which can be read at a later stage to run further fits or generate new dictionaries or data tables. The parameter cubes are stored in the *‘output/’* folder using a default name that is the same as the input spectrum file.
+The ``CAFE`` fitter returns a parameter object containing the best/optimized parameters from which physical quantities and observables can be extracted (e.g., temperatures) or constructed (e.g., fluxes, based on the feature peak and width). The parameter information can be dumped into python dictionaries for further use, or stored in data tables. In addition, the parameter object is saved to disk as a .fits file in a ‘parameter cube’, which can be read at a later stage to run further fits or generate new dictionaries or data tables. The parameter cubes are stored in the *‘output/’* folder using a default name that is the same as the input spectrum file.
 
 
 CAFE Setup Files
@@ -103,7 +103,7 @@ CAFE Setup Files
 The parameters that define these components are initialized via a number of files that the user can modify. These files are:
 
 
-*‘inpars_?.ini’* within the *‘init_parfiles’* folder:
+*‘inpars_?.ini’* within the *init_parfiles/* folder:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Within this file the user can specify the following:
@@ -119,7 +119,7 @@ Within this file the user can specify the following:
 **[CONTINUA INITIAL VALUES AND OPTIONS]**: Dust continuum components are defined by the following parameters: (relative) flux (*_FLX*), temperature (*_TMP*), depth (*_TAU*, referenced to 9.7μm), fraction of screen/mix obscuration geometry (*_MIX*), covering factor (*_COV*). For each parameter, the value, whether the parameter is fitted or not, its minimum and maximum limits, and a tie constraint (to other parameters) can be specified, in that order, via comma separated values. The fluxes are specified via the relative contribution of that component at a reference wavelength (defined in the *‘_opt.cafe’* file; see below).
 
 
-*'_opt.cafe'* within the *'opt_parfiles/’* folder:
+*'_opt.cafe'* within the *opt_parfiles/* folder:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Disclaimer: We highly discourage the modification of this file, as not all the switches and keywords have been fully tested.*
