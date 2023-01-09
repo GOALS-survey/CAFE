@@ -68,6 +68,7 @@ Options for directory setup (specified in the command execution only):
 ``parfile_name`` (default: ‘single_params.txt’)
 
 
+
 ``CRETA`` will return a ‘*_cube.fits’ file containing the extracted spectrum, which can be fed directly to ``CAFE`` for fitting.
 
 The specific steps to achieve this can be found in the appropriate jupyter notebook inside the notebooks folder in the Git repository
