@@ -6,10 +6,12 @@ Purpose
 
 The new Continuum And Feature Extraction (``CAFE``) is a revamped version of the ``CAFE`` software –originally developed for fitting Spitzer/IRS spectra– that has been updated and optimized to work with the new JWST IFU data. The new CAFE is composed of two main tools: (1) the ``CAFE`` Region Extraction Tool Automaton (``CRETA``) and (2) the ``CAFE`` the spectral fitting tool. ``CRETA`` performs single-position and full-grid extractions from JWST IFU datasets; that is, from pipeline-processed cubes obtained with the NIRSpec IFU and MIRI MRS instruments. The ``CAFE`` fitter uses the spectra extracted by ``CRETA`` (or spectra provided by the user) and performs a spectral decomposition of the continuum emission (stellar and/or dust), as well as of a variety of common spectral features (in emission and absorption) present in the near- and mid-IR spectra of galaxies. The full dust treatment (size and composition) performed by ``CAFE`` (see Marshall et al. 2007) allows the dust continuum model components to fit not only spectra typical of normal star-forming galaxies but also complex spectral profiles seen in more extreme, heavily dust-obscured starburst galaxies, such as luminous infrared galaxies (LIRGs), active galactic nuclei (AGN), or very luminous quasars.
 
+
 Installation
 ------------
 
 > pip install git+https://github.com/GOALS-survey/CAFE.git
+
 
 Current Release
 ---------------
@@ -17,6 +19,7 @@ Current Release
 ``CAFE`` v1.0 (2023/01/18)
 
 The current release of ``CAFE`` supports the extraction and fitting of any single spectrum extracted from any combination (or all) of the MIRI/MRS sub-band cubes (ch1_short, ch1_medium, ch1_long, ch2_short, ch2_medium, ch2_long, ch3_short, ch3_medium, ch3_long, ch4_short, ch4_medium, ch4_long), covering the wavelength range from ~5 to 28μm. NIRSpec/IFU spectral extractions and fitting will be supported soon in subsequent releases. Nevertheless, we note that ``CAFE`` already includes some of these capabilities, but they have not been fully tested and therefore are not documented here. The users, however, should feel free to experiment with them if they wish, but no support will be provided.
+
 
 Usage
 -----
@@ -28,25 +31,42 @@ The user can use ``CAFE`` from two starting points:
 JWST IFU cubes: The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the data directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. In it, the user can specify:
 
 ``cubes``: The cubes to be extracted (currently, only MIRI/MRS)
+
 ``user_r_ap``: The radius of the circular aperture used for the extraction
+
 ``user_ra``, ``user_dec``: RA and Dec coordinates of the source
+
 ``point_source``: The method of extractions (point source: cone extraction, with radius increasing linearly with wavelength; extended source: cylinder extraction, with constant radius)
+
 ``lambda_ap``: Wavelength reference for the definition of aperture radius (if point source extractions; ignored otherwise)
+
 ``aperture_correction``: Whether to perform aperture correction based on PSF cubes
+
 ``centering``: Whether to perform a centroid centering on the user provided coordinates
+
 ``lambda_cent``: Wavelength at which the centering will be performed (ignored otherwise)
+
 ``background_sub``: Whether to perform an annulus-based background subtraction prior to the aperture photometry
+
 ``r_ann_in``: Inner radius of the background annulus (ignored otherwise)
+
 ``ann_width``: Width of the background annulus (ignored otherwise)
+
 
 Options for directory setup (specified in the command execution only):
 
 ``data_path`` (default: CRETA/data/)
+
 ``PSFs_path`` (default: CRETA/PSFs/)
+
 ``output_path`` (default: CRETA/extractions/)
+
 ``output_filebase_name`` (default: ‘last_result’)
+
 ``parfile_path`` (default: CRETA/param_files/)
+
 ``parfile_name`` (default: ‘single_params.txt’)
+
 
 ``CRETA`` will return a ‘*_cube.fits’ file containing the extracted spectrum, which can be fed directly to ``CAFE`` for fitting.
 
@@ -59,6 +79,7 @@ Once the spectrum is read, it can be plotted together with the initial (default)
 Once the user is satisfied with the initial, guess model, the spectral fitting can be run. ``CAFE`` uses the ``LMFIT`` python package to minimize the data-model residuals using the Trust Region Reflective least-squares method (``least_squares``), and based on the χ2 statistic.
 
 The ``CAFE`` fitter returns a parameter object containing the best/optimized parameters from which physical quantities and observables can be extracted (e.g., temperatures) or constructed (e.g., fluxes, based on the feature peak and width). The parameter information can be dumped into python dictionaries for further use, or stored in data tables. In addition, the parameter object is saved to disk as a .fits file in a ‘parameter cube’, which can be read at a later stage to run further fits or generate new dictionaries or data tables. The parameter cubes are stored in the ‘output/’ folder using a default name that is the same as the input spectrum file.
+
 
 ``CAFE`` Setup Files
 --------------------
