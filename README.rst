@@ -30,7 +30,7 @@ The user can use ``CAFE`` from two starting points:
 
 1. **Extraction**. JWST IFU cubes:
 
-The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the *data/* directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. In it, the user can specify:
+The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the *data/* directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. Inside it, the user can specify:
 
    ``cubes``: The cubes to be extracted (currently, only MIRI/MRS)
 
