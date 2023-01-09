@@ -49,6 +49,15 @@ REL_ERR_O_SIG = 2.
 REL_ERR_O_AMP = 2.		
 REL_ERR_C_FEAT = 2.
 
+[SWITCHES]
+# Assume that the CLD, COO, WRN, HOT dust components are nested in concentric shells.
+# When this option is activated, it enforces TAU_HOT > TAU_WRM > TAU_COO 
+Onion = False
+# Use Orion template for 3um H20 feature
+Orion_H2O = False		 
+# Add a constant fractional uncertainty to spec data
+ErrSpec = 0.00
+
 [OUTPUT FILE OPTIONS]
 #  The fitting routine optionally outputs a number of text files, plots,
 #  and pickle files. Choose which files to output to disk here.

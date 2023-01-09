@@ -46,6 +46,7 @@ def cafe_grinder(self, params, wave, flux, flux_unc, weight):
         start = time.time()
         print('Iteration '+str(niter)+'/'+str(self.inopts['FIT OPTIONS']['MAX_LOOPS'])+'(max):',datetime.datetime.now(),'-----------------')
         
+        #method = 'leastsq'
         method = 'least_squares' #'nelder' if len(wave) >= 10000 else 'least_squares'
         fitter = lm.Minimizer(chisquare, params, fcn_args=(wave, flux, flux_unc, weight, self.cont_profs, show))
         ### Note that which fitting method is faster here is pretty uncertain, changes by target
@@ -80,7 +81,7 @@ def cafe_grinder(self, params, wave, flux, flux_unc, weight):
                             if parnames[-1] == 'Peak' \
                                or parnames[-1] == 'FLX' or parnames[-1] == 'TMP' \
                                or parnames[-1] == 'TAU' or parnames[-1] == 'RAT':
-                                params[par].value *= (1. + 0.01)
+                                params[par].value *= 1.01
             else:
                 #logFile.write('Hit maximum number of refitting loops\n')
                 print('Hit maximum number of refitting loops. Continuing to next spaxel (if any left).')
@@ -426,7 +427,7 @@ class specmod:
                     from astropy.table import Table
                     tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'])
                 except:
-                    raise IOError('The file is not a valid .txt (column-based) or .fits (CRETA output) file.')
+                    raise IOError('The file is not a valid .txt (column-based) or .fits (CRETA output) file. Or maybe the data are not there.')
                 else:
                     spec = Spectrum1D(spectral_axis=tab['wave']*u.micron, flux=tab['flux']*u.Jy, uncertainty=StdDevUncertainty(tab['flux_unc']), redshift=z)
                     spec.mask = np.full(len(spec.flux), 0)

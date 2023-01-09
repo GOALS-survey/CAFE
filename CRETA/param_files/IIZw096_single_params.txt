@@ -1,4 +1,4 @@
-cubes = g140h, g235h, g395h, ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
+cubes = ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
 user_r_ap = 0.3                 # [arcsec] Aperture size
 user_ra = 20h57m24.368s         # RA of the extraction location
 user_dec = 17d07m39.21s         # Dec of the extraction location
