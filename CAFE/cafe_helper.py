@@ -84,7 +84,7 @@ class CAFE_param_generator:
 
         # Make continuum parameter object from input file
         try:
-            params = self.make_cont_pars(inpars['CONTINUA INITIAL VALUES AND OPTIONS'], parobj_update=parobj_update, Onion=inpars['SWITCHES']['ONION'])
+            params = self.make_cont_pars(inpars['CONTINUA INITIAL VALUES AND OPTIONS'], parobj_update=parobj_update, Onion=inopts['SWITCHES']['ONION'])
         except:
             raise IOError('Input parameter file not found')
         # Note that if a parameter object (= parobj_update) is provided, the continuum parameters will still have the original limits as specified in the input file
@@ -261,7 +261,7 @@ class CAFE_param_generator:
         # --------------------------
         fwhm = gam*wave0
         # We estimate the underlying continuum under the lines at +/- 200 km/s because now with JWST the lines are resolved
-        waveMinMax = [wave0 * (1. - 200./2.998e5), wave0 * (1. + 200./2.998e5)]
+        waveMinMax = [wave0 * (1. - 300./2.998e5), wave0 * (1. + 300./2.998e5)]
         
         peaks = np.zeros(wave0.shape)
         if get_all == False:
@@ -846,7 +846,7 @@ class CAFE_prof_generator:
         scaleOHMc = np.genfromtxt(tablePath+'/opacity/ohmc_scale.txt', comments=';')
         if inopts['MODEL OPTIONS']['DRAINE_OR_OHMC'] != 'OHMc':
             scaleOHMc[:,1] = np.ones(scaleOHMc.shape[1])
-        if not inpars['SWITCHES']['ORION_H2O']:
+        if not inopts['SWITCHES']['ORION_H2O']:
             kIce3 = load_opacity(waveSED, tablePath+'opacity/ice_opacity_idl_3um_upsampled.txt')
         else:
             kIce3 = load_opacity(waveSED, tablePath+'opacity/ice_opacity_idl_orion.txt')

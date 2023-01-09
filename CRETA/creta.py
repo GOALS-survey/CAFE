@@ -995,7 +995,7 @@ class creta:
             # Center grid to PSF
             for i in range(len(PSF_all)):
                 PSF_sky_cnt_filename =  self.creta_path+"PSF_centroids_sky/sky_"+PSF_all[i].name_band+".csv"
-                if   os.path.isfile(PSF_sky_cnt_filename):
+                if os.path.isfile(PSF_sky_cnt_filename):
                     if i == 0: print('Loading PSF Sky Centers')
                     PSF_all[i].xys_sky = user.readCentroidSky(PSF_sky_cnt_filename) #read PSF centroids from file
                 else:

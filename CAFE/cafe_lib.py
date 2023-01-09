@@ -1439,7 +1439,7 @@ def check_fit_pars(self, wave, flux_unc, fit_params, params, old_params, errors_
                    or np.allclose(fit_params[par].value, self.inpars['CONTINUA INITIAL VALUES AND OPTIONS'][par][0], atol=0., rtol=1e-5): # relative comparisons
                     raise RuntimeError('Onion parameter '+par+' failed, rerunning fit without Onion constrains.')
                     #logFile.write(par+' failed, turning off onion\n')
-                    self.inpars['SWITCHES']['ONION'] = False
+                    self.inopts['SWITCHES']['ONION'] = False
                     #acceptFit = False
 
         else:
