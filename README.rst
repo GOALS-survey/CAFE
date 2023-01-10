@@ -24,7 +24,7 @@ The current release of ``CAFE`` supports the extraction and fitting of any singl
 Usage
 -----
 
-The current version of ``CAFE`` (v1.0) is released together with a jupyter notebook that walks the user through the process of extraction and fitting of a spectrum obtained from MIRI/MRS cubes produced by the data pipeline. For the user’s convenience, there is also a python (.py) script for command line executions that users may edit as they see fit.
+The current version of ``CAFE`` (v1.0) is released together with two jupyter notebooks that walk the user through the process of extraction (see *IIZw096_MIRI_spec_CRETA.ipynb* within the *CRETA/notebooks/* folder) and fitting (see *IIZw096_MIRI_spec_CAFE.ipynb* within the *CAFE/notebooks/* folder) of a spectrum obtained from JWST MIRI/MRS cubes produced by the data pipeline. For the user’s convenience, there is also a python (.py) script for command line executions to be found within the *CAFE/notebooks/* folder that users may edit as they see fit.
 
 The user can use ``CAFE`` from two starting points:
 
@@ -71,7 +71,7 @@ Options for directory setup (specified in the command execution only):
 
 ``CRETA`` will return a *‘_cube.fits’* file containing the extracted spectrum, which can be fed directly to ``CAFE`` for fitting.
 
-The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *notebooks/* folder in the Git repository.
+The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CRETA/notebooks/* folder in the Git repository.
 
 2. **Fitting**. An individual, 1D spectrum (``CAFE`` v1.0):
 
@@ -82,6 +82,8 @@ Once the spectrum is read, it can be plotted together with the initial (default)
 Once the user is satisfied with the initial, guess model, the spectral fitting can be run. ``CAFE`` uses the ``LMFIT`` python package to minimize the data-model residuals using the Trust Region Reflective least-squares method (``least_squares``), and based on the χ2 statistic.
 
 The ``CAFE`` fitter returns a parameter object containing the best/optimized parameters from which physical quantities and observables can be extracted (e.g., temperatures) or constructed (e.g., fluxes, based on the feature peak and width). The parameter information can be dumped into python dictionaries for further use, or stored in data tables. In addition, the parameter object is saved to disk as a .fits file in a ‘parameter cube’, which can be read at a later stage to run further fits or generate new dictionaries or data tables. The parameter cubes are stored in the *‘output/’* folder using a default name that is the same as the input spectrum file.
+
+The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CAFE/notebooks/* folder in the Git repository.
 
 
 CAFE Setup Files
