@@ -220,10 +220,10 @@ class cubemod:
         
         # Initialize CAFE param generator for the highest SNR spaxel
         print('Generating initial/full parameter object with all potential lines')        
-        param_gen = CAFE_param_generator(spec, inparfile, optfile)
+        param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         self.inpars = param_gen.inpars
         self.inopts = param_gen.inopts
-        tablePath, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
+        _, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
 
         # Make parameter object with all features available
         init_params = param_gen.make_parobj(get_all=True)
@@ -233,7 +233,7 @@ class cubemod:
 
         ## Initiate CAFE profile loader
         #print('Generating continuum profiles')
-        #prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+        #prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         #
         #if cont_profs is None: # Use default run option file
         #    start = time.time()
@@ -267,11 +267,11 @@ class cubemod:
             spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
 
             print('Regenerating continuum profiles')
-            prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+            prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
             self.cont_profs = prof_gen.make_cont_profs()
             
             print('Regenerating parameter object for current spaxel',np.flip(snr_ind))        
-            param_gen = CAFE_param_generator(spec, inparfile, optfile)
+            param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
             params = param_gen.make_parobj()
             
             if snr_ind != (snr_ind_seq[0][0], snr_ind_seq[1][0]):
@@ -320,11 +320,11 @@ class cubemod:
         
         # Initiate CAFE param generator and make parameter file
         print('Generating continuum profiles for guess model')
-        param_gen = CAFE_param_generator(spec, inparfile, optfile)
+        param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         params = param_gen.make_parobj()
 
         # Initiate CAFE profile loader and make cont_profs
-        prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         cont_profs = prof_gen.make_cont_profs()
 
         # Scale continuum profiles with parameters and get spectra
@@ -352,7 +352,7 @@ class cubemod:
             wave, flux, flux_unc, bandname, mask = mask_spec(self, x, y)
             spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
 
-            prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+            prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
             cont_profs = prof_gen.make_cont_profs()
 
             CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
@@ -410,10 +410,10 @@ class specmod:
 
         if file_dir == 'input/data/': file_dir = self.cafe_dir + file_dir
 
-        print('Load data:',file_dir+file_name)
         try:
             cube = cafeio.read_cretacube(file_dir+file_name, extract)
         except:
+            print('Load data:',file_dir+file_name)
             hdu = fits.PrimaryHDU()
             dummy = fits.ImageHDU(np.full(1,np.nan), name='Flux')
             dummy.header['EXTNAME'] = 'FLUX'
@@ -499,10 +499,10 @@ class specmod:
 
         # Initiate CAFE param generator
         print('Generating parameter object')        
-        param_gen = CAFE_param_generator(spec, inparfile, optfile)
+        param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         self.inpars = param_gen.inpars
         self.inopts = param_gen.inopts
-        tablePath, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
+        _, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
 
         init_params = param_gen.make_parobj()
         self.init_params = init_params
@@ -510,7 +510,7 @@ class specmod:
         
         # Initiate CAFE profile loader
         print('Generating continuum profiles')
-        prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
 
         if cont_profs is None: # Use default run option file
             start = time.time()
@@ -556,11 +556,11 @@ class specmod:
 
         # Initiate CAFE param generator and make parameter file
         print('Generating continuum profiles for guess model')
-        param_gen = CAFE_param_generator(spec, inparfile, optfile)
+        param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         params = param_gen.make_parobj()
         
         # Initiate CAFE profile loader and make cont_profs
-        prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         cont_profs = prof_gen.make_cont_profs()
 
         # Scale continuum profiles with parameters and get spectra
@@ -588,7 +588,7 @@ class specmod:
             wave, flux, flux_unc, bandname, mask = mask_spec(self)
             spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
 
-            prof_gen = CAFE_prof_generator(spec, inparfile, optfile)
+            prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
             cont_profs = prof_gen.make_cont_profs()
 
             CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
