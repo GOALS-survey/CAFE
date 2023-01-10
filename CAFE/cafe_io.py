@@ -24,7 +24,7 @@ class cafe_io:
 
 
     @staticmethod
-    def init_paths(inopts, cafe_path='../CAFE/', file_name=None):
+    def init_paths(inopts, cafe_path=None, file_name=None):
         # Path to load external tables
         if not inopts['PATHS']['TABPATH']:
             tablePath = cafe_path+'tables/'

@@ -17,7 +17,7 @@ import pdb, ipdb
 
 class CAFE_param_generator:
 
-    def __init__(self, spec, inparfile, optfile):
+    def __init__(self, spec, inparfile, optfile, cafe_path='../CAFE/'):
 
         # The data is read from a spectrum1D object
         self.wave = spec.spectral_axis.value
@@ -31,7 +31,7 @@ class CAFE_param_generator:
 
         self.inpars = inpars
         self.inopts = inopts
-        tablePath, _ = cafeio.init_paths(inopts)
+        tablePath, _ = cafeio.init_paths(inopts, cafe_path=cafe_path)
         self.tablePath = tablePath
         
 
@@ -690,7 +690,7 @@ class CAFE_prof_generator:
     optfile:
 
     """
-    def __init__(self, spec, inparfile, optfile):
+    def __init__(self, spec, inparfile, optfile, cafe_path='../CAFE/'):
         ## Read spec
         wave = spec.spectral_axis.value
         flux = spec.flux.value
@@ -707,7 +707,7 @@ class CAFE_prof_generator:
 
         self.inpars = inpars
         self.inopts = inopts
-        tablePath, _ = cafeio.init_paths(inopts)
+        tablePath, _ = cafeio.init_paths(inopts, cafe_path=cafe_path)
         self.tablePath = tablePath
 
         # Define blackbody temperatures of ambient radiation field
