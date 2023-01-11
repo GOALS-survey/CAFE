@@ -150,7 +150,7 @@ def drude_prof(wave, drude, ext=None):
     # Errors get computed here when we need them    
 
     if ext is not None: #np.len(ext) == np.len(pah_prof):
-        pah_prof = pah_prof * ext
+        pah_prof *= ext
 
     return pah_prof
 
@@ -197,7 +197,7 @@ def drude_int_fluxes(wave, drude, ext=None, scale=1.0, flxunits=u.Jy, wvunits=u.
         #lpars = [drude[0][i], drude[1][i], drude[2][i], drude[3][i]]
         lpars = [[drude[0][i]], [drude[1][i]], [drude[2][i]], [drude[3][i]]]
         ### Get extincted flux
-        flux = drude_extinct(wave.value, lpars, ext)
+        flux = drude_prof(wave.value, lpars, ext=ext)
         totflux+=flux
         ### Units
         flux = (flux*flxunits).to(u.erg/u.cm**2/u.s/wvunits, equivalencies=u.spectral_density(wave))
