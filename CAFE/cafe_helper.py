@@ -91,42 +91,40 @@ class CAFE_param_generator:
         # However, the parameter .value's will be replaced by those in the parameter object
 
         # Make feature parameters object
-        if inopts['FIT OPTIONS']['FITLINS'] or inopts['FIT OPTIONS']['FITPAHS']:
+        if 'RESOLUTIONS' in inpars['MODULES & TABLES']:
+            instnames = inpars['MODULES & TABLES']['RESOLUTIONS']
+        else: raise IOError('No spectral modules given')
+        
+        if parobj_update is False:
+            # Initialize the feature waves, gammas and peaks (and names for lines or complexes for PAHs) from input file
+            # Note that these are just individual features, and do not include broad components or the parameters themselves
+            gauss, drude, gauss_opc = self.init_feats(self.wave, self.flux, self.flux_unc, self.z, self.tablePath, instnames, get_all=get_all,
+                                                      atomic_table=inpars['MODULES & TABLES']['ATOMIC_INPUT'],
+                                                      molecular_table=inpars['MODULES & TABLES']['MOLECULAR_INPUT'],
+                                                      hrecomb_table=inpars['MODULES & TABLES']['HRECOMB_INPUT'],
+                                                      pah_table=inpars['MODULES & TABLES']['PAH_INPUT'],
+                                                      gopacity_table=inpars['MODULES & TABLES']['GOPACITIES_INPUT'])
             
-            if 'RESOLUTIONS' in inpars['MODULES & TABLES']:
-                instnames = inpars['MODULES & TABLES']['RESOLUTIONS']
-            else: raise IOError('No spectral modules given')
+        else:
+            # Read the feature waves, gammas and peaks from the provided parameter file
+            gauss, drude, gauss_opc = self.get_feats(params=parobj_update, apply_vgrad2waves=True)
             
-            if parobj_update == False:
-                # Initialize the feature waves, gammas and peaks (and names for lines or complexes for PAHs) from input file
-                # Note that these are just individual features, and do not include broad components or the parameters themselves
-                gauss, drude, gauss_opc = self.init_feats(self.wave, self.flux, self.flux_unc, self.z, self.tablePath, instnames, get_all=get_all,
-                                               atomic_table=inpars['MODULES & TABLES']['ATOMIC_INPUT'],
-                                               molecular_table=inpars['MODULES & TABLES']['MOLECULAR_INPUT'],
-                                               hrecomb_table=inpars['MODULES & TABLES']['HRECOMB_INPUT'],
-                                               pah_table=inpars['MODULES & TABLES']['PAH_INPUT'],
-                                               gopacity_table=inpars['MODULES & TABLES']['GOPACITIES_INPUT'])
-
-            else:
-                # Read the feature waves, gammas and peaks from the provided parameter file
-                gauss, drude, gauss_opc = self.get_feats(params=parobj_update)
-
-            if not inopts['FIT OPTIONS']['FITLINS']:
-                gauss = [[], [], [], [], []]
-            if not inopts['FIT OPTIONS']['FITPAHS']:
-                drude = [[], [], [], []]
-            if not inopts['FIT OPTIONS']['FITOPCS']:
-                gauss_opc = [[], [], [], [], []]
-                
-            # Transform features in LMFIT parameters
-            # Contrary to the continuum parameters, the feature parameters are constructed in an extra step
-            # Note that make_feat_pars doesn't have parobj_update keyword because the .value's have been injected before with parcube2parobj()
-            # and read with get_feats(). make_feat_pars() basically rebuilds the vary, lims and args
-            feat_params = self.make_feat_pars(inpars['PAH & LINE OPTIONS'], gauss, drude, gauss_opc, get_all=get_all)
-            for key in feat_params: params.add(feat_params[key])
+        if not inopts['FIT OPTIONS']['FITLINS']:
+            gauss = [[], [], [], [], []]
+        if not inopts['FIT OPTIONS']['FITPAHS']:
+            drude = [[], [], [], []]
+        if not inopts['FIT OPTIONS']['FITOPCS']:
+            gauss_opc = [[], [], [], [], []]
+            
+        # Transform features into LMFIT parameters
+        # Contrary to the continuum parameters, the feature parameters are constructed in an extra step
+        # Note that make_feat_pars doesn't have parobj_update keyword because the .value's have been injected before with parcube2parobj()
+        # and read with get_feats(). make_feat_pars() basically rebuilds the vary, lims and args
+        feat_params = self.make_feat_pars(inpars['PAH & LINE OPTIONS'], gauss, drude, gauss_opc, get_all=get_all, parobj_update=parobj_update)
+        for key in feat_params: params.add(feat_params[key])
         
         # Params is a dictionary with all the initialized LMFIT parameters
-        if get_all == True and len(feat_params) != (len(gauss[0])+len(drude[0])+len(gauss_opc[0])+int(np.sum(gauss[4])))*3+1:
+        if get_all is True and len(feat_params) != (len(gauss[0])+len(drude[0])+len(gauss_opc[0])+int(np.sum(gauss[4])))*3+1:
             raise ValueError('There has been a rejection during the creation of the parameters and there should not have')
         print('Parameter object has',int((len(feat_params)-(len(drude[0])*3+len(gauss_opc[0]*3)))/3),'lines,',len(drude[0]),'PAHs,',len(gauss_opc[0]),'opacity features, and',len(params)-len(feat_params),'continuum parameters')
         
@@ -365,13 +363,12 @@ class CAFE_param_generator:
         gauss_opc = [np.asarray(oWave0_kept), np.asarray(oGam_kept), np.asarray(oPeak_kept), oNames_kept]
         
 
-
         # RETURN THE GAUSS, DRUDE AND GAUSS OPACITY PARAMETERS
         return gauss, drude, gauss_opc
    
 
     @staticmethod
-    def get_feats(params, errors=False, apply_vgrad2waves=True):
+    def get_feats(params, errors=False, apply_vgrad2waves=False):
         ''' Turns lm parameters into  for flux computation
     
         Arguments:
@@ -393,7 +390,7 @@ class CAFE_param_generator:
                     if fwave[-1] == 'B':
                         continue
                     else:
-                        if errors == False:
+                        if errors is False:
                             lwave.append(params[key].value)
                             lgamma.append(params[key.replace('Wave','Gamma')].value)
                             lpeak.append(params[key.replace('Wave','Peak')].value)
@@ -403,7 +400,7 @@ class CAFE_param_generator:
                             lpeak.append(params[key.replace('Wave','Peak')].stderr)
                         lname.append(fname+'_'+fwave[0:-1])
                         ldoub.append(1) if 'g_'+fname+'_'+fwave[0:-1]+'B_Wave' in pkeys else ldoub.append(0)
-                        if apply_vgrad2waves == True: lwave[-1] *= (1+params['VGRAD']/2.998e5)
+                        if apply_vgrad2waves is True: lwave[-1] *= (1+params['VGRAD']/2.998e5)
                 elif key[-1] == 'a' or key[-1] == 'k': continue
                 else:
                     raise ValueError('You messed with the feature parameter names')
@@ -411,7 +408,7 @@ class CAFE_param_generator:
             elif key[0] == 'd':
                 if key[-1] == 'e':
                     fname = key[:-5]
-                    if errors == False:
+                    if errors is False:
                         pwave.append(params[key].value)
                         pgamma.append(params[fname+'_Gamma'].value)
                         ppeak.append(params[fname+'_Peak'].value)
@@ -421,7 +418,7 @@ class CAFE_param_generator:
                         ppeak.append(params[fname+'_Peak'].stderr)
                     pname.append(fname[1:])
                     pcomp.append(key.split('_')[0][1:])
-                    if apply_vgrad2waves == True: pwave[-1] *= (1+params['VGRAD']/2.998e5)
+                    if apply_vgrad2waves is True: pwave[-1] *= (1+params['VGRAD']/2.998e5)
                 elif key[-1] == 'a' or key[-1] == 'k': continue
                 else:
                     raise ValueError('You messed with the feature parameter names')
@@ -430,7 +427,7 @@ class CAFE_param_generator:
                 if key[-1] == 'e':
                     fname = key.split('_')[1]
                     fwave = key.split('_')[2]
-                    if errors == False:
+                    if errors is False:
                         owave.append(params[key].value)
                         ogamma.append(params[key.replace('Wave','Gamma')].value)
                         opeak.append(params[key.replace('Wave','Peak')].value)
@@ -439,7 +436,7 @@ class CAFE_param_generator:
                         ogamma.append(params[key.replace('Wave','Gamma')].stderr)
                         opeak.append(params[key.replace('Wave','Peak')].stderr)
                     oname.append(fname+'_'+fwave)
-                    if apply_vgrad2waves == True: owave[-1] *= (1+params['VGRAD']/2.998e5)
+                    if apply_vgrad2waves is True: owave[-1] *= (1+params['VGRAD']/2.998e5)
                 elif key[-1] == 'a' or key[-1] == 'k': continue
                 else:
                     raise ValueError('You messed with the feature parameter names')
@@ -469,11 +466,11 @@ class CAFE_param_generator:
             ### Just value and fit flag
             if len(inpars[key]) == 2:
                 params.add(key, value=inpars[key][0], vary=bool(inpars[key][1]), min=-np.inf, max=np.inf)
-
+                
             ### Min/max - must specify both (use np.inf if you only want one)
             elif len(inpars[key]) == 4 or (len(inpars[key])==5 and inpars[key][-1] is None):
                 params.add(key, value=inpars[key][0], vary=bool(inpars[key][1]), min=inpars[key][2], max=inpars[key][3])
-
+                
             ### Tie parameters - must also set bounds (can be inf)
             elif len(inpars[key]) == 5:
                 try:
@@ -481,9 +478,10 @@ class CAFE_param_generator:
                 except NameError:
                     ### This happens when reloading a fit that had onion on, it confuses the expr parser
                     params.add(key, value=inpars[key][0], vary=bool(inpars[key][1]), min=inpars[key][2], max=inpars[key][3])
-
-            if parobj_update: params[key].value = parobj_update[key].value
-
+                    
+            if parobj_update:
+                params[key].value = parobj_update[key].value
+                
 
         ### Force TAU_HOT > TAU_WRM > TAU_COO
         if Onion:
@@ -491,8 +489,7 @@ class CAFE_param_generator:
             #params['HOT_TAU'] = lm.Parameter(name='HOT_TAU', value=inpars['HOT_TAU'][0], expr='HOT_WRM * WRM_TAU')
             params['HOT_TAU'].set(expr='HOT_WRM * WRM_TAU')
             if parobj_update: params['HOT_WRM'].value = parobj_update['HOT_WRM'].value
-
-
+            
             params.add('WRM_COO', value=inpars['WRM_TAU'][0]/inpars['COO_TAU'][0], vary=True, min=1.0, max=np.inf)
             #params['COO_TAU'] = lm.Parameter(name='COO_TAU', value=inpars['COO_TAU'][0], expr='WRM_TAU / WRM_COO')
             params['COO_TAU'].set(expr='WRM_TAU / WRM_COO')
@@ -529,7 +526,7 @@ class CAFE_param_generator:
         # Line features
         for i in range(gauss[0].size):
             ### May eventually want to replace hardcoded values
-            if gauss[2][i] > 1e-7 or get_all == True or parobj_update != False:
+            if gauss[2][i] > 1e-7 or get_all is True or parobj_update is not False:
                 for j in range(int(gauss[4][i])+1):
                     
                     #name = gauss[3][i].replace('(', '').replace('-', '')
@@ -545,8 +542,11 @@ class CAFE_param_generator:
                         minW = -np.inf
                     params.add('g_'+name+complab[j]+'_Wave', value=gauss[0][i], vary=inpars['FITWAVE0_LIN_'+complab[j]], min=minW, max=maxW)
                     if parobj_update:
+                        pass
+                        # Wavelengths are different because the VGRAD has been applied to the feature wavelengths 
+                        #if params['g_'+name+complab[j]+'_Wave'].value != parobj_update['g_'+name+complab[j]+'_Wave'].value: ipdb.set_trace()
                         #if 'g_'+name+complab[j]+'_Wave' in parobj_update.keys():
-                        params['g_'+name+complab[j]+'_Wave'].value = parobj_update['g_'+name+complab[j]+'_Wave'].value
+                        #params['g_'+name+complab[j]+'_Wave'].value = parobj_update['g_'+name+complab[j]+'_Wave'].value
                     
                     ### Do widths (gammas) ###
                     if inpars['EPSGAMMA_LIN_'+complab[j]] > 0:
@@ -557,8 +557,9 @@ class CAFE_param_generator:
                         minG = 0.
                     params.add('g_'+name+complab[j]+'_Gamma', value=gauss[1][i]*(2*j+1), vary=inpars['FITGAMMA_LIN_'+complab[j]], min=minG, max=maxG) # The i'th component is initialized to have a width 2*j+1 * instrumental FWHM
                     if parobj_update:
+                        if j == 0 and params['g_'+name+complab[j]+'_Gamma'].value != parobj_update['g_'+name+complab[j]+'_Gamma'].value: ipdb.set_trace()
                         #if 'g_'+name+complab[j]+'_Gamma' in parobj_update.keys():
-                        params['g_'+name+complab[j]+'_Gamma'].value = parobj_update['g_'+name+complab[j]+'_Gamma'].value
+                        #params['g_'+name+complab[j]+'_Gamma'].value = parobj_update['g_'+name+complab[j]+'_Gamma'].value
                     
                     ### Do amplitudes ###
                     if inpars['EPSPEAK_LIN'] > 0:
@@ -569,8 +570,9 @@ class CAFE_param_generator:
                         minP = 0.
                     params.add('g_'+name+complab[j]+'_Peak', value=gauss[2][i]/(3*j+1), vary=True, min=minP, max=maxP) # The i'th component is initialized to have an amplitude = main component / (3*j+1) 
                     if parobj_update:
+                        if j == 0 and params['g_'+name+complab[j]+'_Peak'].value != parobj_update['g_'+name+complab[j]+'_Peak'].value: ipdb.set_trace()
                         #if 'g_'+name+complab[j]+'_Peak' in parobj_update.keys():
-                        params['g_'+name+complab[j]+'_Peak'].value = parobj_update['g_'+name+complab[j]+'_Peak'].value
+                        #params['g_'+name+complab[j]+'_Peak'].value = parobj_update['g_'+name+complab[j]+'_Peak'].value
 
                     ### If in fixed doublet, force the intensity ratio
                     if name in list(doublets.keys()):
@@ -593,8 +595,11 @@ class CAFE_param_generator:
                     minW = -np.inf
                 params.add('d'+name+'_Wave',  value=drude[0][i], vary=inpars['FITWAVE0_PAH'], min=minW, max=maxW)
                 if parobj_update:
+                    pass
+                    # Wavelengths are different because the VGRAD has been applied to the feature wavelengths 
+                    #if params['d'+name+'_Wave'].value != parobj_update['d'+name+'_Wave'].value: ipdb.set_trace()
                     #if 'd'+name+'_Wave' in parobj_update.keys():
-                    params['d'+name+'_Wave'].value = parobj_update['d'+name+'_Wave'].value
+                    #params['d'+name+'_Wave'].value = parobj_update['d'+name+'_Wave'].value
 
                 if inpars['EPSGAMMA_PAH'] > 0:
                     maxG = drude[1][i]*(1.+inpars['EPSGAMMA_PAH']) # EPSGAMMA_PAH in fraction
@@ -604,8 +609,9 @@ class CAFE_param_generator:
                     minG = 0.
                 params.add('d'+name+'_Gamma', value=drude[1][i], vary=inpars['FITGAMMA_PAH'], min=minG, max=maxG)
                 if parobj_update:
+                    if params['d'+name+'_Gamma'].value != parobj_update['d'+name+'_Gamma'].value: ipdb.set_trace()
                     #if 'd'+name+'_Gamma' in parobj_update.keys():
-                    params['d'+name+'_Gamma'].value = parobj_update['d'+name+'_Gamma'].value
+                    #params['d'+name+'_Gamma'].value = parobj_update['d'+name+'_Gamma'].value
 
                 if inpars['EPSPEAK_PAH'] > 0:
                     maxP = drude[2][i]*(1.+inpars['EPSPEAK_PAH']) #EPSPEAK_PAH in fraction
@@ -615,8 +621,9 @@ class CAFE_param_generator:
                     minP =  0.
                 params.add('d'+name+'_Peak',  value=drude[2][i], vary=True,  min=minP, max=maxP)
                 if parobj_update:
+                    if params['d'+name+'_Peak'].value != parobj_update['d'+name+'_Peak'].value: ipdb.set_trace()
                     #if 'd'+name+'_Peak' in parobj_update.keys():
-                    params['d'+name+'_Peak'].value = parobj_update['d'+name+'_Peak'].value
+                    #params['d'+name+'_Peak'].value = parobj_update['d'+name+'_Peak'].value
 
 
         # Opacity features
@@ -636,8 +643,11 @@ class CAFE_param_generator:
                     minW = -np.inf
                 params.add('o_'+name+'_Wave', value=gauss_opc[0][i], vary=inpars['FITWAVE0_OPC'], min=minW, max=maxW)
                 if parobj_update:
+                    pass
+                    # Wavelengths are different because the VGRAD has been applied to the feature wavelengths 
+                    #if params['o_'+name+'_Wave'].value != parobj_update['o_'+name+'_Wave'].value: ipdb.set_trace()
                     #if 'o_'+name+'_Wave' in parobj_update.keys():
-                    params['o_'+name+'_Wave'].value = parobj_update['o_'+name+'_Wave'].value
+                    #params['o_'+name+'_Wave'].value = parobj_update['o_'+name+'_Wave'].value
                     
                 ### Do widths (gammas) ###
                 if inpars['EPSGAMMA_OPC'] > 0:
@@ -646,8 +656,9 @@ class CAFE_param_generator:
                 else:
                     maxG = np.inf
                     minG = 0.
-                params.add('o_'+name+'_Gamma', value=gauss_opc[1][i]*(2*j+1), vary=inpars['FITGAMMA_OPC'], min=minG, max=maxG) # The i'th component is initialized to have a width 2*j+1 * instrumental FWHM
+                params.add('o_'+name+'_Gamma', value=gauss_opc[1][i], vary=inpars['FITGAMMA_OPC'], min=minG, max=maxG) # The i'th component is initialized to have a width 2*j+1 * instrumental FWHM
                 if parobj_update:
+                    if params['o_'+name+'_Gamma'].value != parobj_update['o_'+name+'_Gamma'].value: ipdb.set_trace()
                     #if 'o_'+name+'_Gamma' in parobj_update.keys():
                     params['o_'+name+'_Gamma'].value = parobj_update['o_'+name+'_Gamma'].value
                     
@@ -658,19 +669,22 @@ class CAFE_param_generator:
                 else:
                     maxP =  np.inf
                     minP =  0.
-                params.add('o_'+name+'_Peak', value=gauss_opc[2][i]/(3*j+1), vary=True, min=minP, max=maxP) # The i'th component is initialized to have an amplitude = main component / (3*j+1) 
+                params.add('o_'+name+'_Peak', value=gauss_opc[2][i], vary=True, min=minP, max=maxP) # The i'th component is initialized to have an amplitude = main component / (3*j+1) 
                 if parobj_update:
+                    if params['o_'+name+'_Peak'].value != parobj_update['o_'+name+'_Peak'].value: idpb.set_trace()
                     #if 'o_'+name+'_Peak' in parobj_update.keys():
                     params['o_'+name+'_Peak'].value = parobj_update['o_'+name+'_Peak'].value
 
 
         # Parameter that allows for the wavelength of all emission features to vary uniformly, simulating any potential velocity gradient
         params.add('VGRAD', value=1., vary=inpars['FITVGRAD'], min=-1.*inpars['EPSVGRAD'], max=1.*inpars['EPSVGRAD'])
-        if parobj_update:
-            params['VGRAD'].value = parobj_update['VGRAD'].value
-            params['VGRAD'].vary = inpars['FITVGRAD']
-            params['VGRAD'].min = params['VGRAD'].value - 1.*inpars['EPSVGRAD']
-            params['VGRAD'].max = params['VGRAD'].value + 1.*inpars['EPSVGRAD']
+        #if parobj_update:
+        #    # WARNING: if parobj_update is True, VGRAD will be updated even if the value has already been applied to the line wavelengths!
+        #    if params['VGRAD'].value != parobj_update['VGRAD'].value: ipdb.set_trace()
+        #    params['VGRAD'].value = parobj_update['VGRAD'].value
+        #    params['VGRAD'].vary = inpars['FITVGRAD']
+        #    params['VGRAD'].min = params['VGRAD'].value - 1.*inpars['EPSVGRAD']
+        #    params['VGRAD'].max = params['VGRAD'].value + 1.*inpars['EPSVGRAD']
 
 
         return params
@@ -1059,7 +1073,7 @@ class CAFE_parcube_generator:
         return parcube
 
     
-def parobj2parcube(parobj, parcube, x, y):
+def parobj2parcube(parobj, parcube, x=0, y=0):
     """
     Insert values in the Parameter object into an existing parcube
     
@@ -1105,10 +1119,11 @@ def parcube2parobj(parcube, x=0, y=0, parobj=None):
     
         Parameters
         ----------
-        parcube: (hdul)
-        parobj: (Parameter object)
-        x, y: 
-            spaxel coordinate    
+        parcube: Parameter cube (hdul)
+        x, y: Spaxel coordinate
+        parobj: Parameter object (lmfit parameters)
+    
+        If parobj is provided the parcube parameters that are in parobj will be injected in parobj
     """
 
     if parobj is None:
@@ -1141,6 +1156,15 @@ def parcube2parobj(parcube, x=0, y=0, parobj=None):
                     parobj[parname].min = parcube['MIN'].data[z, y, x]
                     parobj[parname].max = parcube['MAX'].data[z, y, x]
                     parobj[parname].expr = None if parcube['EXPR'].data['expr'][z] == 'None' else parcube['EXPR'].data['expr'][z]
+                    
+                #elif parcube['VALUE'].data[z, y, x] == 0. and parname[-4:] == '_FLX'):
+                #    parobj[parname].value = 1e-3
+                #    parobj[parname].stderr =  None if np.isnan(parcube['STDERR'].data[z, y, x]) else parcube['STDERR'].data[z, y, x]
+                #    parobj[parname].vary = False if parcube['VARY'].data[z, y, x] == 0. else True
+                #    parobj[parname].min = parcube['MIN'].data[z, y, x]
+                #    parobj[parname].max = parcube['MAX'].data[z, y, x]
+                #    parobj[parname].expr = None if parcube['EXPR'].data['expr'][z] == 'None' else parcube['EXPR'].data['expr'][z]
+                    
                 count += 1
 
         if count != len(parobj.keys()):
