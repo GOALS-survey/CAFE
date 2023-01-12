@@ -32,7 +32,7 @@ The user can use ``CAFE`` from two starting points:
 
 The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the *data/* directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. Inside it, the user can specify:
 
-   ``cubes``: The cubes to be extracted (currently, only MIRI/MRS)
+   ``cubes``: The cubes to be extracted (currently, only MIRI/MRS; the names provided here need to match or be a sub-string of the cube file names)
 
    ``user_r_ap``: The radius of the circular aperture used for the extraction
 
