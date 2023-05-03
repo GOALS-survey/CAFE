@@ -639,39 +639,32 @@ class specmod:
         return ax
 
 
+    def save_result(self, asdf=True, pah_tbl=True, line_tbl=True, output_dirc=None):
+        if hasattr(self, 'parcube') is False:
+            raise AttributeError('The spectrum is not fitted yet. Missing fitted result - parcube.')
 
-    def save_asdf(self, inparfile, optfile, asdf=True, pah_tbl=True, line_tbl=True, file_name=None):
+        fitPars = self.parcube.params
+        wave = self.spec.spectral_axis.value
+
         if asdf is True:
-
-            if hasattr(self, 'parcube') is False:
-                raise ValueError('The spectrum is not fitted yet.')
-            else:
-                fitPars = parcube2parobj(self.parcube)
-
-            wave, flux, flux_unc, bandname, mask = mask_spec(self)
-            spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
-
-            prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
-            cont_profs = prof_gen.make_cont_profs()
-
+            fitPars_dict = fitPars.valuesdict()
+            
             # Get fitted results
-            CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
-
-            # Narrow gauss and drude components have now an extra "redshift" from the VGRAD parameter
-            gauss, drude, gauss_opc = get_feat_pars(fitPars)
+            gauss, drude = get_feat_pars(fitPars)  # fitPars consisting all the fitted parameters
+            CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, self.cont_profs, comps=True)
 
             # Get PAH powers (intrinsic/extinguished)
             pah_power_int = drude_int_fluxes(CompFluxes['wave'], drude)
             pah_power_ext = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
 
             # Quick hack for output PAH and line results
-            output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.sqrt(2.*np.pi)*2.998e5*gauss[1]*gauss[2]} #  Should add integrated gauss
+            output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.zeros(len(gauss[3]))} #  Should add integrated gauss
             output_drude = {'wave':drude[0], 'width':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':pah_power_int.value}
 
             # Make dict to save in .asdf
-            obsspec = {'wave': wave, 'flux': flux, 'flux_unc': flux_unc}
+            obsspec = {'wave': self.wave, 'flux': self.flux, 'flux_unc': self.flux_unc}
             cafefit = {'cafefit': {'obsspec': obsspec,
-                                   'fitPars': dict(fitPars),
+                                   'fitPars': fitPars_dict,
                                    'CompFluxes': CompFluxes,
                                    'CompFluxes_0': CompFluxes_0,
                                    'extComps': extComps,
@@ -680,9 +673,212 @@ class specmod:
                                    'gauss': output_gauss,
                                    'drude': output_drude
                                    }
-                      }
-            
+                       }
+
             # Save output result to .asdf file
             target = AsdfFile(cafefit)
-            target.write_to(file_name+'.asdf')
+            if output_dirc is None:
+                target.write_to('./output_cafefit.asdf')
+            else:
+                target.write_to(output_dirc)
 
+
+    def pah_table(self, all_pah=False):
+        """
+        Output the table of PAH integrated powers
+
+        Parameters
+        ----------
+            allpah : bool (default: False)
+                If allpah is True, return measurements of ALL the 
+                individual PAH features. Otherwise, return the complex 
+                PAH measurements. 
+        """
+        fitPars = self.parcube.params
+
+        df = self.parobj2df(fitPars)
+
+        pah_parname = [i[0]=='d' for i in df.index]
+
+        pah_name = list(set([n.split('_')[1] for n in df[pah_parname].index]))
+
+        pah_wave_list = []
+        pah_strength_list = []
+        pah_strength_unc_list = []
+        for n in pah_name:
+            p = df.filter(like=n, axis=0)
+
+            # --------------
+            # Flux estimates
+            # --------------
+            wav = p.filter(like='Wave', axis=0).value[0] * u.micron
+            
+            gamma = p.filter(like='Gamma', axis=0).value[0]
+            
+            peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
+
+            x = np.linspace(2.5, 38, 200) * u.micron
+            y = peak * gamma**2 / ((x/wav - wav/x)**2 + gamma**2)
+
+            # integrated intensity (strength) -- in unit of W/m^2
+            pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wav)# * 1e-26 # * u.watt/u.m**2
+            
+            pah_wave_list.append(wav.value)
+            # Make unit to appear as W/m^2
+            pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
+
+            # --------------------------
+            # Flux uncertainty estimates
+            # --------------------------
+            _wave_unc = p.filter(like='Wave', axis=0).stderr[0]
+            _gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
+            _peak_unc = p.filter(like='Peak', axis=0).stderr[0]
+
+            # Only proceed if uncertainties exist
+            if (_wave_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
+                wav_unc = _wave_unc * u.micron
+                gamma_unc = _gamma_unc
+                peak_unc = _peak_unc * u.Jy
+
+                g_over_w_unc = gamma / wav * np.sqrt((gamma_unc/gamma)**2 + (wav_unc/wav)**2) # uncertainty of gamma/wav
+                
+                pah_strength_unc = (np.pi * const.c.to('micron/s') / 2) * \
+                                    (peak * gamma / wav) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wav))**2)# * 1e-26# * u.watt/u.m**2
+
+                # Make unit to appear as W/m^2
+                pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
+            else:
+                pah_strength_unc_list.append(np.nan)
+
+        # Define main PAH band dictionary
+        mainpah_dict = {'PAH33': {'range': [3.25, 3.32]},
+                        'ali34': {'range': [3.35, 3.44]},
+                        'ali345': {'range': [3.45, 3.5]},
+                        'PAH62': {'range': [6.2, 6.3]},
+                        'PAH77_C': {'range': [7.3, 7.9]},
+                        'PAH83': {'range': [8.3, 8.4]},
+                        'PAH86': {'range': [8.6, 8.7]},
+                        'PAH113_C': {'range': [11.2, 11.4]},
+                        'PAH120': {'range': [11.9, 12.1]},
+                        'PAH126_C': {'range': [12.6, 12.7]},
+                        'PAH136': {'range': [13.4, 13.6]},
+                        'PAH142': {'range': [14.1, 14.2]},
+                        'PAH164': {'range': [16.4, 16.5]},
+                        'PAH170_C': {'range': [16.4, 17.9]},
+                        'PAH174': {'range': [17.35, 17.45]}
+                        }
+
+        #if output_unc is True:
+        all_pah_df = pd.DataFrame({'pah_name': pah_name, 
+                                   'pah_wave': pah_wave_list, 
+                                   'pah_strength': pah_strength_list,
+                                   'pah_strength_unc': pah_strength_unc_list,}
+                                 ).sort_values('pah_wave')
+        all_pah_df.set_index('pah_name', inplace=True)
+
+        # Generate PAH complex table
+        pah_complex_list = []                                                                                                                  
+        for pah_wave in all_pah_df.pah_wave:
+            match = False
+            for mainpah_key in mainpah_dict.keys():
+                if (pah_wave >= mainpah_dict[mainpah_key]['range'][0]) & (pah_wave < mainpah_dict[mainpah_key]['range'][1]):
+                    pah_complex_list.append(mainpah_key)
+                    match = True
+                    break
+            if match is False:
+                pah_complex_list.append(None)
+                    
+        all_pah_df['pah_complex'] = pah_complex_list
+
+        pah_complex_strength = all_pah_df.groupby('pah_complex')['pah_strength'].sum()
+
+        # if output_unc is True:
+        pah_complex_strength_unc = all_pah_df.groupby('pah_complex')['pah_strength_unc'].apply(lambda x: np.sqrt(np.sum(x**2)))
+
+        pah_complex_df = pd.merge(pah_complex_strength, pah_complex_strength_unc, left_index=True, right_index=True)
+
+        if all_pah is False:
+            return pah_complex_df
+        else:
+            return all_pah_df
+
+
+    def line_table(self):
+        """
+        Output the table of line integrated powers
+        """
+        fitPars = self.parcube.params
+
+        df = self.parobj2df(fitPars)
+
+        line_parname = [i[0]=='g' for i in df.index]
+
+        line_name = list(set([n.split('_')[1] for n in df[line_parname].index]))
+
+        line_wave_list = []
+        line_strength_list = []
+        line_strength_unc_list = []
+        for n in line_name:
+            p = df.filter(like=n, axis=0)
+
+            wav = p.filter(like='Wave', axis=0).value[0] * u.micron
+            wav_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
+            
+            gamma = p.filter(like='Gamma', axis=0).value[0]
+            gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
+            
+            peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
+            peak_unc = p.filter(like='Peak', axis=0).stderr[0] * u.Jy
+
+            x = np.linspace(2.5, 38, 200) * u.micron
+            y = peak * gamma**2 / ((x/wav - wav/x)**2 + gamma**2)
+
+            # integrated intensity (strength) -- in unit of W/m^2
+            # Gauss = 1 / np.sqrt(np.pi * np.log(2)) * Drude
+            # 1 / np.sqrt(np.pi * np.log(2)) ~ 0.678
+            line_strength = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wav)# * 1e-26 # * u.watt/u.m**2
+            
+            g_over_w_unc = gamma / wav * np.sqrt((gamma_unc/gamma)**2 + (wav_unc/wav)**2) # uncertainty of gamma/wav
+            
+            line_strength_unc = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * \
+                                (peak * gamma / wav) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wav))**2)# * 1e-26# * u.watt/u.m**2
+
+            line_wave_list.append(wav.value)
+            # Make unit to appear as W/m^2
+            line_strength_list.append(line_strength.to(u.Watt/u.m**2).value)
+            line_strength_unc_list.append(line_strength_unc.to(u.Watt/u.m**2).value)
+
+        all_line_df = pd.DataFrame({'line_name': line_name, 
+                                    'line_wave': line_wave_list, 
+                                    'line_strength': line_strength_list,
+                                    'line_strength_unc': line_strength_unc_list,}
+                                  ).sort_values('line_wave')
+        all_line_df.set_index('line_name', inplace=True)
+
+        return all_line_df
+
+
+def plot_cafefit(asdf_fn):
+    """ Recover the CAFE plot based on the input asdf file
+        INPUT:
+            asdf_fn: the asdf file that store the CAFE fitted parameters
+
+        OUTPUT:
+            A mpl axis object that can be modified for making the figure
+    """
+    af = asdf.open(asdf_fn)
+
+    wave = np.asarray(af.tree['cafefit']['obsspec']['wave'])
+    flux = np.asarray(af['cafefit']['obsspec']['flux'])
+    flux_unc = np.asarray(af['cafefit']['obsspec']['flux_unc'])
+
+    comps = af['cafefit']['CompFluxes']
+    extPAH = af['cafefit']['extComps']['extPAH']
+    g = af['cafefit']['gauss']
+    d = af['cafefit']['drude']
+
+    gauss = [g['wave'], g['width'], g['peak']]
+    drude = [d['wave'], d['width'], d['peak']]
+    (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
+
+    return (cafefig, ax1, ax2)
