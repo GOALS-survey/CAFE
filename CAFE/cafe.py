@@ -639,39 +639,32 @@ class specmod:
         return ax
 
 
+    def save_result(self, asdf=True, pah_tbl=True, line_tbl=True, output_dirc=None):
+        if hasattr(self, 'parcube') is False:
+            raise AttributeError('The spectrum is not fitted yet. Missing fitted result - parcube.')
 
-    def save_asdf(self, inparfile, optfile, asdf=True, pah_tbl=True, line_tbl=True, file_name=None):
+        fitPars = self.parcube.params
+        wave = self.spec.spectral_axis.value
+
         if asdf is True:
-
-            if hasattr(self, 'parcube') is False:
-                raise ValueError('The spectrum is not fitted yet.')
-            else:
-                fitPars = parcube2parobj(self.parcube)
-
-            wave, flux, flux_unc, bandname, mask = mask_spec(self)
-            spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
-
-            prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
-            cont_profs = prof_gen.make_cont_profs()
-
+            fitPars_dict = fitPars.valuesdict()
+            
             # Get fitted results
-            CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
-
-            # Narrow gauss and drude components have now an extra "redshift" from the VGRAD parameter
-            gauss, drude, gauss_opc = get_feat_pars(fitPars)
+            gauss, drude = get_feat_pars(fitPars)  # fitPars consisting all the fitted parameters
+            CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, self.cont_profs, comps=True)
 
             # Get PAH powers (intrinsic/extinguished)
             pah_power_int = drude_int_fluxes(CompFluxes['wave'], drude)
             pah_power_ext = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
 
             # Quick hack for output PAH and line results
-            output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.sqrt(2.*np.pi)*2.998e5*gauss[1]*gauss[2]} #  Should add integrated gauss
+            output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.zeros(len(gauss[3]))} #  Should add integrated gauss
             output_drude = {'wave':drude[0], 'width':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':pah_power_int.value}
 
             # Make dict to save in .asdf
-            obsspec = {'wave': wave, 'flux': flux, 'flux_unc': flux_unc}
+            obsspec = {'wave': self.wave, 'flux': self.flux, 'flux_unc': self.flux_unc}
             cafefit = {'cafefit': {'obsspec': obsspec,
-                                   'fitPars': dict(fitPars),
+                                   'fitPars': fitPars_dict,
                                    'CompFluxes': CompFluxes,
                                    'CompFluxes_0': CompFluxes_0,
                                    'extComps': extComps,
@@ -680,9 +673,38 @@ class specmod:
                                    'gauss': output_gauss,
                                    'drude': output_drude
                                    }
-                      }
-            
+                       }
+
             # Save output result to .asdf file
             target = AsdfFile(cafefit)
-            target.write_to(file_name+'.asdf')
+            if output_dirc is None:
+                target.write_to('./output_cafefit.asdf')
+            else:
+                target.write_to(output_dirc)
 
+
+
+def plot_cafefit(asdf_fn):
+    """ Recover the CAFE plot based on the input asdf file
+        INPUT:
+            asdf_fn: the asdf file that store the CAFE fitted parameters
+
+        OUTPUT:
+            A mpl axis object that can be modified for making the figure
+    """
+    af = asdf.open(asdf_fn)
+
+    wave = np.asarray(af.tree['cafefit']['obsspec']['wave'])
+    flux = np.asarray(af['cafefit']['obsspec']['flux'])
+    flux_unc = np.asarray(af['cafefit']['obsspec']['flux_unc'])
+
+    comps = af['cafefit']['CompFluxes']
+    extPAH = af['cafefit']['extComps']['extPAH']
+    g = af['cafefit']['gauss']
+    d = af['cafefit']['drude']
+
+    gauss = [g['wave'], g['width'], g['peak']]
+    drude = [d['wave'], d['width'], d['peak']]
+    (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
+
+    return (cafefig, ax1, ax2)

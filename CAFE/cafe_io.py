@@ -210,8 +210,7 @@ class cafe_io:
             config.write(outpars)
 
 
-    @staticmethod
-    def pah_table(parcube, x, y, parobj=False, all_pah=False):
+    def pah_table(self, all_pah=False):
         """
         Output the table of PAH integrated powers
 
@@ -222,17 +221,12 @@ class cafe_io:
                 individual PAH features. Otherwise, return the complex 
                 PAH measurements. 
         """
-        import cafe_helper
-        from cafe_helper import parcube2df
-        #parobj = parcube.params
+        fitPars = self.parcube.params
 
-        if parobj == True:
-            df = parobj2df(parcube) # parcube is a parobj
-        else:
-            df = parcube2df(parcube, x, y)
+        df = self.parobj2df(fitPars)
 
         pah_parname = [i[0]=='d' for i in df.index]
-        
+
         pah_name = list(set([n.split('_')[1] for n in df[pah_parname].index]))
 
         pah_wave_list = []
@@ -240,21 +234,15 @@ class cafe_io:
         pah_strength_unc_list = []
         for n in pah_name:
             p = df.filter(like=n, axis=0)
+
+            # --------------
+            # Flux estimates
+            # --------------
             wav = p.filter(like='Wave', axis=0).value[0] * u.micron
-            try:
-                wav_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
-            except:
-                wav_unc = np.nan * u.micron
+            
             gamma = p.filter(like='Gamma', axis=0).value[0]
-            try:
-                gamma_unc = float(p.filter(like='Gamma', axis=0).stderr[0])
-            except:
-                gamma_unc = np.nan
-            peak = p.filter(like='Peak', axis=0).value[0] * u.mJy
-            try:
-                peak_unc = p.filter(like='Peak', axis=0).stderr[0] * u.mJy
-            except:
-                peak_unc = np.nan * u.mJy
+            
+            peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
 
             x = np.linspace(2.5, 38, 200) * u.micron
             y = peak * gamma**2 / ((x/wav - wav/x)**2 + gamma**2)
@@ -262,17 +250,34 @@ class cafe_io:
             # integrated intensity (strength) -- in unit of W/m^2
             pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wav)# * 1e-26 # * u.watt/u.m**2
             
-            g_over_w_unc = gamma / wav * np.sqrt((gamma_unc/gamma)**2 + (wav_unc/wav)**2) # uncertainty of gamma/wav
-            
-            pah_strength_unc = (np.pi * const.c.to('micron/s') / 2) * \
-                                (peak * gamma / wav) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wav))**2)# * 1e-26# * u.watt/u.m**2
-
             pah_wave_list.append(wav.value)
             # Make unit to appear as W/m^2
             pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
-            pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
 
-        # Define main PAH band dictionary.
+            # --------------------------
+            # Flux uncertainty estimates
+            # --------------------------
+            _wave_unc = p.filter(like='Wave', axis=0).stderr[0]
+            _gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
+            _peak_unc = p.filter(like='Peak', axis=0).stderr[0]
+
+            # Only proceed if uncertainties exist
+            if (_wave_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
+                wav_unc = _wave_unc * u.micron
+                gamma_unc = _gamma_unc
+                peak_unc = _peak_unc * u.Jy
+
+                g_over_w_unc = gamma / wav * np.sqrt((gamma_unc/gamma)**2 + (wav_unc/wav)**2) # uncertainty of gamma/wav
+                
+                pah_strength_unc = (np.pi * const.c.to('micron/s') / 2) * \
+                                    (peak * gamma / wav) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wav))**2)# * 1e-26# * u.watt/u.m**2
+
+                # Make unit to appear as W/m^2
+                pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
+            else:
+                pah_strength_unc_list.append(np.nan)
+
+        # Define main PAH band dictionary
         mainpah_dict = {'PAH33': {'range': [3.25, 3.32]},
                         'ali34': {'range': [3.35, 3.44]},
                         'ali345': {'range': [3.45, 3.5]},
@@ -290,6 +295,7 @@ class cafe_io:
                         'PAH174': {'range': [17.35, 17.45]}
                         }
 
+        #if output_unc is True:
         all_pah_df = pd.DataFrame({'pah_name': pah_name, 
                                    'pah_wave': pah_wave_list, 
                                    'pah_strength': pah_strength_list,
@@ -297,13 +303,12 @@ class cafe_io:
                                  ).sort_values('pah_wave')
         all_pah_df.set_index('pah_name', inplace=True)
 
+        # Generate PAH complex table
         pah_complex_list = []                                                                                                                  
         for pah_wave in all_pah_df.pah_wave:
             match = False
             for mainpah_key in mainpah_dict.keys():
-                #print(pah_complex_list)
                 if (pah_wave >= mainpah_dict[mainpah_key]['range'][0]) & (pah_wave < mainpah_dict[mainpah_key]['range'][1]):
-                #if (pah_wave >= mainpah_dict[mainpah_key]['range'][0]) & (pah_wave < mainpah_dict[mainpah_key]['range'][1]):
                     pah_complex_list.append(mainpah_key)
                     match = True
                     break
@@ -314,6 +319,7 @@ class cafe_io:
 
         pah_complex_strength = all_pah_df.groupby('pah_complex')['pah_strength'].sum()
 
+        # if output_unc is True:
         pah_complex_strength_unc = all_pah_df.groupby('pah_complex')['pah_strength_unc'].apply(lambda x: np.sqrt(np.sum(x**2)))
 
         pah_complex_df = pd.merge(pah_complex_strength, pah_complex_strength_unc, left_index=True, right_index=True)
@@ -324,19 +330,13 @@ class cafe_io:
             return all_pah_df
 
 
-    @staticmethod
-    def line_table(parcube, x, y, parobj=False):
+    def line_table(self):
         """
         Output the table of line integrated powers
         """
-        import cafe_helper
-        from cafe_helper import parcube2df
-        #parobj = self.parcube.params
+        fitPars = self.parcube.params
 
-        if parobj == True:
-            df = parobj2df(parcube) # parcube is a parobj
-        else:
-            df = parcube2df(parcube, x, y)
+        df = self.parobj2df(fitPars)
 
         line_parname = [i[0]=='g' for i in df.index]
 
@@ -349,21 +349,14 @@ class cafe_io:
             p = df.filter(like=n, axis=0)
 
             wav = p.filter(like='Wave', axis=0).value[0] * u.micron
-            try:
-                wav_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
-            except:
-                wav_unc = 0. * u.micron
-            gamma = p.filter(like='Gamma', axis=0).value[0]
-            try:
-                gamma_unc = float(p.filter(like='Gamma', axis=0).stderr[0])
-            except:
-                gamma_unc = 0.
-            peak = p.filter(like='Peak', axis=0).value[0] * u.mJy
-            try:
-                peak_unc = p.filter(like='Peak', axis=0).stderr[0] * u.mJy
-            except:
-                peak_unc = 0. * u.mJy
+            wav_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
             
+            gamma = p.filter(like='Gamma', axis=0).value[0]
+            gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
+            
+            peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
+            peak_unc = p.filter(like='Peak', axis=0).stderr[0] * u.Jy
+
             x = np.linspace(2.5, 38, 200) * u.micron
             y = peak * gamma**2 / ((x/wav - wav/x)**2 + gamma**2)
 
@@ -390,77 +383,3 @@ class cafe_io:
         all_line_df.set_index('line_name', inplace=True)
 
         return all_line_df
-
-
-
-
-#def cafe_output(fitPars):
-#
-#    ### Make sure flux components are up to date
-#    gauss, drude = get_feat_pars(fitPars)  # fitPars consisting all the fitted parameters
-#    if gauss[0].size > 0:
-#        for i in range(gauss[0].size):
-#            if gauss[4][i] == 0: gauss[0][i] *= (1+fitPars['VGRAD']/2.998e5)
-#        if drude[0].size > 0:
-#            drude[0] *= (1+fitPars['VGRAD']/2.998e5)
-#
-#    CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
-#
-#    ### Write parameters out as soon as it's done
-#    tstamp = startTime.replace('-','')
-#    tstamp = tstamp.replace(':','')
-#    tstamp = tstamp.replace(' ','')
-#    tstamp = tstamp[2:-2]
-#    cafeio.write_param_file(fitPars, inpars, outpath+obj+'_fitpars_'+tstamp+'.ini')
-#
-#    ### Write out PAH tables
-#    if inopts['OUTPUT FILE OPTIONS']['PAH_TAB']:
-#        int_flxs = drude_int_fluxes(CompFluxes['wave'], drude)
-#        ext_flxs = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
-#        pahname = outpath+obj+'_PAHtable_'+tstamp+'.ecsv'
-#        cafeio.write_pah_table(pahname, drude, int_flxs, ext_flxs, display=inopts['OUTPUT FILE OPTIONS']['PRINT_PAH_TAB'])
-#
-#    print(np.round(end-start1,2), 'seconds total fitting time')
-#    logFile.write(str(np.round(end-start1,2)) + ' seconds total fitting time\n')
-#    
-#    warnings.resetwarnings()
-#
-#    # Quick hack for output PAH and line results
-#    output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.zeros(len(gauss[3]))} #  Should add integrated gauss
-#    output_drude = {'wave':drude[0], 'width':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':int_flxs.value}
-#
-#    # Make dict to save in .asdf
-#    obsspec = {'wave': wave, 'flux':flux, 'flux_unc':terro}
-#    cafefit = {'cafefit': {'obsspec': obsspec,
-#                           'CompFluxes': CompFluxes,
-#                           'CompFluxes_0': CompFluxes_0,
-#                           'extComps': extComps,
-#                           'e0': e0,
-#                           'tau0': tau0,
-#                           'gauss': output_gauss,
-#                           'drude': output_drude
-#                           }
-#               }
-#
-#    # Save output result to .asdf file
-#    target = AsdfFile(cafefit)
-#    target.write_to(outpath+obj+'_cafefit.asdf')
-#
-#    ### Output plots
-#    if inopts['PLOT OPTIONS']['FRAC_CON_PLOT']: fracConPlot(CompFluxes, outpath=outpath, obj=obj)
-#    sedfig, chiSqrFin = sedplot(wave, flux, erro, CompFluxes, weights=weight, npars=result.nvarys)
-#    cafefig = cafeplot(wave, flux, erro, CompFluxes, gauss, drude, plot_drude=True, pahext=extComps['extPAH'])
-#    figs = [sedfig, cafefig]
-#    with PdfPages(outpath+obj+'_fitplots'+tstamp+'.pdf') as pdf:
-#        for fig in figs:
-#            plt.figure(fig.number)
-#            pdf.savefig(bbox_inches='tight')
-#    ### Corr matrix plot goes here - goes last in case it crashes
-#    if inopts['PLOT OPTIONS']['MAKE_CORR'] and acceptFit: 
-#        corrmatrixplot(fitPars, tag='', outpath=outpath,  obj=obj)
-#    ### Final log entries
-#    # logFile.write('Final reduced chi^2: '+str(np.round(chiSqrFin,3))+'\n')
-#    # logFile.write('\n\n')
-#    # logFile.close()
-#
-#    return
