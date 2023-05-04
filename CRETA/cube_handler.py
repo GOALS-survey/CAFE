@@ -433,7 +433,7 @@ class cube_handler:
         for i in range(len(self.rs[0])):
             aper = CircularAperture(self.xys[0], self.rs[0][i]) 
             apers.append(aper)
-            ap_patches = aper.plot(color=colors[i], lw=2,label='Photometry aperture_'+str(i))
+            ap_patches = aper.plot(color=colors[i], lw=2, label='Photometry aperture_'+str(i))
             patches.append(ap_patches[0])
             
            

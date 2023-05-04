@@ -414,6 +414,8 @@ class userAPI:
             
         hdulist.writeto(output_name, overwrite=True)
         
+        hdulist.close()
+
         
         
     def write_single_fitscube(self, file_name, output_name=None): 
@@ -562,3 +564,5 @@ class userAPI:
                                         fits_flux_stitched, fits_err_stitched, fits_dq, fits_wave, fits_bandnames]) 
                 
             hdulist.writeto(output_name, overwrite=True)
+
+            hdulist.close()

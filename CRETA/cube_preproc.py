@@ -5,6 +5,7 @@ Created on Thu Jun 10 13:06:50 2021
 @author: roub
 """
 
+import sys
 import ipdb
 import numpy as np
 from astropy.io import fits
@@ -296,7 +297,7 @@ class cube_preproc:
         c1 = SkyCoord(subcube.user_ra, subcube.user_dec, unit="deg")  #### TDS
         xx, yy, zz = subcube.wcs.world_to_pixel(c1, subcube.ls[0]*u.um)   #### TDS
         sliceIm = np.nansum(image[0:10,:,:], axis=0)
-        x, y = self.userCentroid(sliceIm, xx, yy)
+        x, y = self.userCentroid(sliceIm, xx, yy) #, hbox_x=9, hbox_y=9)
         #x, y = self.imageCentroid(sliceIm)
         res = []
         for i in range(image.shape[0]):
@@ -365,33 +366,33 @@ class cube_preproc:
     # @row: Centroid X coordinate. (int)  
     ###############################################################################
     def imageCentroid(self, image):
-           NY = int(image.shape[0]/2)
-           NX = int (image.shape[1]/2)
-           
-            #  # 25% to 75% sub Image
-           img = image.copy()
-           start_X = int(NX/2)
-           start_Y = int (NY/2)
-           subImg = img[start_Y:start_Y+NY, start_X:start_X+NX]
-
-           xys = np.where(subImg == np.nanmax(subImg))
-           yy = xys[0][0]
-           xx = xys[1][0]
-
-           zoom2img = subImg[yy-5:yy+6, xx-5:xx+6]
-
-           #if there are NaNs within the sub-image do not center
-           if np.isnan(np.sum(zoom2img)) or np.isinf(np.sum(zoom2img)) or np.sum(zoom2img) <= 0.: 
-               
-               return [xx, yy]                 
-
-           else:
-               #if np.ma.count(zoom2img) < 7: ipdb.set_trace()
-               cx, cy = centroid_2dg(zoom2img) # task from phot utils will return x,y
-               xx = start_X + xx - 5 + cx 
-               yy = start_Y + yy - 5 + cy
-
-               return [xx, yy]
+        NY = int(image.shape[0]/2)
+        NX = int (image.shape[1]/2)
+        
+        #  # 25% to 75% sub Image
+        img = image.copy()
+        start_X = int(NX/2)
+        start_Y = int (NY/2)
+        subImg = img[start_Y:start_Y+NY, start_X:start_X+NX]
+        
+        xys = np.where(subImg == np.nanmax(subImg))
+        yy = xys[0][0]
+        xx = xys[1][0]
+        
+        zoom2img = subImg[yy-5:yy+6, xx-5:xx+6]
+        
+        #if there are NaNs within the sub-image do not center
+        if np.isnan(np.sum(zoom2img)) or np.isinf(np.sum(zoom2img)) or np.sum(zoom2img) <= 0.: 
+            
+            return [xx, yy]                 
+        
+        else:
+            #if np.ma.count(zoom2img) < 7: ipdb.set_trace()
+            cx, cy = centroid_2dg(zoom2img) # task from phot utils will return x,y
+            xx = start_X + xx - 5 + cx 
+            yy = start_Y + yy - 5 + cy
+            
+            return [xx, yy]
 
 
    #%% Calculate the image Centroid using an 11x11 box at the coordinates provided 
@@ -399,32 +400,24 @@ class cube_preproc:
    # @xx:    coordinate of 11x11 of max flux
    # @yy:    coordinate of 11x11 of max flux
    ###
-    def userCentroid(self, image, x, y):
-           
-           iy = int(y)
-           ix = int(x)
-           
-           zoom2img = image[iy-5:iy+6, ix-5:ix+6]
-           # print('ROUNDS ', round_xx,  '  ', round_yy)
-           # if round_xx <= 0 or round_yy<=0  or round_yy>zoom2img.shape[1] or round_xx > zoom2img.shape[0]:
-           #     print("EIMASTE STO IF , ",yy,'  ', xx )
-           #     return[yy,xx]
-           # elif   len(np.where(zoom2img  == np.NaN)) != 0 : 
-           #       print("EIMASTE STO elIF , ",yy,'  ', xx ) 
-           #       return[yy,xx]
-           
-           if np.isnan(np.sum(zoom2img)) or np.isinf(np.sum(zoom2img)) or np.sum(zoom2img) <= 0.: 
-               
-               return [x, y]        
+    def userCentroid(self, image, x, y, hbox_x=5, hbox_y=5):
 
-           else:
-               cx, cy= centroid_2dg(zoom2img) 
-               # print('C: ', columns, ' R: ', rows)
-               #fix the 11x11 coordinatesr
-               xx = ix - 5 + cx
-               yy = iy - 5 + cy
-
-               return [xx, yy]
+        iy = int(y)
+        ix = int(x)
+        
+        zoom2img = image[iy-hbox_y:iy+hbox_y+1, ix-hbox_x:ix+hbox_x+1]
+        
+        if np.isnan(np.sum(zoom2img)) or np.isinf(np.sum(zoom2img)) or np.sum(zoom2img) <= 0.: 
+            
+            print('The cetroid algorithm failed because there are some nans or infs or negative values in the images around the centering region')
+            return [x, y]        
+        
+        else:
+            cx, cy= centroid_2dg(zoom2img) 
+            xx = ix - hbox_x + cx
+            yy = iy - hbox_y + cy
+            
+            return [xx, yy]
 
 #%%
     ##### Function for centering at a specific wavelength that user defines, using 3 slices from data array.     #####
@@ -476,7 +469,7 @@ class cube_preproc:
             y = y.tolist()
             z = round(z.tolist())
             
-        plane = np.nansum(the_cube.cube_before[(z-2)>0:(z+3)<len(the_cube.cube_before),:,:], axis=0)  #add one before and one plane after l_c
+        plane = np.nansum(the_cube.cube_before[np.max(((z-2),0)):np.min(((z+3),len(the_cube.cube_before))),:,:], axis=0)  #add one before and one plane after l_c
         
         xx, yy = self.userCentroid(plane, x, y)
         

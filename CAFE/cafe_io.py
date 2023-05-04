@@ -13,6 +13,8 @@ import astropy.units as u
 from astropy import constants as const
 from astropy.table import Table
 from astropy.io import fits
+import asdf
+from asdf import AsdfFile
 
 
 
@@ -179,6 +181,7 @@ class cafe_io:
         return inst
 
 
+
     @staticmethod
     def write_param_file(params, opts, fname):
         config = configparser.ConfigParser()
@@ -210,7 +213,9 @@ class cafe_io:
             config.write(outpars)
 
 
-    def pah_table(self, all_pah=False):
+
+    @staticmethod
+    def pah_table(parcube, x, y, parobj=False, all_pah=False):
         """
         Output the table of PAH integrated powers
 
@@ -221,9 +226,15 @@ class cafe_io:
                 individual PAH features. Otherwise, return the complex 
                 PAH measurements. 
         """
-        fitPars = self.parcube.params
+        #fitPars = self.parcube.params
+        #df = self.parobj2df(fitPars)
 
-        df = self.parobj2df(fitPars)
+        if parobj == True:
+            from cafe_helper import parobj2df
+            df = parobj2df(parcube) # parcube is a parobj
+        else:
+            from cafe_helper import parcube2df
+            df = parcube2df(parcube, x, y)
 
         pah_parname = [i[0]=='d' for i in df.index]
 
@@ -330,13 +341,21 @@ class cafe_io:
             return all_pah_df
 
 
-    def line_table(self):
+
+    @staticmethod
+    def line_table(parcube, x, y, parobj=False):
         """
         Output the table of line integrated powers
         """
-        fitPars = self.parcube.params
+        #fitPars = self.parcube.params
+        #df = self.parobj2df(fitPars)
 
-        df = self.parobj2df(fitPars)
+        if parobj == True:
+            from cafe_helper import parobj2df
+            df = parobj2df(parcube) # parcube is a parobj
+        else:
+            from cafe_helper import parcube2df
+            df = parcube2df(parcube, x, y)
 
         line_parname = [i[0]=='g' for i in df.index]
 
@@ -383,3 +402,60 @@ class cafe_io:
         all_line_df.set_index('line_name', inplace=True)
 
         return all_line_df
+
+
+
+    @staticmethod
+    def save_asdf(cafe, pah_tbl=True, line_tbl=True, file_name=None, overwrite=False):
+        """
+        Write the asdf file containing all the info about the model components
+        """
+
+        if hasattr(cafe, 'parcube') is False:
+            raise ValueError('The spectrum is not fitted yet.')
+        else:
+            from cafe_helper import parcube2parobj
+            fitPars = parcube2parobj(cafe.parcube)
+            
+        from cafe_lib import mask_spec, get_model_fluxes, get_feat_pars
+
+        wave, flux, flux_unc, bandname, mask = mask_spec(cafe)
+        #spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=cafe.z)
+        #
+        #prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=cafe.cafe_dir)
+        #cont_profs = prof_gen.make_cont_profs()
+        
+        # Get fitted results
+        CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cafe.cont_profs, comps=True)
+        
+        # Narrow gauss and drude components have now an extra "redshift" from the VGRAD parameter
+        gauss, drude, gauss_opc = get_feat_pars(fitPars)
+        
+        # Get PAH powers (intrinsic/extinguished)
+        from component_model import drude_int_fluxes
+        pah_power_int = drude_int_fluxes(CompFluxes['wave'], drude)
+        pah_power_ext = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
+        
+        # Quick hack for output PAH and line results
+        output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.sqrt(2.*np.pi)*2.998e5*gauss[1]*gauss[2]} #  Should add integrated gauss
+        output_drude = {'wave':drude[0], 'width':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':pah_power_int.value}
+        
+        # Make dict to save in .asdf
+        obsspec = {'wave': wave, 'flux': flux, 'flux_unc': flux_unc}
+        cafefit = {'cafefit': {'obsspec': obsspec,
+                               'fitPars': fitPars.valuesdict(),
+                               'CompFluxes': CompFluxes,
+                               'CompFluxes_0': CompFluxes_0,
+                               'extComps': extComps,
+                               #'e0': e0,
+                               #'tau0': tau0,
+                               'gauss': output_gauss,
+                               'drude': output_drude
+        }}
+        
+        # Save output result to .asdf file
+        target = AsdfFile(cafefit)
+        if file_name is None:
+            target.write_to(self.cafe_dir+'output/last_unnamed_cafefit.asdf')
+        else:
+            target.write_to(file_name+'.asdf')

@@ -20,8 +20,6 @@ from cafe_lib import *
 import cafe_helper
 from cafe_helper import *
 
-import asdf
-from asdf import AsdfFile
 from astropy.io import fits 
 
 import astropy
@@ -518,7 +516,9 @@ class specmod:
             self.cont_profs = prof_gen.make_cont_profs()
             end = time.time()
             print(np.round(end-start,2), 'seconds to make continnum profiles')
-            
+        else:
+            self.cont_profs = cont_profs
+
         print('Fitting',len(params),'parameters')
         # Fit the spectrum
         result = cafe_grinder(self, params, wave, flux, flux_unc, weight)
@@ -533,7 +533,7 @@ class specmod:
         source_fn = ''.join(self.file_name.split('.')[0:-1])
         parcube.writeto(outPath+source_fn+'_parcube.fits', overwrite=True)
         # Save .asdf to disk
-        self.save_asdf(inparfile, optfile, file_name=source_fn)
+        cafeio.save_asdf(self, file_name=outPath+source_fn+'_cafefit')
 
         return self
 
@@ -616,6 +616,32 @@ class specmod:
             return cafefig
 
 
+    # TO BE INTEGRATED WITH PLOT_SPEC_FIT
+    def plot_cafefit(asdf_fn):
+        """ Recover the CAFE plot based on the input asdf file
+        INPUT:
+            asdf_fn: the asdf file that store the CAFE fitted parameters
+        OUTPUT:
+            A mpl axis object that can be modified for making the figure
+        """
+        af = asdf.open(asdf_fn)
+        
+        wave = np.asarray(af.tree['cafefit']['obsspec']['wave'])
+        flux = np.asarray(af['cafefit']['obsspec']['flux'])
+        flux_unc = np.asarray(af['cafefit']['obsspec']['flux_unc'])
+        
+        comps = af['cafefit']['CompFluxes']
+        extPAH = af['cafefit']['extComps']['extPAH']
+        g = af['cafefit']['gauss']
+        d = af['cafefit']['drude']
+        
+        gauss = [g['wave'], g['width'], g['peak']]
+        drude = [d['wave'], d['width'], d['peak']]
+        (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
+        
+        return (cafefig, ax1, ax2)
+
+
 
     def plot_spec(self, savefig=None):
 
@@ -639,7 +665,8 @@ class specmod:
         return ax
 
 
-    def save_result(self, asdf=True, pah_tbl=True, line_tbl=True, output_dirc=None):
+    # TO BE DEPRECATED AS ALL READ AND WRITE FUNCTIONS SHOULD BE IN CAFE_IO
+    def save_result(self, asdf=True, pah_tbl=True, line_tbl=True, file_name=None):
         if hasattr(self, 'parcube') is False:
             raise AttributeError('The spectrum is not fitted yet. Missing fitted result - parcube.')
 
@@ -677,34 +704,7 @@ class specmod:
 
             # Save output result to .asdf file
             target = AsdfFile(cafefit)
-            if output_dirc is None:
-                target.write_to('./output_cafefit.asdf')
+            if file_name is None:
+                target.write_to(self.cafe_dir+'output/last_unnamed_cafefit.asdf', overwrite=True)
             else:
-                target.write_to(output_dirc)
-
-
-
-def plot_cafefit(asdf_fn):
-    """ Recover the CAFE plot based on the input asdf file
-        INPUT:
-            asdf_fn: the asdf file that store the CAFE fitted parameters
-
-        OUTPUT:
-            A mpl axis object that can be modified for making the figure
-    """
-    af = asdf.open(asdf_fn)
-
-    wave = np.asarray(af.tree['cafefit']['obsspec']['wave'])
-    flux = np.asarray(af['cafefit']['obsspec']['flux'])
-    flux_unc = np.asarray(af['cafefit']['obsspec']['flux_unc'])
-
-    comps = af['cafefit']['CompFluxes']
-    extPAH = af['cafefit']['extComps']['extPAH']
-    g = af['cafefit']['gauss']
-    d = af['cafefit']['drude']
-
-    gauss = [g['wave'], g['width'], g['peak']]
-    drude = [d['wave'], d['width'], d['peak']]
-    (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
-
-    return (cafefig, ax1, ax2)
+                target.write_to(file_name+'.asdf', overwrite=True)
