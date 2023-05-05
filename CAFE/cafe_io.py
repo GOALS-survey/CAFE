@@ -215,7 +215,7 @@ class cafe_io:
 
 
     @staticmethod
-    def pah_table(parcube, x, y, parobj=False, all_pah=False):
+    def pah_table(parcube, x=0, y=0, parobj=False, all_pah=False, write2disk=False):
         """
         Output the table of PAH integrated powers
 
@@ -335,15 +335,40 @@ class cafe_io:
 
         pah_complex_df = pd.merge(pah_complex_strength, pah_complex_strength_unc, left_index=True, right_index=True)
 
-        if all_pah is False:
-            return pah_complex_df
-        else:
-            return all_pah_df
+        pahs = pah_complex_df if all_pah is False else all_pah_df
+
+        return pahs
 
 
 
     @staticmethod
-    def line_table(parcube, x, y, parobj=False):
+    def save_pah_table(pahs, all_pah=False, file_name=None, overwrite=False):
+
+        from astropy.table import QTable
+        if all_pah == False:
+            t = QTable([pahs.index.values, pahs.pah_strength, pahs.pah_strength_unc],
+                       names = ('pah_complex', 'pah_strength', 'pah_strength_unc'),
+                       meta={'wavelength': 'micron',
+                             'flux': 'W/m^2',
+                       }
+            )
+        else:
+            t = QTable([pahs.index.values, pahs.pah_wave, pahs.pah_strength, pahs.pah_strength_unc, pahs.pah_complex],
+                       names = ('pah_name', 'pah_wave', 'pah_strength', 'pah_strength_unc', 'pah_complex'),
+                       meta={'wavelength': 'micron',
+                             'flux': 'W/m^2',
+                       }
+            )
+
+        if file_name is None:
+            t.write(self.cafe_dir+'output/last_unnamed_pahtable.asdf')
+        else:
+            t.write(file_name+'.ecsv', overwrite=overwrite)
+
+
+
+    @staticmethod
+    def line_table(parcube, x=0, y=0, parobj=False):
         """
         Output the table of line integrated powers
         """
@@ -406,7 +431,24 @@ class cafe_io:
 
 
     @staticmethod
-    def save_asdf(cafe, pah_tbl=True, line_tbl=True, file_name=None, overwrite=False):
+    def save_line_table(lines, file_name=None, overwrite=False):
+
+        from astropy.table import QTable
+        t = QTable([lines.index.values, lines.line_wave, lines.line_strength, lines.line_strength_unc],
+                   names = ('line_name', 'line_wave', 'line_strength', 'line_strength_unc'),
+                   meta={'wavelength': 'micron',
+                         'flux': 'W/m^2',
+                   }
+        )
+        if file_name is None:
+            t.write(self.cafe_dir+'output/last_unnamed_linetable.asdf')
+        else:
+            t.write(file_name+'.ecsv', overwrite=overwrite)
+
+
+
+    @staticmethod
+    def save_asdf(cafe, pah_tbl=True, line_tbl=True, file_name=None):
         """
         Write the asdf file containing all the info about the model components
         """

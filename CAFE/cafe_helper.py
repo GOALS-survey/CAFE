@@ -68,7 +68,7 @@ class CAFE_param_generator:
         return cdict
 
     
-    def make_parobj(self, get_all=False, parobj_update=False):
+    def make_parobj(self, get_all=False, parobj_update=False, init4fit=False):
         """
         Build the Parameters object for lmfit based on the input spectrum.
         This function combines the Parameter obj output from "make_cont_pars"
@@ -84,7 +84,7 @@ class CAFE_param_generator:
 
         # Make continuum parameter object from input file
         try:
-            params = self.make_cont_pars(inpars['CONTINUA INITIAL VALUES AND OPTIONS'], parobj_update=parobj_update, Onion=inopts['SWITCHES']['ONION'])
+            params = self.make_cont_pars(inpars['CONTINUA INITIAL VALUES AND OPTIONS'], parobj_update=parobj_update, init4fit=init4fit, Onion=inopts['SWITCHES']['ONION'])
         except:
             raise IOError('Input parameter file not found')
         # Note that if a parameter object (= parobj_update) is provided, the continuum parameters will still have the original limits as specified in the input file
@@ -120,11 +120,11 @@ class CAFE_param_generator:
         # Contrary to the continuum parameters, the feature parameters are constructed in an extra step
         # Note that make_feat_pars doesn't have parobj_update keyword because the .value's have been injected before with parcube2parobj()
         # and read with get_feats(). make_feat_pars() basically rebuilds the vary, lims and args
-        feat_params = self.make_feat_pars(inpars['PAH & LINE OPTIONS'], gauss, drude, gauss_opc, get_all=get_all, parobj_update=parobj_update)
+        feat_params = self.make_feat_pars(inpars['PAH & LINE OPTIONS'], gauss, drude, gauss_opc, get_all=get_all, parobj_update=parobj_update, init4fit=init4fit)
         for key in feat_params: params.add(feat_params[key])
         
         # Params is a dictionary with all the initialized LMFIT parameters
-        if get_all is True and len(feat_params) != (len(gauss[0])+len(drude[0])+len(gauss_opc[0])+int(np.sum(gauss[4])))*3+1:
+        if get_all == True and len(feat_params) != (len(gauss[0])+len(drude[0])+len(gauss_opc[0])+int(np.sum(gauss[4])))*3+1:
             raise ValueError('There has been a rejection during the creation of the parameters and there should not have')
         print('Parameter object has',int((len(feat_params)-(len(drude[0])*3+len(gauss_opc[0]*3)))/3),'lines,',len(drude[0]),'PAHs,',len(gauss_opc[0]),'opacity features, and',len(params)-len(feat_params),'continuum parameters')
         
@@ -174,6 +174,11 @@ class CAFE_param_generator:
         minWave = np.nanmin(wave)
         maxWave = np.nanmax(wave)
 
+        #for i in range(len(inst_df)):
+        #    if (minWave*(1+z) > inst_df.iloc[i].wMin) or (maxWave*(1+z) < inst_df.iloc[i].wMax): print(inst_df.inst[i]+' is defined in .ini file but either there is no associated cube or the module definition extends beyond the spectrum waves.')
+        #if (minWave*(1+z) < inst_df.iloc[0].wMin): print(inst_df.inst[0]+' is defined in .ini file but the spectrum waves extends beyond the module definition.')
+        #if (maxWave*(1+z) > inst_df.iloc[-1].wMax): print(inst_df.inst[-1]+' is defined in .ini file but the spectrum waves extends beyond the module definition.')
+
         # ---------------------
         # Get atomic line table
         # ---------------------
@@ -188,7 +193,7 @@ class CAFE_param_generator:
         aNames_kept = [] ; aWave0_kept = [] ; aDoub_kept = [] ; aGam = []
         for i in range(len(inst_df)):
             idx = ((aMask == 0) & (aWave0*(1+z) > inst_df.iloc[i].wMin) & (aWave0*(1+z) < inst_df.iloc[i].wMax) \
-                   & (aWave0*(1+z) >= np.nanmin(wave)) & (aWave0*(1+z) <= np.nanmax(wave)))
+                   & (aWave0 >= minWave) & (aWave0 <= maxWave))
             aGam = np.concatenate((aGam, 1./(inst_df.iloc[i].rSlope * aWave0[idx]*(1+z) + inst_df.iloc[i].rBias)))
             aNames_kept, aNames = np.concatenate((aNames_kept, aNames[idx])), aNames[~idx]
             aWave0_kept, aWave0 = np.concatenate((aWave0_kept, aWave0[idx])), aWave0[~idx]
@@ -210,7 +215,7 @@ class CAFE_param_generator:
         mNames_kept = [] ; mWave0_kept = [] ; mDoub_kept = [] ; mGam = []
         for i in range(len(inst_df)):
             idx = ((mMask == 0) & (mWave0*(1+z) > inst_df.iloc[i].wMin) & (mWave0*(1+z) < inst_df.iloc[i].wMax) \
-                   & (mWave0*(1+z) >= np.nanmin(wave)) & (mWave0*(1+z) <= np.nanmax(wave)))
+                   & (mWave0 >= minWave) & (mWave0 <= maxWave))
             mGam = np.concatenate((mGam, 1./(inst_df.iloc[i].rSlope * mWave0[idx]*(1+z) + inst_df.iloc[i].rBias)))
             mNames_kept, mNames = np.concatenate((mNames_kept, mNames[idx])), mNames[~idx]
             mWave0_kept, mWave0 = np.concatenate((mWave0_kept, mWave0[idx])), mWave0[~idx]
@@ -232,7 +237,7 @@ class CAFE_param_generator:
         hNames_kept = [] ;  hWave0_kept = [] ; hDoub_kept = [] ; hGam = []
         for i in range(len(inst_df)):
             idx = ((hMask == 0) & (hWave0*(1+z) > inst_df.iloc[i].wMin) & (hWave0*(1+z) < inst_df.iloc[i].wMax) \
-                   & (hWave0*(1+z) >= np.nanmin(wave)) & (hWave0*(1+z) <= np.nanmax(wave)))
+                   & (hWave0 >= minWave) & (hWave0 <= maxWave))
             hGam = np.concatenate((hGam, 1./(inst_df.iloc[i].rSlope * hWave0[idx]*(1+z) + inst_df.iloc[i].rBias)))
             hNames_kept, hNames = np.concatenate((hNames_kept, hNames[idx])), hNames[~idx]
             hWave0_kept, hWave0 = np.concatenate((hWave0_kept, hWave0[idx])), hWave0[~idx]
@@ -294,7 +299,7 @@ class CAFE_param_generator:
         compPAH = pahTab[:,3]
 
         # Remove PAH features outside the observe wavelength range
-        idx = (wave0PAH*(1+z) >= np.nanmin(wave)) & (wave0PAH*(1+z) <= np.nanmax(wave))
+        idx = (wave0PAH >= minWave) & (wave0PAH <= maxWave)
         wave0PAH = wave0PAH[idx]
         gamPAH = gamPAH[idx]
         peakPAH = peakPAH[idx]
@@ -308,24 +313,23 @@ class CAFE_param_generator:
         for ref_pah_wave in pah_inspection_order:
             # Check wheather reference wavelength is within the input spectral range
             # Note: Cannot deal with spectrum with gaps
-            if (ref_pah_wave >= np.nanmin(wave)) & (ref_pah_wave <= np.nanmax(wave)):
+            if (ref_pah_wave >= minWave) and (ref_pah_wave <= maxWave):
                 # Get index of the ref PAH
                 idx = (np.abs(wave0PAH - ref_pah_wave)).argmin() # PAH band it's closest to the input PAH wavelength
                 # Get gamma of the selected reference PAH
-                ref_pah_gam = gamPAH[idx] 
-                fwhm = ref_pah_gam * ref_pah_wave
+                fwhm = gamPAH[idx] * wave0PAH[idx]
                 # We estimate the underlying continuum under the PAHs in terms of velocity, at +/- 10000 km/s
-                waveMinMax = [ref_pah_wave * (1. - 10000./2.998e5), ref_pah_wave * (1. + 10000./2.998e5)]
+                waveMinMax = [wave0PAH[idx] * (1. - 10000./2.998e5), wave0PAH[idx] * (1. + 10000./2.998e5)]
                 fluxMinMax = np.interp(waveMinMax, wave, flux_left)
                 cont = 0.5 * (fluxMinMax[0] + fluxMinMax[1])
-                ref_pah_peak = np.interp(ref_pah_wave, wave, flux_left) - cont
+                ref_pah_peak = np.interp(wave0PAH[idx], wave, flux_left) - cont
                 peakPAH_guess = peakPAH / peakPAH[idx] * ref_pah_peak
 
                 break
 
         # If none of the listed PAHs are in the wavelength range
         if ref_pah_peak == 0.:
-            #ref_pah_peak = np.interp(ref_pah_wave[0], wave, flux) * 1e-2
+            #ref_pah_peak = np.interp(pah_inspection_order[0], wave, flux) * 1e-2
             #peakPAH_guess = peakPAH / peakPAH[0] * ref_pah_peak
             raise ValueError("Input spectrum does not contain any PAH band available to perform the PAH component scaling.")
 
@@ -349,7 +353,7 @@ class CAFE_param_generator:
         oNames_kept = [] ; oWave0_kept = [] ; oDoub_kept = [] ; oGam_kept = [] ; oPeak_kept = []
         for i in range(len(inst_df)):
             idx = ((oMask == 0) & (oWave0*(1+z) > inst_df.iloc[i].wMin) & (oWave0*(1+z) < inst_df.iloc[i].wMax) \
-                   & (oWave0*(1+z) >= np.nanmin(wave)) & (oWave0*(1+z) <= np.nanmax(wave)))
+                   & (oWave0 >= minWave) & (oWave0 <= maxWave))
             oGam_kept, oGam = np.concatenate((oGam_kept, oGam[idx])), oGam[~idx]
             oNames_kept, oNames = np.concatenate((oNames_kept, oNames[idx])), oNames[~idx]
             oWave0_kept, oWave0 = np.concatenate((oWave0_kept, oWave0[idx])), oWave0[~idx]
@@ -451,7 +455,7 @@ class CAFE_param_generator:
 
 
     @staticmethod
-    def make_cont_pars(inpars, parobj_update=False, Onion=False):
+    def make_cont_pars(inpars, parobj_update=False, init4fit=False, Onion=False):
         '''Makes the parameters structure for the continuum fit from the input dictionary
 
         Arguments:
@@ -481,6 +485,9 @@ class CAFE_param_generator:
                     
             if parobj_update:
                 params[key].value = parobj_update[key].value
+                # If the parameter has been fixed to 0 by the fitter and the parameters are needed as initializers for fitting
+                if params[key].value == 0 and params[key].vary != parobj_update[key].vary and init4fit != False:
+                    params[key].value = 1e-3
                 
 
         ### Force TAU_HOT > TAU_WRM > TAU_COO
@@ -500,14 +507,13 @@ class CAFE_param_generator:
 
 
     @staticmethod
-    def make_feat_pars(inpars, gauss, drude, gauss_opc, get_all=False, parobj_update=False):
+    def make_feat_pars(inpars, gauss, drude, gauss_opc, get_all=False, parobj_update=False, init4fit=False):
         ''' Turns lists of initial Gaussian and Drude profiles into a parameters object for the fitter.
 
         Arguments:
         inpars -- dictionary of input parameters read from inpars['PAH & LINE OPTIONS']
         gauss -- first guess at gaussian line profile parameters
         drude -- first guess at drude line profile parameters
-        swave -- array of rest wavelengths of the data being fit
 
         Returns: lm Parameters object for the CAFE feature parameters
 
@@ -521,12 +527,12 @@ class CAFE_param_generator:
         doublets = {'OIII_5008':['OIII_4960', 2.994], 'NII_6585':['NII_6550', 2.959], 'OI_6366':['OI_6302', 0.32],
                    'NeIII_3969':['NeIII_3870', 0.31], }
         complab = ['N','B']  # narrow and broad
-
-
+        
+        
         # Line features
         for i in range(gauss[0].size):
             ### May eventually want to replace hardcoded values
-            if gauss[2][i] > 1e-7 or get_all is True or parobj_update is not False:
+            if gauss[2][i] > 1e-7 or get_all == True or parobj_update != False:
                 for j in range(int(gauss[4][i])+1):
                     
                     #name = gauss[3][i].replace('(', '').replace('-', '')
@@ -554,7 +560,7 @@ class CAFE_param_generator:
                         minG = gauss[1][i]*(1.-0.05) # Minimum allowed is set to 1/1.05 the resolution (gamma)
                     else:
                         maxG = np.inf
-                        minG = 0.
+                        minG = gauss[1][i]*(1.-0.05) # Minimum allowed is set to 1/1.05 the resolution (gamma)
                     params.add('g_'+name+complab[j]+'_Gamma', value=gauss[1][i]*(2*j+1), vary=inpars['FITGAMMA_LIN_'+complab[j]], min=minG, max=maxG) # The i'th component is initialized to have a width 2*j+1 * instrumental FWHM
                     if parobj_update:
                         if j == 0 and params['g_'+name+complab[j]+'_Gamma'].value != parobj_update['g_'+name+complab[j]+'_Gamma'].value: ipdb.set_trace()
@@ -571,6 +577,8 @@ class CAFE_param_generator:
                     params.add('g_'+name+complab[j]+'_Peak', value=gauss[2][i]/(3*j+1), vary=True, min=minP, max=maxP) # The i'th component is initialized to have an amplitude = main component / (3*j+1) 
                     if parobj_update:
                         if j == 0 and params['g_'+name+complab[j]+'_Peak'].value != parobj_update['g_'+name+complab[j]+'_Peak'].value: ipdb.set_trace()
+                        if parobj_update['g_'+name+complab[j]+'_Peak'].value == 0 and params['g_'+name+complab[j]+'_Peak'].vary != parobj_update['g_'+name+complab[j]+'_Peak'].vary and init4fit != False:
+                            params['g_'+name+complab[j]+'_Peak'].value == 1e-5
                         #if 'g_'+name+complab[j]+'_Peak' in parobj_update.keys():
                         #params['g_'+name+complab[j]+'_Peak'].value = parobj_update['g_'+name+complab[j]+'_Peak'].value
 
@@ -622,6 +630,8 @@ class CAFE_param_generator:
                 params.add('d'+name+'_Peak',  value=drude[2][i], vary=True,  min=minP, max=maxP)
                 if parobj_update:
                     if params['d'+name+'_Peak'].value != parobj_update['d'+name+'_Peak'].value: ipdb.set_trace()
+                    if parobj_update['d'+name+'_Peak'].value == 0 and params['d'+name+'_Peak'].vary != parobj_update['d'+name+'_Peak'].vary and init4fit != False:
+                        params['d'+name+'_Peak'].value == 1e-5
                     #if 'd'+name+'_Peak' in parobj_update.keys():
                     #params['d'+name+'_Peak'].value = parobj_update['d'+name+'_Peak'].value
 
@@ -672,8 +682,10 @@ class CAFE_param_generator:
                 params.add('o_'+name+'_Peak', value=gauss_opc[2][i], vary=True, min=minP, max=maxP) # The i'th component is initialized to have an amplitude = main component / (3*j+1) 
                 if parobj_update:
                     if params['o_'+name+'_Peak'].value != parobj_update['o_'+name+'_Peak'].value: idpb.set_trace()
+                    if parobj_update['o_'+name+'_Peak'].vary == 0 and params['o_'+name+'_Peak'].vary != parobj_update['o_'+name+'_Peak'].vary and init4fit != False:
+                        params['o_'+name+'_Peak'].value == 1e-5
                     #if 'o_'+name+'_Peak' in parobj_update.keys():
-                    params['o_'+name+'_Peak'].value = parobj_update['o_'+name+'_Peak'].value
+                    #params['o_'+name+'_Peak'].value = parobj_update['o_'+name+'_Peak'].value
 
 
         # Parameter that allows for the wavelength of all emission features to vary uniformly, simulating any potential velocity gradient
@@ -1124,6 +1136,7 @@ def parcube2parobj(parcube, x=0, y=0, parobj=None):
         parobj: Parameter object (lmfit parameters)
     
         If parobj is provided the parcube parameters that are in parobj will be injected in parobj
+        and len(parobj) will have len(parobj) and not len(parcube)
     """
 
     if parobj is None:
@@ -1149,21 +1162,15 @@ def parcube2parobj(parcube, x=0, y=0, parobj=None):
             except:
                 continue
             else:
-                if ~np.isnan(parcube['VALUE'].data[z, y, x]) and parcube['VALUE'].data[z, y, x] != 0.:
+                if ~np.isnan(parcube['VALUE'].data[z, y, x]):
                     parobj[parname].value = parcube['VALUE'].data[z, y, x]
                     parobj[parname].stderr =  None if np.isnan(parcube['STDERR'].data[z, y, x]) else parcube['STDERR'].data[z, y, x]
                     parobj[parname].vary = False if parcube['VARY'].data[z, y, x] == 0. else True
                     parobj[parname].min = parcube['MIN'].data[z, y, x]
                     parobj[parname].max = parcube['MAX'].data[z, y, x]
                     parobj[parname].expr = None if parcube['EXPR'].data['expr'][z] == 'None' else parcube['EXPR'].data['expr'][z]
-                    
-                #elif parcube['VALUE'].data[z, y, x] == 0. and parname[-4:] == '_FLX'):
-                #    parobj[parname].value = 1e-3
-                #    parobj[parname].stderr =  None if np.isnan(parcube['STDERR'].data[z, y, x]) else parcube['STDERR'].data[z, y, x]
-                #    parobj[parname].vary = False if parcube['VARY'].data[z, y, x] == 0. else True
-                #    parobj[parname].min = parcube['MIN'].data[z, y, x]
-                #    parobj[parname].max = parcube['MAX'].data[z, y, x]
-                #    parobj[parname].expr = None if parcube['EXPR'].data['expr'][z] == 'None' else parcube['EXPR'].data['expr'][z]
+                else:
+                    raise ValueError(parname+' in parcube is NaN')
                     
                 count += 1
 

@@ -11,6 +11,7 @@ import astropy.units as u
 from astropy import constants as const
 from astropy.stats import mad_std
 import pandas as pd
+import pickle
 
 import cafe_io
 from cafe_io import *
@@ -105,6 +106,9 @@ class cubemod:
         parcube = fits.open(file_dir+file_name)
         parcube.info()
         self.parcube = parcube
+        self.parcube_dir = file_dir
+        self.parcube_name = file_name.replace('.fits','')
+        self.result_file_name = self.parcube_name.replace('_parcube','')
         #parcube.close()
 
 
@@ -123,6 +127,7 @@ class cubemod:
         
         
         self.file_name = file_name #cube.cube.filename().split('/')[-1]
+        self.result_file_name = ''.join(self.file_name.split('.')[0:-1])
         self.extract = extract
         
         # Remove the overlapping wavelengths between the spectral modules
@@ -215,12 +220,16 @@ class cubemod:
         wave, flux, flux_unc, bandname, mask = mask_spec(self,snr_ind_seq[1][0],snr_ind_seq[0][0])
         spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
         
+        #self.inpar_fns = np.full((self.ny, self.nx), '')
+        #self.inpar_fns[snr_ind_seq[0][0], snr_ind_seq[1][0]] = inparfile  # (y,x)
+
         # Initialize CAFE param generator for the highest SNR spaxel
         print('Generating initial/full parameter object with all potential lines')        
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
+        # These are keywords used by deeper layers of cafe
         self.inpars = param_gen.inpars
         self.inopts = param_gen.inopts
-        _, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
+        _, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=self.result_file_name)
 
         print('Generating parameter cube with initial/full parameter object')
         # Make parameter object with all features available
@@ -248,7 +257,10 @@ class cubemod:
         # self.inpars['METADATA']['OUTDIR'] = outpath
         # self.inpars['METADATA']['LOGFILE'] = outpath+obj+'.log'
         # ### FIXME - RA/DEC/Spaxel info should go here, once we have a spectrum format that uses it
-                
+        
+        #WE NEED TO KEEP TRACK OF THE TOTAL VGRAD IN ORDER TO INITIALIZE THE WAVELENGTHS OF THE (NEW, SPAXEL SPECIFIC) FEAUTRES THAT ARE NOT INITIALIZED WITH THE RESULTS OF A PREVIOUS SPAXEL.
+
+        start_cube = time.time()
         spax = 0
         for snr_ind in zip(snr_ind_seq[0], snr_ind_seq[1]): # (y,x)
 
@@ -264,11 +276,17 @@ class cubemod:
             print('Regenerating continuum profiles')
             prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
             self.cont_profs = prof_gen.make_cont_profs()
+
+            #if spax == 1:
+            #    if 'AGN' in inparfile: inparfile.replace('AGN','SB')
             
             if snr_ind != (snr_ind_seq[0][0], snr_ind_seq[1][0]):
                 print('Current spaxel',np.flip(snr_ind),'will be initialized with results from spaxel',
-                      np.flip((param_ind_seq[0,snr_ind[0],snr_ind[1]], param_ind_seq[1,snr_ind[0],snr_ind[1]])))
-                
+                      np.flip((param_ind_seq[0,snr_ind[0],snr_ind[1]], param_ind_seq[1,snr_ind[0],snr_ind[1]])))#,
+                #      'and set to a SB inppar file')
+                #
+                #self.inpar_fns[snr_ind[0], snr_ind[1]] = inparfile  # (y,x)
+
                 # We inject the common params in the parameter cube of the reference (fitted) spaxel
                 # assigned for the initialization of the current spaxel to the current spaxel params
                 cube_params = parcube2parobj(parcube, 
@@ -277,20 +295,37 @@ class cubemod:
                                              parobj=params) # indexation is (x,y)
                 
                 # The params file is regenerated but with the VARY, LIMS and ARG reset based on the new VALUES injected
-                params = param_gen.make_parobj(parobj_update=cube_params, get_all=True)
+                params = param_gen.make_parobj(parobj_update=cube_params, get_all=True, init4fit=True)
                 
             # Fit the spectrum
             result = cafe_grinder(self, params, wave, flux, flux_unc, weight)
 
             # Inject the result into the parameter cube
             parcube = parobj2parcube(result.params, parcube, snr_ind[1], snr_ind[0]) # indexation is (x,y)
+
+            #spax += 1
             
         self.parcube = parcube
         
-        # Save to disk
-        source_fn = ''.join(self.file_name.split('.')[0:-1])
-        parcube.writeto(outPath+source_fn+'_parcube.fits', overwrite=True)
-        
+        # Save parcube to disk
+        self.parcube_dir = outPath
+        self.parcube_name = self.result_file_name+'_parcube'
+        print('Saving parameters in cube to disk:',self.parcube_dir+self.parcube_name)
+        parcube.writeto(self.parcube_dir+self.parcube_name+'.fits', overwrite=True)
+        # Save .asdf to disk
+        print('Saving parameters in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit')
+        cafeio.save_asdf(self, file_name=self.parcube_dir+self.result_file_name+'_cafefit')
+
+        ## Save self in a pickle
+        #with open(self.parcube_dir+self.result_file_name+'_self.pkl', 'wb') as fl:
+        #    pickle.dump(self, fl, protocol=pickle.HIGHEST_PROTOCOL)
+
+        # Make and save tables (IMPROVE FOR CUBES: NOW WILL ONLY WRITE DOWN THE [0,0] COORDINATE)
+        self.pahs = cafeio.pah_table(parcube)
+        cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable', overwrite=True)
+        self.lines = cafeio.line_table(parcube)
+        cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable', overwrite=True)
+                
         return self
 
 
@@ -303,14 +338,14 @@ class cubemod:
         Plot the SED generated by the inital parameters
         """
 
-        wave, flux, flux_unc, bandname, mask = mask_spec(self,x,y)
+        wave, flux, flux_unc, bandname, mask = mask_spec(self, x, y)
         spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
         
         # Plot features based on inital intput parameters
         # -----------------------------------------------
         
         # Initiate CAFE param generator and make parameter file
-        print('Generating continuum profiles for guess model')
+        print('Generating continuum profiles for guess model from the .ini file')
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         params = param_gen.make_parobj()
 
@@ -366,6 +401,28 @@ class cubemod:
             return cafefig
 
 
+    def plot_spec(self, x, y, savefig=None):
+
+        wave, flux, flux_unc, bandname, mask = mask_spec(self,x,y)
+        spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(spec.spectral_axis, spec.flux, linewidth=1, color='k', alpha=0.8)
+        ax.scatter(spec.spectral_axis, spec.flux, marker='o', s=8, color='k', alpha=0.7)
+        ax.errorbar(spec.spectral_axis.value, spec.flux.value, yerr=spec.uncertainty.quantity.value, fmt='none', ecolor='gray', alpha=0.4)
+
+        ax.set_xlabel('Wavelength (' + spec.spectral_axis.unit.to_string() + ')')
+        ax.set_ylabel('Flux (' + spec.flux.unit.to_string() + ')')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+        if savefig is not None:
+            fig.savefig(savefig)
+
+        return ax
+
+
 
     def make_map(self,feat_name,
                  savefig=None):
@@ -394,6 +451,9 @@ class specmod:
         parcube = fits.open(file_dir+file_name)
         parcube.info()
         self.parcube = parcube
+        self.parcube_dir = file_dir
+        self.parcube_name = file_name.replace('.fits','')
+        self.result_file_name = self.parcube_name.replace('_parcube','')
         #parcube.close()
 
 
@@ -448,6 +508,7 @@ class specmod:
 
 
         self.file_name = file_name #cube.cube.filename().split('/')[-1]
+        self.result_file_name = ''.join(self.file_name.split('.')[0:-1])
         self.extract = extract
         
         # Remove the overlapping wavelengths between the spectral modules
@@ -492,7 +553,7 @@ class specmod:
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         self.inpars = param_gen.inpars
         self.inopts = param_gen.inopts
-        _, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=''.join(self.file_name.split('.')[0:-1]))
+        _, outPath = cafeio.init_paths(param_gen.inopts, cafe_path=self.cafe_dir, file_name=self.result_file_name)
 
         print('Generating parameter cube with initial/full parameter object')
         all_params = param_gen.make_parobj(get_all=True)
@@ -505,7 +566,7 @@ class specmod:
         if ini_parcube is not False:
             print('The params will be set to the parameters of the parcube provided for initialization')
             ini_params = parcube2parobj(ini_parcube, parobj=params)
-            params = param_gen.make_parobj(parobj_update=ini_params, get_all=True)
+            params = param_gen.make_parobj(parobj_update=ini_params, get_all=True, init4fit=True)
 
         # Initiate CAFE profile loader
         print('Generating continuum profiles')
@@ -518,7 +579,7 @@ class specmod:
             print(np.round(end-start,2), 'seconds to make continnum profiles')
         else:
             self.cont_profs = cont_profs
-
+            
         print('Fitting',len(params),'parameters')
         # Fit the spectrum
         result = cafe_grinder(self, params, wave, flux, flux_unc, weight)
@@ -528,13 +589,26 @@ class specmod:
         parcube = parobj2parcube(result.params, parcube)
             
         self.parcube = parcube
-        
-        # Save parcube to disk
-        source_fn = ''.join(self.file_name.split('.')[0:-1])
-        parcube.writeto(outPath+source_fn+'_parcube.fits', overwrite=True)
-        # Save .asdf to disk
-        cafeio.save_asdf(self, file_name=outPath+source_fn+'_cafefit')
 
+        # Save parcube to disk
+        self.parcube_dir = outPath
+        self.parcube_name = self.result_file_name+'_parcube'
+        print('Saving parameters in cube to disk:',self.parcube_dir+self.parcube_name)
+        parcube.writeto(self.parcube_dir+self.parcube_name+'.fits', overwrite=True)
+        # Save .asdf to disk
+        print('Saving parameters in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit')
+        cafeio.save_asdf(self, file_name=self.parcube_dir+self.result_file_name+'_cafefit')
+
+        ## Save self in a pickle
+        #with open(self.parcube_dir+self.result_file_name+'_self.pkl', 'wb') as fl:
+        #    pickle.dump(self, fl, protocol=pickle.HIGHEST_PROTOCOL)
+
+        # Make and save tables
+        self.pahs = cafeio.pah_table(parcube)
+        cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable', overwrite=True)
+        self.lines = cafeio.line_table(parcube)
+        cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable', overwrite=True)
+        
         return self
 
     
@@ -555,7 +629,7 @@ class specmod:
         # -----------------------------------------------
 
         # Initiate CAFE param generator and make parameter file
-        print('Generating continuum profiles for guess model')
+        print('Generating continuum profiles for guess model from the .ini file')
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         params = param_gen.make_parobj()
         
@@ -583,37 +657,38 @@ class specmod:
                       optfile, 
                       savefig=None):
         """
-        Plot the spectrum itself. If fitPars already exists, plot the fitted results as well.
+        Plot the spectrum itself. If params already exists, plot the fitted results as well.
         """
+
+        wave, flux, flux_unc, bandname, mask = mask_spec(self)
+        spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
+
         if hasattr(self, 'parcube') is False:
             raise ValueError('The spectrum is not fitted yet.')
         else:
-            fitPars = parcube2parobj(self.parcube)
+            params = parcube2parobj(self.parcube)
 
-            wave, flux, flux_unc, bandname, mask = mask_spec(self)
-            spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
-
-            prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
-            cont_profs = prof_gen.make_cont_profs()
-
-            CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
-
-            gauss, drude, gauss_opc = get_feat_pars(fitPars)  # fitPars consisting all the fitted parameters
-                    
-            #sedfig, chiSqrFin = sedplot(wave, flux, flux_unc, CompFluxes, weights=weight, npars=result.nvarys)
-            cafefig = cafeplot(wave, flux, flux_unc, CompFluxes, gauss, drude, plot_drude=True, pahext=extComps['extPAH'])
-
-            # figs = [sedfig, cafefig]
+        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
+        cont_profs = prof_gen.make_cont_profs()
+        
+        CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(params, wave, cont_profs, comps=True)
+        
+        gauss, drude, gauss_opc = get_feat_pars(params)  # params consisting all the fitted parameters
+        
+        #sedfig, chiSqrFin = sedplot(wave, flux, flux_unc, CompFluxes, weights=weight, npars=result.nvarys)
+        cafefig = cafeplot(wave, flux, flux_unc, CompFluxes, gauss, drude, plot_drude=True, pahext=extComps['extPAH'])
+        
+        # figs = [sedfig, cafefig]
+        
+        # with PdfPages(outpath+obj+'_fitplots'+tstamp+'.pdf') as pdf:
+        #     for fig in figs:
+        #         plt.figure(fig.number)
+        #         pdf.savefig(bbox_inches='tight')
+        
+        if savefig is not None:
+            cafefig.savefig(savefig)
             
-            # with PdfPages(outpath+obj+'_fitplots'+tstamp+'.pdf') as pdf:
-            #     for fig in figs:
-            #         plt.figure(fig.number)
-            #         pdf.savefig(bbox_inches='tight')
-
-            if savefig is not None:
-                cafefig.savefig(savefig)
-
-            return cafefig
+        return cafefig
 
 
     # TO BE INTEGRATED WITH PLOT_SPEC_FIT
