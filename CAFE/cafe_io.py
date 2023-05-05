@@ -17,7 +17,6 @@ import asdf
 from asdf import AsdfFile
 
 
-
 class cafe_io:
 
     def __init__(self):

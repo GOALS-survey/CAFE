@@ -1120,7 +1120,7 @@ def parobj2parcube(parobj, parcube, x=0, y=0):
             for i, item in zip(['VALUE', 'STDERR', 'VARY', 'MIN', 'MAX'], [value, stderr, vary, vmin, vmax]):
                 parcube[i].data[ind, y, x] = item
             parcube['EXPR'].data['expr'][ind] = expr
-
+        
     return parcube
 
 
