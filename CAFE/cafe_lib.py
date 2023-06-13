@@ -22,9 +22,9 @@ from astropy.stats import mad_std
 
 from dustgrainfunc import grain_totemissivity
 from component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
-import pdb, ipdb
 from matplotlib.ticker import ScalarFormatter
 
+# import pdb, ipdb
 
 #################################
 ### Miscellaneous             ###

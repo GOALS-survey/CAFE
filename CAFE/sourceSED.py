@@ -1,12 +1,11 @@
 import numpy as np 
 from scipy.interpolate import interp1d, splrep, splev, RegularGridInterpolator
-#from pycafelib_cube import intTab
 from mathfunc import spline, intTab
-import ipdb
 from astropy.table import Table
 
 import warnings
 
+# import ipdb
 
 #################################
 ### SourceSED/Opacities       ###

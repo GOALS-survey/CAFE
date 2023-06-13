@@ -19,7 +19,7 @@ from mathfunc import spline, intTab
 from component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
 from sourceSED import planck, sourceSED_ISRF, sourceSED_AGN, sourceSED_SB, sourceSED, load_opacity
 
-import pdb, ipdb
+#import pdb, ipdb
 
 #from pycafelib_cube import drude_prof
 

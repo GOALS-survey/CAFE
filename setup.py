@@ -13,6 +13,11 @@ setup(
 
     include_package_data = True,
 
+    data_files=[
+        ('./CAFE', []),
+        ('./CRETA/data', []),
+    ],
+
     install_requires=[
         'astropy>=4.3.1',
         'lmfit>=1.0.3',
@@ -20,6 +25,8 @@ setup(
         'numpy>=1.21.5',
         'pandas>=1.3.5',
         'photutils>=1.5.0',
-        'scipy>=1.7.3'
+        'scipy>=1.7.3',
+        'specutils>1.7.0',
+        'ipykernel>6.9.1'
     ]
 )
