@@ -24,7 +24,8 @@ from cafe_helper import *
 from astropy.io import fits 
 
 import astropy
-import pdb, ipdb
+
+#import pdb, ipdb
 
 
 def cafe_grinder(self, params, wave, flux, flux_unc, weight):
