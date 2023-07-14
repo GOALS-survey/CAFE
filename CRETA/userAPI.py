@@ -3,7 +3,6 @@ Created on Mon Aug 30 12:07:56 2021
 
 @author: roub
 """
-import ipdb
 import configparser
 from astropy.coordinates import SkyCoord
 import glob
