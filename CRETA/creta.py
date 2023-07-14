@@ -5,7 +5,6 @@ Created on Tue Jun  1 17:02:01 2021
 
 @author: roub
 """
-import ipdb
 import numpy as np
 import matplotlib.pyplot as plt
 #plt.ion() 
