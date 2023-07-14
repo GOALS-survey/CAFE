@@ -4,7 +4,6 @@ Created on Mon Jul  4 11:09:13 2022
 
 @author: roub
 """
-import ipdb
 
 # This function reads a CRETA extraction .fits file and writes the results into a readable .fits cube
 # including the header

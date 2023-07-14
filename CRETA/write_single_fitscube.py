@@ -1,5 +1,3 @@
-import ipdb
-
 def write_single_fitscube(file_name, output_name): 
 
        import numpy as np

@@ -6,7 +6,6 @@ Created on Thu Jun 10 13:06:50 2021
 """
 
 import sys
-import ipdb
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt

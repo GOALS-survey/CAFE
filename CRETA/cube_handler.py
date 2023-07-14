@@ -4,9 +4,6 @@ Created on Tue Jun 15 13:10:35 2021
 
 @author: roub
 """
-
-
-import ipdb
 import numpy as np
 from matplotlib import cm, colors, pyplot as plt
 from matplotlib.colors import LogNorm
