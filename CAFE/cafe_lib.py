@@ -1058,8 +1058,8 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
     wavemod = comps['wave']
 
     fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios':[3,1]}, figsize=(8,8), sharex=True)
-    ax1.scatter(wave, flux, marker='s', s=6, edgecolor='k', facecolor='none', label='Data', alpha=0.9)
-    ax1.errorbar(wave, flux, yerr=sigma, fmt='none', color='k', alpha=0.9)
+    ax1.scatter(wave, flux, marker='o', s=6, edgecolor='k', facecolor='none', label='Data', alpha=0.9)
+    ax1.errorbar(wave, flux, yerr=sigma, fmt='none', color='k', alpha=0.1)
     ax1.plot(wavemod, fCont, color='gray', label='Continuum Fit', linestyle='-', zorder=4, alpha=0.8)
     ax1.plot(wavemod, fCont+fLin+fPAH, color='#4c956c', label='Total Fit', linewidth=1.5, zorder=5, alpha=0.85) # green
 
@@ -1114,7 +1114,7 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
     ax11 = ax1.twinx()
     ax11.plot(wavemod, pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
     ax11.set_ylim(0, 1.1)
-    ax11.set_ylabel('Extinction', fontsize=14)
+    ax11.set_ylabel('Attenuation of Warm dust and PAH components', fontsize=14)
     ax11.tick_params(axis='y', labelsize=10)
     #ax11.tick_params(direction='in', which='both', length=4, width=0.8, right=True)
 
@@ -1134,8 +1134,8 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
     #else:   
     #    min_flux = flux[np.nanargmin(wave)]
 
-    min_flux = np.nanmean(flux[0:100])
-    max_flux = np.nanmean(flux[-100:len(flux)])
+    min_flux = np.nanmin(flux[np.r_[0:100,-100:len(flux)]])
+    max_flux = np.nanmax(flux[np.r_[0:100,-100:len(flux)]])
 
     ax1.legend(loc='lower right')
     ax1.tick_params(direction='in', which='both', length=6, width=1, top=True)
