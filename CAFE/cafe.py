@@ -457,7 +457,7 @@ class specmod:
         #parcube.close()
 
 
-    def read_spec(self, file_name, file_dir='input/data/', extract='Flux_st', trim=True, keep_next=False, z=0.):
+    def read_spec(self, file_name, file_dir='input/data/', extract='Flux_st', trim=True, keep_next=False, z=0., read_columns=None, flux_unc=None):
 
         if file_dir == 'input/data/': file_dir = self.cafe_dir + file_dir
 
@@ -476,7 +476,16 @@ class specmod:
             except:
                 try:
                     from astropy.table import Table
-                    tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'])
+                    if read_columns != None:
+                        tab = Table.read(file_dir+file_name, format='ascii.basic')
+                        tab_col_names = read_columns.copy()
+                        import string
+                        for i in range(len(tab[0])-len(read_columns)): tab_col_names.append(string.ascii_lowercase[i])
+                        tab = Table.read(file_dir+file_name, format='ascii.basic', names=tab_col_names)
+                        if flux_unc != None:
+                            tab['flux_unc'] = tab['flux'] * flux_unc
+                    else:
+                        tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'])
                 except:
                     raise IOError('The file is not a valid .txt (column-based) or .fits (CRETA output) file. Or maybe the data are not there.')
                 else:
