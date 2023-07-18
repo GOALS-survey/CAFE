@@ -1,9 +1,10 @@
 import numpy as np 
 from scipy.interpolate import interp1d, splrep, splev, RegularGridInterpolator
-from mathfunc import spline, intTab
 from astropy.table import Table
-
 import warnings
+
+import CAFE
+from CAFE.mathfunc import spline, intTab
 
 # import ipdb
 

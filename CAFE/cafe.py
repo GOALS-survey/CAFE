@@ -11,22 +11,16 @@ import astropy.units as u
 from astropy import constants as const
 from astropy.stats import mad_std
 import pandas as pd
-#import pickle
-
-import cafe_io
-from cafe_io import *
-cafeio = cafe_io()
-import cafe_lib
-from cafe_lib import *
-import cafe_helper
-from cafe_helper import *
-
 from astropy.io import fits 
-
 import astropy
 
-#import pdb, ipdb
+import CAFE
+from CAFE.cafe_io import *
+cafeio = cafe_io()
+from CAFE.cafe_lib import *
+from CAFE.cafe_helper import *
 
+#import pdb, ipdb
 
 def cafe_grinder(self, params, wave, flux, flux_unc, weight):
 

@@ -19,10 +19,12 @@ import configparser
 from astropy.table import QTable
 import astropy.units as u
 from astropy.stats import mad_std
-
-from dustgrainfunc import grain_totemissivity
-from component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
 from matplotlib.ticker import ScalarFormatter
+
+import CAFE
+from CAFE.dustgrainfunc import grain_totemissivity
+from CAFE.component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
+
 
 # import pdb, ipdb
 

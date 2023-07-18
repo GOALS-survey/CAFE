@@ -13,11 +13,12 @@ import configparser
 from astropy.table import QTable
 import astropy.units as u
 
-from mathfunc import spline, intTab
+import CAFE
+from CAFE.mathfunc import spline, intTab
 
 #from pycafelib_cube import *
-from component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
-from sourceSED import planck, sourceSED_ISRF, sourceSED_AGN, sourceSED_SB, sourceSED, load_opacity
+from CAFE.component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
+from CAFE.sourceSED import planck, sourceSED_ISRF, sourceSED_AGN, sourceSED_SB, sourceSED, load_opacity
 
 #import pdb, ipdb
 
