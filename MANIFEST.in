@@ -1,4 +1,4 @@
 include CAFE/inp_parfiles/*
 include CAFE/input/data/*
 include CAFE/opt_parfiles/*
-include CAFE/table/*
+include CAFE/tables/*
