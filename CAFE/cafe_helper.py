@@ -2,21 +2,21 @@ import numpy as np
 import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
 import configparser
 import ast
-from component_model import gauss_flux, drude_prof, pah_drude
-import dustgrainfunc
-from dustgrainfunc import *
 from astropy.io import fits
 from astropy.table import Table
+import site
 
-import cafe_io
-from cafe_io import *
+import CAFE
+from CAFE.component_model import gauss_flux, drude_prof, pah_drude
+from CAFE.dustgrainfunc import *
+from CAFE.cafe_io import *
+
 cafeio = cafe_io()
 
-#import pdb, ipdb
 
 class CAFE_param_generator:
 
-    def __init__(self, spec, inparfile, optfile, cafe_path='../CAFE/'):
+    def __init__(self, spec, inparfile, optfile, cafe_path=None):
 
         # The data is read from a spectrum1D object
         self.wave = spec.spectral_axis.value
