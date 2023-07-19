@@ -25,8 +25,8 @@ class CAFE_param_generator:
         self.z = spec.redshift.value
         
         # Read in and opt files into dictionaries
-        inpars = self.read_inifile(inparfile)
-        inopts = self.read_inifile(optfile)
+        inpars = cafeio.read_inifile(inparfile)
+        inopts = cafeio.read_inifile(optfile)
 
         self.inpars = inpars
         self.inopts = inopts
@@ -34,39 +34,6 @@ class CAFE_param_generator:
         self.tablePath = tablePath
         
 
-    @staticmethod
-    def read_inifile(fname):
-
-        config = configparser.ConfigParser()
-        config.read(fname)
-        ### ConfigParser uses strings, which is irritating,
-        ### so evalueate all as literal
-        cdict = {}
-        try:
-            for section in config.keys():
-                sdict = {}
-                for key in config[section]:
-                    try:
-                        line = config[section][key]
-                        line = ast.literal_eval(line)
-                        if type(line) is tuple or type(line) is list: 
-                            line = list(line)
-                            for i in range(len(line)):
-                                if line[i] == 'np.inf': line[i] = np.inf
-                                elif line[i] ==  '-np.inf': line[i] = -np.inf
-                        sdict[key.upper()] = line
-                    ### Some strings will break literal_eval, so just treat as strings
-                    except Exception as E:
-                        sdict[key.upper()] = config[section][key]
-                cdict[section] = sdict
-        except ValueError as E:
-            print('Error in '+fname)
-            print('Section:', section, 'Parameter:', key)
-            sys.exit()
-        
-        return cdict
-
-    
     def make_parobj(self, get_all=False, parobj_update=False, init4fit=False):
         """
         Build the Parameters object for lmfit based on the input spectrum.
@@ -124,8 +91,8 @@ class CAFE_param_generator:
         
         # Params is a dictionary with all the initialized LMFIT parameters
         if get_all == True and len(feat_params) != (len(gauss[0])+len(drude[0])+len(gauss_opc[0])+int(np.sum(gauss[4])))*3+1:
-            raise ValueError('There has been a rejection during the creation of the parameters and there should not have')
-        print('Parameter object has',int((len(feat_params)-(len(drude[0])*3+len(gauss_opc[0]*3)))/3),'lines,',len(drude[0]),'PAHs,',len(gauss_opc[0]),'opacity features, and',len(params)-len(feat_params),'continuum parameters')
+            raise ValueError('There has been a rejection during the creation of the parameters, which should not have happened')
+        print('Parameter object has',int((len(feat_params)-(len(drude[0])*3+len(gauss_opc[0]*3)))/3),'lines,',len(drude[0]),'PAHs,',len(gauss_opc[0]),'extra opacity features, and',len(params)-len(feat_params),'continuum parameters')
         
         
         return params
@@ -577,7 +544,7 @@ class CAFE_param_generator:
                     if parobj_update:
                         if j == 0 and params['g_'+name+complab[j]+'_Peak'].value != parobj_update['g_'+name+complab[j]+'_Peak'].value: ipdb.set_trace()
                         if parobj_update['g_'+name+complab[j]+'_Peak'].value == 0 and params['g_'+name+complab[j]+'_Peak'].vary != parobj_update['g_'+name+complab[j]+'_Peak'].vary and init4fit != False:
-                            params['g_'+name+complab[j]+'_Peak'].value == 1e-5
+                            params['g_'+name+complab[j]+'_Peak'].value = 1e-5
                         #if 'g_'+name+complab[j]+'_Peak' in parobj_update.keys():
                         #params['g_'+name+complab[j]+'_Peak'].value = parobj_update['g_'+name+complab[j]+'_Peak'].value
 
@@ -630,7 +597,7 @@ class CAFE_param_generator:
                 if parobj_update:
                     if params['d'+name+'_Peak'].value != parobj_update['d'+name+'_Peak'].value: ipdb.set_trace()
                     if parobj_update['d'+name+'_Peak'].value == 0 and params['d'+name+'_Peak'].vary != parobj_update['d'+name+'_Peak'].vary and init4fit != False:
-                        params['d'+name+'_Peak'].value == 1e-5
+                        params['d'+name+'_Peak'].value = 1e-5
                     #if 'd'+name+'_Peak' in parobj_update.keys():
                     #params['d'+name+'_Peak'].value = parobj_update['d'+name+'_Peak'].value
 
@@ -682,7 +649,7 @@ class CAFE_param_generator:
                 if parobj_update:
                     if params['o_'+name+'_Peak'].value != parobj_update['o_'+name+'_Peak'].value: idpb.set_trace()
                     if parobj_update['o_'+name+'_Peak'].vary == 0 and params['o_'+name+'_Peak'].vary != parobj_update['o_'+name+'_Peak'].vary and init4fit != False:
-                        params['o_'+name+'_Peak'].value == 1e-5
+                        params['o_'+name+'_Peak'].value = 1e-5
                     #if 'o_'+name+'_Peak' in parobj_update.keys():
                     #params['o_'+name+'_Peak'].value = parobj_update['o_'+name+'_Peak'].value
 
@@ -727,8 +694,8 @@ class CAFE_prof_generator:
         #waveSED = wave
 
         # Read optfile
-        inpars = CAFE_param_generator.read_inifile(inparfile)
-        inopts = CAFE_param_generator.read_inifile(optfile)
+        inpars = cafeio.read_inifile(inparfile)
+        inopts = cafeio.read_inifile(optfile)
 
         self.inpars = inpars
         self.inopts = inopts

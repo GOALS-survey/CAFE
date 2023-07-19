@@ -186,10 +186,44 @@ class cafe_io:
 
 
     @staticmethod
-    def write_param_file(params, opts, fname):
+    def read_inifile(fname):
+
+        config = configparser.ConfigParser()
+        config.read(fname)
+        ### ConfigParser uses strings, which is irritating,
+        ### so evalueate all as literal
+        cdict = {}
+        try:
+            for section in config.keys():
+                sdict = {}
+                for key in config[section]:
+                    try:
+                        line = config[section][key]
+                        line = ast.literal_eval(line)
+                        if type(line) is tuple or type(line) is list: 
+                            line = list(line)
+                            for i in range(len(line)):
+                                if line[i] == 'np.inf': line[i] = np.inf
+                                elif line[i] ==  '-np.inf': line[i] = -np.inf
+                        sdict[key.upper()] = line
+                    ### Some strings will break literal_eval, so just treat as strings
+                    except Exception as E:
+                        sdict[key.upper()] = config[section][key]
+                cdict[section] = sdict
+        except ValueError as E:
+            print('Error in '+fname)
+            print('Section:', section, 'Parameter:', key)
+            sys.exit()
+        
+        return cdict
+
+    
+    @staticmethod
+    def write_inifile(params, opts, fname):
+        
         config = configparser.ConfigParser()
         ### Unpack lm parameters object into dict
-        opts['CONTINUA INITIAL VALUES AND OPTIONS'] = {}
+        opts['FITTED PARAM VALUES AND OPTIONS'] = {}
         for par in params:
             val = params[par].value
             vary = params[par].vary
@@ -200,11 +234,11 @@ class cafe_io:
             try:
                 expr = params[par].expr
                 if expr is not None:
-                    opts['CONTINUA INITIAL VALUES AND OPTIONS'][par] = [val, vary, low, high, expr]
+                    opts['FITTED PARAM VALUES AND OPTIONS'][par] = [val, vary, low, high, expr]
                 else:
-                    opts['CONTINUA INITIAL VALUES AND OPTIONS'][par] = [val, vary, low, high]
+                    opts['FITTED PARAM VALUES AND OPTIONS'][par] = [val, vary, low, high]
             except AttributeError:
-                opts['CONTINUA INITIAL VALUES AND OPTIONS'][par] = [val, vary, low, high]
+                opts['FITTED PARAM VALUES AND OPTIONS'][par] = [val, vary, low, high]
         ### Put opts dictionary into config format
         for sect in opts.keys():
             sdict = {}
