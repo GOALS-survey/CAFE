@@ -605,8 +605,12 @@ class specmod:
         self.parcube_name = self.result_file_name+'_parcube'
         print('Saving parameters in cube to disk:',self.parcube_dir+self.parcube_name)
         parcube.writeto(self.parcube_dir+self.parcube_name+'.fits', overwrite=True)
+
+        # Write best fit as paramfile
+        cafeio.write_inifile(result.params, self.inpars, self.parcube_dir+self.result_file_name+'_fitpars.ini')
+
         # Save .asdf to disk
-        print('Saving parameters in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit')
+        print('Saving parameters in asdf to disk:', self.parcube_dir+self.result_file_name+'_cafefit')
         cafeio.save_asdf(self, file_name=self.parcube_dir+self.result_file_name+'_cafefit')
 
         ## Save self in a pickle

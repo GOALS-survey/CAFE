@@ -1,8 +1,10 @@
 import sys
 import ipdb
 # Include the path to the folder where CAFE and CRETA have been installed. Usually it's one level up from the notebook/ folder.
-sys.path.insert(0, '../CRETA/')
-sys.path.insert(0, '../CAFE/')
+creta_dir = '../CRETA/'
+sys.path.insert(0, creta_dir)
+cafe_dir = '../CAFE/'
+sys.path.insert(0, cafe_dir)
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -14,10 +16,10 @@ display(HTML("<style>.container { width:100% !important; }</style>"))
 
 # NAME OF GALAXY
 gal_name = 'NGC7469'
+z=0.01623
 
 # SPECTRAL EXTRACTION
 import creta
-creta_dir = '../CRETA/'
 
 ## Read parameter file with extraction keywords
 #param_fn = gal_name+'_MIRI_single_params.txt'
@@ -36,7 +38,6 @@ import cafe_io
 from cafe_io import *
 import cafe_helper
 import cafe
-cafe_dir = '../CAFE/'
 
 # Setup data directory and file name, and parameter files.
 source_fd = creta_dir+'extractions/'
@@ -46,7 +47,6 @@ source_fnb = source_fn.split('.fits')[0].replace('.','')
 inppar_fn = cafe_dir+'inp_parfiles/inpars_jwst_miri_AGN.ini'
 optpar_fn = cafe_dir+'opt_parfiles/default_opt.cafe'
 
-z=0.01623
 
 # Load CAFE
 s = cafe.specmod(cafe_dir)
@@ -91,5 +91,7 @@ ini.read_parcube_file(parcube_fn, file_dir=parcube_fd)
 # Plot the initialized spectrum (should be the same as the fitted spectrum above)
 s.plot_spec_ini(inppar_fn, optpar_fn, ini_parcube=ini.parcube)
 
+# Refit using the last fit results as initialization
+s.fit_spec(inppar_fn, optpar_fn, ini_parcube=ini.parcube)
 
 ipdb.set_trace()
