@@ -3,7 +3,6 @@ import os
 import numpy as np
 import configparser
 import ast
-#import pdb, ipdb
 from os.path import exists
 import pandas as pd
 from specutils import Spectrum1D, SpectrumList
@@ -16,6 +15,9 @@ from astropy.io import fits
 import asdf
 from asdf import AsdfFile
 
+import CAFE
+
+#import pdb, ipdb
 
 class cafe_io:
 
@@ -32,9 +34,11 @@ class cafe_io:
         else: 
             tablePath = inopts['PATHS']['TABPATH']
         
+        # Create an output directory if necessary
         if file_name is not None:
             if not inopts['PATHS']['OUTPATH']:
-                if not os.path.exists(cafe_path+'output/'+file_name):
+                if not os.path.exists(cafe_path+'output/'):
+                    os.mkdir(cafe_path+'output/')
                     os.mkdir(cafe_path+'output/'+file_name)
                 outPath = cafe_path+'output/'+file_name+'/'
             else:
@@ -263,10 +267,10 @@ class cafe_io:
         #df = self.parobj2df(fitPars)
 
         if parobj == True:
-            from cafe_helper import parobj2df
+            from CAFE.cafe_helper import parobj2df
             df = parobj2df(parcube) # parcube is a parobj
         else:
-            from cafe_helper import parcube2df
+            from CAFE.cafe_helper import parcube2df
             df = parcube2df(parcube, x, y)
 
         pah_parname = [i[0]=='d' for i in df.index]
@@ -409,10 +413,10 @@ class cafe_io:
         #df = self.parobj2df(fitPars)
 
         if parobj == True:
-            from cafe_helper import parobj2df
+            from CAFE.cafe_helper import parobj2df
             df = parobj2df(parcube) # parcube is a parobj
         else:
-            from cafe_helper import parcube2df
+            from CAFE.cafe_helper import parcube2df
             df = parcube2df(parcube, x, y)
 
         line_parname = [i[0]=='g' for i in df.index]
@@ -489,10 +493,10 @@ class cafe_io:
         if hasattr(cafe, 'parcube') is False:
             raise ValueError('The spectrum is not fitted yet.')
         else:
-            from cafe_helper import parcube2parobj
+            from CAFE.cafe_helper import parcube2parobj
             fitPars = parcube2parobj(cafe.parcube)
             
-        from cafe_lib import mask_spec, get_model_fluxes, get_feat_pars
+        from CAFE.cafe_lib import mask_spec, get_model_fluxes, get_feat_pars
 
         wave, flux, flux_unc, bandname, mask = mask_spec(cafe)
         #spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=cafe.z)
@@ -507,7 +511,7 @@ class cafe_io:
         gauss, drude, gauss_opc = get_feat_pars(fitPars)
         
         # Get PAH powers (intrinsic/extinguished)
-        from component_model import drude_int_fluxes
+        from CAFE.component_model import drude_int_fluxes
         pah_power_int = drude_int_fluxes(CompFluxes['wave'], drude)
         pah_power_ext = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
         

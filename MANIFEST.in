@@ -1,0 +1,6 @@
+include CAFE/inp_parfiles/*
+include CAFE/input/data/*
+include CAFE/opt_parfiles/*
+include CAFE/tables/*
+include CAFE/tables/opacity/*
+include CAFE/tables/resolving_power/*
