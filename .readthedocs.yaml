@@ -4,10 +4,11 @@ sphinx:
   configuration: docs/source/conf.py
   fail_on_warning: true
 
+build:
+  image: latest
+
 python:
   version: "3.9"
   install:
     - method: pip
       path: .
-      extra_requirements:
-        - dev
