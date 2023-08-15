@@ -4,7 +4,6 @@ Created on Thu Jun 10 13:06:50 2021
 
 @author: roub
 """
-
 import sys
 import numpy as np
 from astropy.io import fits
