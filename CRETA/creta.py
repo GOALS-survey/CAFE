@@ -7,9 +7,7 @@ Created on Tue Jun  1 17:02:01 2021
 """
 import numpy as np
 import matplotlib.pyplot as plt
-#plt.ion() 
-from cube_preproc import cube_preproc
-from userAPI import userAPI
+
 import pandas as pd
 import time
 import datetime
@@ -21,13 +19,17 @@ from astropy.nddata import StdDevUncertainty
 from astropy.wcs import WCS
 from astropy.table import Table
 import shutil
-import write_single_fitscube, write_grid_fitscube
+
+import CRETA
+from CRETA.cube_preproc import cube_preproc
+from CRETA.userAPI import userAPI
+from CRETA.write_single_fitscube import write_single_fitscube
+from CRETA.write_grid_fitscube import write_grid_fitscube
 
 preprocess = cube_preproc()
 user = userAPI()
 #current_path = os.path.abspath(os.getcwd())+'/'
 start_time = time.time()
-
 
 class creta:
 

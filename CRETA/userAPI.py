@@ -8,8 +8,7 @@ from astropy.coordinates import SkyCoord
 import glob
 import os
 from astropy.io import fits
-from cube_preproc import cube_preproc
-from cube_handler import cube_handler
+
 import pandas as pd
 import numpy as np
 from astropy import units as u
@@ -17,10 +16,14 @@ from specutils import Spectrum1D
 from astropy.nddata import StdDevUncertainty
 from specutils import SpectrumList
 import pandas as pd 
-       
+   
+import CRETA    
+from CRETA.cube_preproc import cube_preproc
+from CRETA.cube_handler import cube_handler
 
 preprocess = cube_preproc()
 current_path = os.path.abspath(os.getcwd())
+
 
 
 class userAPI:

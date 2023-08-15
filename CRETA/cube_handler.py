@@ -9,7 +9,6 @@ from matplotlib import cm, colors, pyplot as plt
 from matplotlib.colors import LogNorm
 from photutils.aperture import CircularAperture
 from astropy.wcs import WCS
-from cube_preproc import cube_preproc
 from photutils.aperture import RectangularAperture
 import os
 import time
@@ -18,14 +17,20 @@ from astropy import units as u
 from photutils.aperture import SkyCircularAperture
 from photutils.aperture import aperture_photometry
 current_path = os.path.abspath(os.getcwd())
+
 import sys, glob, os
 sys.path.append('/Users/tanio/Sync/pywork/pys')
+
 import numpy as np
 from numpy import unravel_index
 from astropy.io import fits
 from astropy.convolution import convolve, Gaussian2DKernel, convolve_fft
-import mylmfit2dfun
 from lmfit import Parameters
+
+import CRETA
+from CRETA.cube_preproc import cube_preproc
+from CRETA.mylmfit2dfun import mylmfit2dfun
+
 
 
 # Ingests and operates on a sub-cube
