@@ -63,8 +63,8 @@ class creta:
     # @sp1d: The spectrum 1D element. (Spectrum1D)        
     ###############################################################################   
         
-    def singleExtraction(self, data_path='', PSFs_path='', output_path='', output_filebase_name='last_result',
-                         parfile_path='', parfile_name='single_params.txt',
+    def singleExtraction(self, data_path, parfile_path, output_path=None, parfile_name='single_params.txt',
+                         PSFs_path=None, output_filebase_name='last_result',
                          aperture_type=0, convolve=False, user_ra=0, user_dec=0,
                          user_r_ap=[0.25], point_source=False, lambda_ap=None, aperture_correction=False, centering=False,
                          lambda_cent=None, perband_cent=False, background=False, r_ann_in=None, ann_width=None, parameter_file=True):
@@ -79,16 +79,17 @@ class creta:
         user = userAPI()
         # print(parfile_name)
         
-        if data_path == '': data_path = self.creta_dir+'data/'
         if data_path[-1] != '/': data_path+'/'
-        if PSFs_path == '': PSFs_path = self.creta_dir+'PSFs/'
-        if PSFs_path[-1] != '/': PSFs_path+'/'
-        if output_path == '': output_path = self.creta_dir+'extractions/'
-        if output_path[-1] != '/': output_path+'/'
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        if parfile_path == '': parfile_path = self.creta_dir+'param_files/'
         if parfile_path[-1] != '/': parfile_path+'/'
+
+        if output_path is None:
+            output_path = './extractions/'
+            os.makedirs(output_path)
+            print('Ouput path /extractions/ created.')
+
+        if PSFs_path is None:
+            PSFs_path = self.creta_dir+'PSFs/'
+        if PSFs_path[-1] != '/': PSFs_path+'/'
 
         # Read the parameter file
         if parameter_file:
