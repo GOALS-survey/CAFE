@@ -4,3 +4,5 @@ include CAFE/opt_parfiles/*
 include CAFE/tables/*
 include CAFE/tables/opacity/*
 include CAFE/tables/resolving_power/*
+include CRETA/PSF_centroids/*
+include CRETA/PSF_infaps/*
