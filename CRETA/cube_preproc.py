@@ -294,7 +294,7 @@ class cube_preproc:
         
         c1 = SkyCoord(subcube.user_ra, subcube.user_dec, unit="deg")  #### TDS
         xx, yy, zz = subcube.wcs.world_to_pixel(c1, subcube.ls[0]*u.um)   #### TDS
-        sliceIm = np.nansum(image[0:10,:,:], axis=0)
+        sliceIm = np.nansum(image[10:20,:,:], axis=0)
         x, y = self.userCentroid(sliceIm, xx, yy) #, hbox_x=9, hbox_y=9)
         #x, y = self.imageCentroid(sliceIm)
         res = []
@@ -844,7 +844,7 @@ class cube_preproc:
                 pixels_list.append([grids_xs[i], grids_ys[j]])
                 names.append(str(i)+"_"+str(j))
         
-        img = np.nansum(cube.cube_before[0:10], axis=0)
+        img = np.nansum(cube.cube_before[10:20], axis=0)
         #img = cube.cube_before[0,:,:]
         #for i in range(1,len(cube.cube_before)):
         #    img = img + cube.cube_before[i,:,:]

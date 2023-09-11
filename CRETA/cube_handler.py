@@ -422,7 +422,7 @@ class cube_handler:
         #for i in range(1,len(self.cube_before)):
         #    img = img + self.cube_before[i,:,:]
 
-        img = np.nansum(self.cube_before[0:10,:,:], axis=0)
+        img = np.nansum(self.cube_before[10:20,:,:], axis=0)
         plt.figure()
         plt.subplot(projection = self.wcs.celestial)
         im = plt.imshow(img, origin='lower', norm=LogNorm())
