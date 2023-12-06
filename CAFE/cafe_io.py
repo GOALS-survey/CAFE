@@ -17,7 +17,7 @@ from asdf import AsdfFile
 
 import CAFE
 
-#import pdb, ipdb
+import pdb, ipdb
 
 class cafe_io:
 
@@ -252,7 +252,7 @@ class cafe_io:
 
 
     @staticmethod
-    def pah_table(parcube, x=0, y=0, parobj=False, all_pah=False, write2disk=False):
+    def pah_table(parcube, contcube=None, x=0, y=0, parobj=False, all_pah=False, write2disk=False):
         """
         Output the table of PAH integrated powers
 
@@ -283,9 +283,9 @@ class cafe_io:
         for n in pah_name:
             p = df.filter(like=n, axis=0)
 
-            # --------------
-            # Flux estimates
-            # --------------
+            # -------------
+            # Flux estimate
+            # -------------
             wav = p.filter(like='Wave', axis=0).value[0] * u.micron
             
             gamma = p.filter(like='Gamma', axis=0).value[0]
@@ -302,9 +302,9 @@ class cafe_io:
             # Make unit to appear as W/m^2
             pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
 
-            # --------------------------
-            # Flux uncertainty estimates
-            # --------------------------
+            # -------------------------
+            # Flux uncertainty estimate
+            # -------------------------
             _wave_unc = p.filter(like='Wave', axis=0).stderr[0]
             _gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
             _peak_unc = p.filter(like='Peak', axis=0).stderr[0]
@@ -324,6 +324,14 @@ class cafe_io:
                 pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
             else:
                 pah_strength_unc_list.append(np.nan)
+
+            # -------------
+            # EQW estimates
+            # -------------
+
+            #EQW = np.trapz((I_nu_P - I_nu_C) / I_nu_C, x)
+
+
 
         # Define main PAH band dictionary
         mainpah_dict = {'PAH33': {'range': [3.25, 3.32]},
