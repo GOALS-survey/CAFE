@@ -838,12 +838,13 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
         fSRC = fSTR + fSTB + fDSK
         fFTS = fPAH + fLIN
 
+        # "Observed" compoment fluxes
         CompFluxes = {'wave':waveMod, 'fCIR':fCIR, 'fCLD':fCLD, 'fCOO':fCOO, 'fWRM':fWRM, 'fHOT':fHOT, 
                  'fLIN':fLIN, 'fPAH':fPAH, 'fSTR':fSTR, 'fSTB':fSTB, 'fDSK':fDSK,
                  'fCON':fCON, 'fDST':fDST, 'fSRC':fSRC, 'fFTS': fFTS,
                  'STB_100':fSTB_100, 'STB_010':fSTB_010, 'STB_002':fSTB_002}
 
-        # Model components
+        # Model components (extinction-corrected component fluxes)
         fluxMod0 = fCIR_0 + fCLD_0 + fCOO_0 + fWRM_0 + fHOT_0 + fLIN_0 + fPAH_0 + fSTR_0 + fSTB_0 + fDSK_0
         fCON_0 = fCIR_0 + fCLD_0 + fCOO_0 + fWRM_0 + fHOT_0 + fSTR_0 + fSTB_0 + fDSK_0
         fDST_0 = fCIR_0 + fCLD_0 + fCOO_0 + fWRM_0 + fHOT_0

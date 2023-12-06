@@ -1,3 +1,4 @@
+import os
 import numpy as np 
 import copy
 import matplotlib.pyplot as plt 
@@ -452,9 +453,17 @@ class specmod:
         #parcube.close()
 
 
-    def read_spec(self, file_name, file_dir='input/data/', extract='Flux_st', trim=True, keep_next=False, z=0., read_columns=None, flux_unc=None):
+    def read_spec(self, file_name, file_dir='input/data/', extract='Flux_st', trim=True, 
+                        keep_next=False, z=0., read_columns=None, flux_unc=None, 
+                        lam_min=None, lam_max=None,
+                        ):
 
-        if file_dir == 'input/data/': file_dir = self.cafe_dir + file_dir
+        """
+        read_columns : (list)
+            The list columns index for wavelength, flux, and flux uncertainty
+        """
+        if file_dir == 'input/data/': 
+            file_dir = self.cafe_dir + file_dir
 
         try:
             cube = cafeio.read_cretacube(file_dir+file_name, extract)
@@ -480,7 +489,27 @@ class specmod:
                         if flux_unc != None:
                             tab['flux_unc'] = tab['flux'] * flux_unc
                     else:
-                        tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'])
+                        name, extension = os.path.splitext(file_dir+file_name)
+
+                        if extension == '.dat':
+                            tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'])
+                        if extension == '.csv':
+                            df = pd.read_csv(file_dir+file_name, skiprows=30)
+                            
+                            if lam_min is not None:
+                                df = df[df.Wave >= lam_min]
+                            if lam_max is not None:
+                                df = df[df.Wave <= lam_max]
+
+                            # Test whether the file is standard CAFE output .csv file
+                            if sum(df.columns == ['Wave', 'Band_name', 'Flux_ap', 'Err_ap', 'R_ap', 'Flux_ap_st','Err_ap_st', 'DQ']) == 8:
+                                out_df = df[['Wave', 'Flux_ap_st', 'Err_ap_st']]
+                                tab = Table.from_pandas(out_df)
+                                tab.rename_column('Wave', 'wave')
+                                tab.rename_column('Flux_ap_st', 'flux')
+                                tab.rename_column('Err_ap_st', 'flux_unc')
+                            else:
+                                raise IOError('Only the CAFE produced csv file can be ingested.')
                 except:
                     raise IOError('The file is not a valid .txt (column-based) or .fits (CRETA output) file. Or maybe the data are not there.')
                 else:
@@ -648,7 +677,7 @@ class specmod:
 
         # Initiate CAFE profile loader and make cont_profs
         prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
-        cont_profs = prof_gen.make_cont_profs()
+        cont_profs = prof_gen.make_cont_profs() # load the selected unscaled continuum profiles
 
         # Scale continuum profiles with parameters and get spectra
         CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(params, wave, cont_profs, comps=True)
