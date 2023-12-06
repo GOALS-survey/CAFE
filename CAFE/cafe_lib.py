@@ -1107,27 +1107,12 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
             # pahext = np.ones(wavemod.shape)
             dflux = drude_prof(wavemod, [[drude[0][i]], [drude[1][i]], [drude[2][i]]], pahext)
 
-            if i == 0: # hacking
-                fpah = dflux.copy()
-
             if i == 0:
                 ax1.plot(wavemod, dflux+fCont, color='purple', label='PAHs', alpha=alpha, linewidth=0.5)
             else:
                 ax1.plot(wavemod, dflux+fCont, color='purple', label='_nolegend_', alpha=alpha, linewidth=0.5)
     elif np.any(fPAH > 0):
         ax1.plot(wavemod, fCont+fPAH, label='PAHs', color='purple', alpha=alpha)
-
-
-    # Hacking - Saving the cont and PAH profiles for the 3.3 PAH EQW measurements
-    import pandas as pd
-    df = pd.DataFrame({'w': wavemod, 'f': fpah, 'fCont': fCont})
-    df = df[(df.w > 3) & (df.w < 3.5)]
-    df.to_csv('/Users/thomaslai/Documents/astro/GOALS/ERS1328/NGC3256/Sean/cafefit/pah33_EQW/reg.csv', index=False)
-    
-    df = pd.DataFrame({'w': wave, 'f':flux})
-    df = df[(df.w > 3) & (df.w < 3.5)]
-    df.to_csv('/Users/thomaslai/Documents/astro/GOALS/ERS1328/NGC3256/Sean/cafefit/pah33_EQW/spec.csv', index=False)
-
 
     ax11 = ax1.twinx()
     ax11.plot(wavemod, pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
