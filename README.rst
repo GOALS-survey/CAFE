@@ -1,30 +1,39 @@
-CAFE
-====
+# CAFE
 
-Purpose
--------
+## Purpose
 
 The new Continuum And Feature Extraction (``CAFE``) is a revamped version of the ``CAFE`` software –originally developed for fitting Spitzer/IRS spectra– that has been updated and optimized to work with the new JWST IFU data. The new ``CAFE`` is composed of two main tools: (1) the ``CAFE`` Region Extraction Tool Automaton (``CRETA``) and (2) the ``CAFE`` the spectral fitting tool. ``CRETA`` performs single-position and full-grid extractions from JWST IFU datasets; that is, from pipeline-processed cubes obtained with the NIRSpec IFU and MIRI MRS instruments. The ``CAFE`` fitter uses the spectra extracted by ``CRETA`` (or spectra provided by the user) and performs a spectral decomposition of the continuum emission (stellar and/or dust), as well as of a variety of common spectral features (in emission and absorption) present in the near- and mid-IR spectra of galaxies. The full dust treatment (size and composition) performed by ``CAFE`` (see Marshall et al. 2007) allows the dust continuum model components to fit not only spectra typical of normal star-forming galaxies but also complex spectral profiles seen in more extreme, heavily dust-obscured starburst galaxies, such as luminous infrared galaxies (LIRGs), active galactic nuclei (AGN), or very luminous quasars.
 
 
-Installation
-------------
+## Installation
 
-> pip install git+https://github.com/GOALS-survey/CAFE.git
+You can install the latest development version from the
+Github master branch:
+
+   conda create -n <cafe_env> python
+   conda activate <cafe_env>
+   pip install git+https://github.com/GOALS-survey/CAFE.git
+
+You may want to install jupyter lab to run the tutorial notebook:
+
+   pip install jupyterlab
 
 
-Current Release
----------------
+## Current Release
 
-``CAFE`` v1.0 (2023/01/18)
+``CAFE`` v1.0.0 (2023/12/XX)
 
 The current release of ``CAFE`` supports the extraction and fitting of any single spectrum extracted from any combination (or all) of the MIRI/MRS sub-band cubes (ch1_short, ch1_medium, ch1_long, ch2_short, ch2_medium, ch2_long, ch3_short, ch3_medium, ch3_long, ch4_short, ch4_medium, ch4_long), covering the wavelength range from ~5 to 28μm. NIRSpec/IFU spectral extractions and fitting will be supported soon in subsequent releases. Nevertheless, we note that ``CAFE`` already includes some of these capabilities, but they have not been fully tested and therefore are not documented here. The users, however, should feel free to experiment with them if they wish, but no support will be provided.
 
 
-Usage
------
+## Tutorial
 
-The current version of ``CAFE`` (v1.0) is released together with two jupyter notebooks that walk the user through the process of extraction (see *IIZw096_MIRI_spec_CRETA.ipynb* within the *CRETA/notebooks/* folder) and fitting (see *IIZw096_MIRI_spec_CAFE.ipynb* within the *CAFE/notebooks/* folder) of a spectrum obtained from JWST MIRI/MRS cubes produced by the data pipeline. For the user’s convenience, there is also a python (.py) script for command line executions to be found within the *CAFE/notebooks/* folder that users may edit as they see fit.
+You can find tutorial notebooks under the [notebook directory](https://github.com/GOALS-survey/CAFE/tree/master/notebooks).
+
+
+## Usage
+
+The current version of ``CAFE`` (v1.0.0) is released together with two jupyter notebooks that walk the user through the process of extraction (see *IIZw096_MIRI_spec_CRETA.ipynb* within the *CRETA/notebooks/* folder) and fitting (see *IIZw096_MIRI_spec_CAFE.ipynb* within the *CAFE/notebooks/* folder) of a spectrum obtained from JWST MIRI/MRS cubes produced by the data pipeline. For the user’s convenience, there is also a python (.py) script for command line executions to be found within the *CAFE/notebooks/* folder that users may edit as they see fit.
 
 The user can use ``CAFE`` from two starting points:
 
@@ -73,7 +82,7 @@ Options for directory setup (specified in the command execution only):
 
 The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CRETA/notebooks/* folder in the Git repository.
 
-2. **Fitting**. An individual, 1D spectrum (``CAFE`` v1.0):
+2. **Fitting**. An individual, 1D spectrum (``CAFE`` v1.0.0):
 
 ``CAFE`` is able to read spectra that have been either extracted from ``CRETA`` (see above 1.) or provided by the user in a simple *‘.txt’* file containing a table with columns reporting wavelength, flux, and error flux.
 
@@ -86,8 +95,7 @@ The ``CAFE`` fitter returns a parameter object containing the best/optimized par
 The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CAFE/notebooks/* folder in the Git repository.
 
 
-CAFE Setup Files
-----------------
+## CAFE Setup Files
 
 ``CAFE`` performs spectral decomposition using the following components:
 
@@ -110,7 +118,7 @@ The parameters that define these components are initialized via a number of file
 
 Within this file the user can specify the following:
 
-**[METADATA]**: Not necessary for the current ``CAFE`` release (v1.0).
+**[METADATA]**: Not necessary for the current ``CAFE`` release (v1.0.0).
 
 **[COMPONENT SOURCE SEDs]**: SEDs to be used as sources for the different dust components.
 
@@ -128,17 +136,17 @@ Within this file the user can specify the following:
 
 Within this file the user can specify the following:
 
-**[PATHS]**: Not necessary for the current ``CAFE`` release (v1.0). Data paths are directly defined during execution of the command. Other paths are defined automatically.
+**[PATHS]**: Not necessary for the current ``CAFE`` release (v1.0.0). Data paths are directly defined during execution of the command. Other paths are defined automatically.
 
 **[FIT OPTIONS]**: Tolerance of the fit, on-the-fly dust temperature interpolation, whether to fit analytic features: lines, PAHs and user-defined opacities, perform checks on the fitted parameters and allow re-fitting up to a maximum number of iterations, and maximum relative errors allowed to keep features and not to fix them.
 
-**[SWITCHES]**: Impose Onion geometry where the optical depth of higher temperature dust components is progressively higher than lower temperature ones (not supported by the current ``CAFE`` v1.0 release). Add a minimum relative error to the provided error spectrum.
+**[SWITCHES]**: Impose Onion geometry where the optical depth of higher temperature dust components is progressively higher than lower temperature ones (not supported by the current ``CAFE`` v1.0.0 release). Add a minimum relative error to the provided error spectrum.
 
 **[OUTPUT FILE OPTIONS]**: Print output tables.
 
 **[PLOT_OPTIONS]**: Make alternative plots.
 
-**[MODEL OPTIONS]**: Keywords related to accommodating the fit of supplementary photometric data, in addition to spectra (not supported by the current ``CAFE`` v1.0 release). Use extinction or absorption curves and selection of dust model.
+**[MODEL OPTIONS]**: Keywords related to accommodating the fit of supplementary photometric data, in addition to spectra (not supported by the current ``CAFE`` v1.0.0 release). Use extinction or absorption curves and selection of dust model.
 
 **[REFERENCE WAVELENGTHS]**: Reference wavelengths for the scaling of model component fluxes (*_FLX* keywords in *‘.ini’* file).
 
