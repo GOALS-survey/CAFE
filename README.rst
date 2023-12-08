@@ -1,14 +1,19 @@
-# CAFE
+CAFE
+====
 
-## Purpose
+Purpose
+-------
 
 The new Continuum And Feature Extraction (``CAFE``) is a revamped version of the ``CAFE`` software –originally developed for fitting Spitzer/IRS spectra– that has been updated and optimized to work with the new JWST IFU data. The new ``CAFE`` is composed of two main tools: (1) the ``CAFE`` Region Extraction Tool Automaton (``CRETA``) and (2) the ``CAFE`` the spectral fitting tool. ``CRETA`` performs single-position and full-grid extractions from JWST IFU datasets; that is, from pipeline-processed cubes obtained with the NIRSpec IFU and MIRI MRS instruments. The ``CAFE`` fitter uses the spectra extracted by ``CRETA`` (or spectra provided by the user) and performs a spectral decomposition of the continuum emission (stellar and/or dust), as well as of a variety of common spectral features (in emission and absorption) present in the near- and mid-IR spectra of galaxies. The full dust treatment (size and composition) performed by ``CAFE`` (see Marshall et al. 2007) allows the dust continuum model components to fit not only spectra typical of normal star-forming galaxies but also complex spectral profiles seen in more extreme, heavily dust-obscured starburst galaxies, such as luminous infrared galaxies (LIRGs), active galactic nuclei (AGN), or very luminous quasars.
 
 
-## Installation
+Installation
+------------
 
 You can install the latest development version from the
 Github master branch:
+
+.. code-block:: bash
 
    conda create -n <cafe_env> python
    conda activate <cafe_env>
@@ -16,22 +21,20 @@ Github master branch:
 
 You may want to install jupyter lab to run the tutorial notebook:
 
+.. code-block:: bash
    pip install jupyterlab
 
 
-## Current Release
+Current Release
+---------------
 
-``CAFE`` v1.0.0 (2023/12/XX)
+``CAFE`` v1.0.0 (2023/12/10)
 
 The current release of ``CAFE`` supports the extraction and fitting of any single spectrum extracted from any combination (or all) of the MIRI/MRS sub-band cubes (ch1_short, ch1_medium, ch1_long, ch2_short, ch2_medium, ch2_long, ch3_short, ch3_medium, ch3_long, ch4_short, ch4_medium, ch4_long), covering the wavelength range from ~5 to 28μm. NIRSpec/IFU spectral extractions and fitting will be supported soon in subsequent releases. Nevertheless, we note that ``CAFE`` already includes some of these capabilities, but they have not been fully tested and therefore are not documented here. The users, however, should feel free to experiment with them if they wish, but no support will be provided.
 
 
-## Tutorial
-
-You can find tutorial notebooks under the [notebook directory](https://github.com/GOALS-survey/CAFE/tree/master/notebooks).
-
-
-## Usage
+Usage
+-----
 
 The current version of ``CAFE`` (v1.0.0) is released together with two jupyter notebooks that walk the user through the process of extraction (see *IIZw096_MIRI_spec_CRETA.ipynb* within the *CRETA/notebooks/* folder) and fitting (see *IIZw096_MIRI_spec_CAFE.ipynb* within the *CAFE/notebooks/* folder) of a spectrum obtained from JWST MIRI/MRS cubes produced by the data pipeline. For the user’s convenience, there is also a python (.py) script for command line executions to be found within the *CAFE/notebooks/* folder that users may edit as they see fit.
 
@@ -95,7 +98,8 @@ The ``CAFE`` fitter returns a parameter object containing the best/optimized par
 The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CAFE/notebooks/* folder in the Git repository.
 
 
-## CAFE Setup Files
+CAFE Setup Files
+----------------
 
 ``CAFE`` performs spectral decomposition using the following components:
 
