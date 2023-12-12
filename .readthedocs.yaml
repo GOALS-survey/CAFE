@@ -7,9 +7,6 @@ sphinx:
   configuration: docs/source/conf.py
   fail_on_warning: true
 
-build:
-  image: latest
-
 python:
   version: "3.8"
   install:
