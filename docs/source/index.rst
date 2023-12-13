@@ -10,6 +10,13 @@ The new Continuum And Feature Extraction (``CAFE``) is a revamped version of the
 Installation
 ============
 
+.. toctree::
+  :maxdepth: 2
+
+   How to install <install>
+
+
+
 .. CAFE documentation master file, created by
    sphinx-quickstart on Thu Jan  5 09:45:10 2023.
    You can adapt this file completely to your liking, but it should at least
