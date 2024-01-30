@@ -15,7 +15,8 @@ from astropy import units as u
 from specutils import Spectrum1D
 from astropy.nddata import StdDevUncertainty
 from specutils import SpectrumList
-import pandas as pd 
+
+import ipdb
    
 import CRETA    
 from CRETA.cube_preproc import cube_preproc
@@ -174,7 +175,7 @@ class userAPI:
                     [jj,kk] = PSFs[j].xys[i]
                     sky = PSFs[j].wcs.pixel_to_world(jj,kk,PSFs[j].ls[i])
                     res.append(sky)
-                    line = sky[0].to_string() +'\n'
+                    line = sky[0].to_string(precision=7) +'\n'
                     f.write(line)
             f.close()
             
@@ -222,8 +223,10 @@ class userAPI:
                + '\n# Centering lambda: '+user_params['lambda_cent']+' [um]'\
                + '\n# New [RA,dec] = ['+new_ra.to_string(unit=u.hour, sep=('h', 'm', 's'))+', '+str(new_dec)+']'\
                + '\n# Background Subtraction:'+user_params['background_sub'] \
-               + '\n# Background Inner Radious, Annulus Width: '+user_params['r_ann_in']+','+user_params['ann_width']+' [arcsec] \n########################################'\
-               + ' Output File description \n# COLUMN_NAME: DESCRIPTION [UNIT]'\
+               + '\n# Background Inner Radious: '+user_params['r_ann_in']+' [arcsec]'\
+               + '\n# Annulus Width: '+user_params['ann_width']+' [arcsec]'\
+               + '\n####################################### Output File description'\
+               + '\n# COLUMN NAME: DESCRIPTION [UNIT]'\
                + '\n# Wave: wavelength [um]'\
                + '\n# Cube_name: Name of original cube'\
                + '\n# Flux_ap: Aperture flux density [Jy]'\
@@ -243,7 +246,7 @@ class userAPI:
             content = f.read()
             f.seek(0, 0)
             f.write(line.rstrip('\n') + '\n' )
-            f.write('Stitching Ratio: '+str(final_ratio).rstrip('\n') + '\n' + content) 
+            f.write('Stitching Ratio(s): '+str(final_ratio).rstrip('\n') + '\n' + content) 
             f.close()
         # print(str(final_ratio))
         
@@ -350,7 +353,7 @@ class userAPI:
         
         fits_flux = fits.ImageHDU(fluxes, name='Flux')
         header = fits_flux.header
-        dictionary =spec1dlist[0].meta
+        dictionary = spec1dlist[0].meta
 
         header['PCOUNT'] = 0
         header['GCOUNT'] = 1
@@ -360,20 +363,20 @@ class userAPI:
         header['WCSAXES'] = 3
         header['CRPIX1'] = (int(dictionary[" 'step_indx'"]) + 1) #CRPIX1 starts from 1 
         header['CRPIX2'] = (int(dictionary[" 'step_indy'"]) + 1) #CRPIX2 starts from 1 
-        header['CRPIX3'] = 1 #CRPIX2 starts from 1 
+        header['CRPIX3'] = float(dictionary[" 'CRPIX3'"])
         header['CRVAL1'] = float(dictionary["'extraction_RA'"].split(" ")[2]) #Extraction RA
         header['CRVAL2'] = float(dictionary[" 'extraction_DEC'"].split(" ")[2])  #Extraction DEC
-        header['CRVAL3'] = 0.
+        header['CRVAL3'] = float(dictionary[" 'CRVAL3'"])
         header['CDELT1'] = float(dictionary[" 'CDELT1'"]) / 3600 #in degrees
         header['CDELT2'] = float(dictionary[" 'CDELT2'"]) / 3600 #in degrees
-        header['CDELT3'] = 1.
+        header['CDELT3'] = float(dictionary[" 'CDELT3'"])
         header['CTYPE1'] = 'RA---TAN'
         header['CTYPE2'] = 'DEC---TAN'
         header['CTYPE3'] = 'WAVE'
         header['CUNIT1'] = 'deg'
         header['CUNIT2'] = 'deg'
         header['CUNIT3'] = 'um '
-        header['PC1_1']  = -1
+        header['PC1_1']  = -1.
         header['PC1_2']  = 0.
         header['PC1_3']  = 0.
         header['PC2_1']  = 0.
@@ -417,6 +420,7 @@ class userAPI:
         hdulist.writeto(output_name, overwrite=True)
         
         hdulist.close()
+
 
         
         

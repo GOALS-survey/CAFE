@@ -6,16 +6,12 @@ shouldn't need to be changed to alter how CAFE is doing its fitting
 
 import numpy as np 
 import matplotlib.pyplot as plt 
-import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
+#import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
 from scipy.interpolate import interp1d, splrep, splev, RegularGridInterpolator
 from scipy.integrate import simps
-from scipy.special import erf
-import time
-import sys
-import warnings
-import ast
-import datetime
-import configparser
+#from scipy.special import erf
+#import time
+#import sys
 from astropy.table import QTable
 import astropy.units as u
 from astropy.stats import mad_std
@@ -322,7 +318,7 @@ def chisquare(params, wave, flux, error, weights, cont_profs, show=True):
 
 
 
-def get_feat_pars(params, errors=False, apply_vgrad2waves=True):
+def get_feat_pars(params, errors=False, apply_vgrad2waves=False):
     ''' Turns lm parameters into lists for flux computation
     
     Arguments:
@@ -352,7 +348,8 @@ def get_feat_pars(params, errors=False, apply_vgrad2waves=True):
                 lname.append(fname+'_'+fwave[:-1])
                 if fwave[-1] == 'N':
                     ldoub.append(0)
-                    if apply_vgrad2waves == True: lwave[-1] *= (1+params['VGRAD']/2.998e5)
+                    # Note that the velocity gradient is only applied to the narrow component
+                    if apply_vgrad2waves == True: lwave[-1] *= (1+params['VGRAD'].value/2.998e5)
                 elif fwave[-1] == 'B':
                     ldoub.append(1)
                 else:
@@ -374,7 +371,7 @@ def get_feat_pars(params, errors=False, apply_vgrad2waves=True):
                     ppeak.append(params[fname+'_Peak'].stderr)
                 pname.append(fname[1:])
                 pcomp.append(key.split('_')[0][1:])
-                if apply_vgrad2waves == True: pwave[-1] *= (1+params['VGRAD']/2.998e5)
+                if apply_vgrad2waves == True: pwave[-1] *= (1+params['VGRAD'].value/2.998e5)
             elif key[-1] == 'a' or key[-1] == 'k': continue
             else:
                 raise ValueError('You messed with the feature parameter names')
@@ -392,7 +389,7 @@ def get_feat_pars(params, errors=False, apply_vgrad2waves=True):
                     ogamma.append(params[key.replace('Wave','Gamma')].stderr)
                     opeak.append(params[key.replace('Wave','Peak')].stderr)
                 oname.append(fname+'_'+fwave)
-                if apply_vgrad2waves == True: owave[-1] *= (1+params['VGRAD']/2.998e5)
+                if apply_vgrad2waves == True: owave[-1] *= (1+params['VGRAD'].value/2.998e5)
             elif key[-1] == 'a' or key[-1] == 'k': continue
             else:
                 raise ValueError('You messed with the feature parameter names')
@@ -437,13 +434,14 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     # Get model parameters
     p = params.valuesdict()
     
-    gauss, drude, gauss_opc = get_feat_pars(params)
-
+    # The gauss, drude and gauss_opc wavelengths have VGRAD applied already
+    gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
+    
     # Get variations on wavelengh vector
     logWave = np.log(wave)
     waveMod = cont_profs['waveSED']
     logWaveMod = np.log(waveMod)
-    if waveMod.shape==wave.shape and np.allclose(wave, waveMod): fixWave = False
+    if waveMod.shape == wave.shape and np.allclose(wave, waveMod): fixWave = False
     else: fixWave=True
     
     # Calculate total normalized dust opacity at 9.7 um
@@ -453,33 +451,40 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     idxMax = ((waveMod > 8.5) & (waveMod < 11.))
     kAbsTot0 = np.nanmax(kAbsTot[idxMax])
     kExtTot0 = np.nanmax(kExtTot[idxMax])
-    kAbsTot/=kAbsTot0
-    kExtTot/=kExtTot0
+    kAbsTot /= kAbsTot0
+    kExtTot /= kExtTot0
+
+    # We shift the opacities by VGRAD
+    kAbsTot = np.interp(np.log(waveMod / (1+p['VGRAD']/2.998e5)), logWaveMod, kAbsTot)
+    kExtTot = np.interp(np.log(waveMod / (1+p['VGRAD']/2.998e5)), logWaveMod, kExtTot)
+
     kTot = kAbsTot
     kTot0 = kAbsTot0
     if cont_profs['ExtOrAbs'].upper() == 'ABS': 
         kTotDsk = kAbsTot
     else: 
         kTotDsk = kExtTot 
-
+    
     # Additional opacity sources
-    #tauIce = p['TAU_ICE']*(p['ICE_RAT']*0.25*cont_profs['kIce3']+cont_profs['kIce6']) + p['TAU_HAC']*cont_profs['kHac'] + p['TAU_CORV']*cont_profs['kCOrv']
-    tauIce = p['ICE3_TAU'] * (0.25*cont_profs['kIce3']) + p['ICE6_TAU'] * cont_profs['kIce6'] + \
+    #tauFeats = p['TAU_ICE']*(p['ICE_RAT']*0.25*cont_profs['kIce3']+cont_profs['kIce6']) + p['TAU_HAC']*cont_profs['kHac'] + p['TAU_CORV']*cont_profs['kCOrv']
+    tauFeats = p['ICE3_TAU'] * (0.25*cont_profs['kIce3']) + p['ICE6_TAU'] * cont_profs['kIce6'] + \
              p['HAC_TAU'] * cont_profs['kHac'] + p['CORV_TAU']*cont_profs['kCOrv'] + \
              p['CO2_TAU'] * cont_profs['kCO2'] + \
              p['CRYSI_233_TAU']*cont_profs['kCrySi_233']
 
-    # tauIce = p['TAU_ICE'] * (p['ICE_RAT'] * 0.25*cont_profs['kIce3'] + cont_profs['kIce6']) + \
+    # tauFeats = p['TAU_ICE'] * (p['ICE_RAT'] * 0.25*cont_profs['kIce3'] + cont_profs['kIce6']) + \
     #          p['TAU_HAC'] * cont_profs['kHac'] + p['TAU_CORV'] * cont_profs['kCOrv'] + \
     #          p['TAU_CO2'] * cont_profs['kCO2']
 
-    # The gaussian opacities are moved with VGRAD
+    # We shift the table opacities by VGRAD
+    tauFeats = np.interp(np.log(waveMod / (1+p['VGRAD']/2.998e5)), logWaveMod, tauFeats)
+    
     if gauss_opc[0].size > 0:
         tau_gopc = gauss_flux(waveMod, [gauss_opc[0], gauss_opc[1], gauss_opc[2]])
     else:
         tau_gopc = np.zeros(waveMod.size)
 
-    tauIce += tau_gopc
+    tauFeats += tau_gopc
 
     ### CIR component flux
     if p['CIR_FLX'] > 0:
@@ -528,8 +533,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     ### COO component flux
     if p['COO_FLX'] > 0:
         if p['COO_TAU'] > 0:
-            tauScrCOO = (1. - p['COO_MIX'])*(p['COO_TAU'] * kTot + tauIce)
-            tauMixCOO = p['COO_MIX'] * (p['COO_TAU'] * kTot + tauIce)
+            tauScrCOO = (1. - p['COO_MIX'])*(p['COO_TAU'] * kTot + tauFeats)
+            tauMixCOO = p['COO_MIX'] * (p['COO_TAU'] * kTot + tauFeats)
             extScrCOO = np.exp(-tauScrCOO)
             extMixCOO = np.ones(waveMod.size)
             idx = tauMixCOO > 0
@@ -564,8 +569,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     if p['WRM_FLX'] > 0:
         # The first onion conditional is here, I'm skipping it for now
         if p['WRM_TAU'] > 0:
-            tauScrWRM = (1. - p['WRM_MIX'])*(p['WRM_TAU'] * kTot + tauIce)
-            tauMixWRM = p['WRM_MIX'] * (p['WRM_TAU'] * kTot + tauIce)
+            tauScrWRM = (1. - p['WRM_MIX'])*(p['WRM_TAU'] * kTot + tauFeats)
+            tauMixWRM = p['WRM_MIX'] * (p['WRM_TAU'] * kTot + tauFeats)
             extScrWRM = np.exp(-tauScrWRM)
             extMixWRM = np.ones(waveMod.size)
             idx = tauMixWRM > 0
@@ -600,8 +605,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     if p['HOT_FLX'] > 0:
         # Another onion conditional
         if p['HOT_TAU'] > 0:
-            tauScrHOT = (1. - p['HOT_MIX'])*(p['HOT_TAU'] * kTot + tauIce)
-            tauMixHOT = p['HOT_MIX'] * (p['HOT_TAU'] * kTot + tauIce)
+            tauScrHOT = (1. - p['HOT_MIX'])*(p['HOT_TAU'] * kTot + tauFeats)
+            tauMixHOT = p['HOT_MIX'] * (p['HOT_TAU'] * kTot + tauFeats)
             extScrHOT = np.exp(-tauScrHOT)
             extMixHOT = np.ones(waveMod.size)
             idx = tauMixHOT > 0
@@ -638,8 +643,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
             # tau PAH being tied is dealt with using conditionals in the IDL
             # version - lmfit should let us deal with it in the tie in the 
             # initial parameter definition
-            tauScrPAH = (1. - p['PAH_MIX']) * (p['PAH_TAU'] * kTot + tauIce)
-            tauMixPAH = p['PAH_MIX'] * (p['PAH_TAU'] * kTot + tauIce)
+            tauScrPAH = (1. - p['PAH_MIX']) * (p['PAH_TAU'] * kTot + tauFeats)
+            tauMixPAH = p['PAH_MIX'] * (p['PAH_TAU'] * kTot + tauFeats)
             extScrPAH = np.exp(-tauScrPAH)
             extMixPAH = np.ones(waveMod.size)
             idx = tauMixPAH > 0
@@ -648,7 +653,6 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
         else:
             extPAH = np.ones(waveMod.size)
 
-        # We move the profiles with VGRAD
         if drude[0].size > 0:
             jPAH_0 = drude_prof(waveMod, [drude[0], drude[1], drude[2]])
             jPAH_0[jPAH_0 < 0] = 0.0
@@ -679,8 +683,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     ### STR component flux
     if p['STR_FLX'] > 0:
         if p['STR_TAU'] > 0:
-            tauScrSTR = (1. - p['STR_MIX']) * (p['STR_TAU'] * kTot + tauIce)
-            tauMixSTR = p['STR_MIX'] * (p['STR_TAU'] * kTot + tauIce)
+            tauScrSTR = (1. - p['STR_MIX']) * (p['STR_TAU'] * kTot + tauFeats)
+            tauMixSTR = p['STR_MIX'] * (p['STR_TAU'] * kTot + tauFeats)
             extScrSTR = np.exp(-tauScrSTR)
             extMixSTR = np.ones(waveMod.size)
             idx = tauMixSTR > 0
@@ -712,8 +716,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     ### STB component flux
     if p['STB_FLX'] > 0:
         if p['STB_TAU'] > 0:
-            tauScrSTB = (1. - p['STB_MIX']) * (p['STB_TAU'] * kTot + tauIce)
-            tauMixSTB = p['STB_MIX'] * (p['STB_TAU'] * kTot + tauIce)
+            tauScrSTB = (1. - p['STB_MIX']) * (p['STB_TAU'] * kTot + tauFeats)
+            tauMixSTB = p['STB_MIX'] * (p['STB_TAU'] * kTot + tauFeats)
             extScrSTB = np.exp(-tauScrSTB)
             extMixSTB = np.ones(waveMod.size)
             idx = tauMixSTB > 0
@@ -769,7 +773,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     # Again don't think the tying conditionals are necessary now
     if p['DSK_FLX'] > 0:
         if p['DSK_TAU'] > 0:
-            extDSK = (1. - p['DSK_COV']) + p['DSK_COV'] * np.exp(-p['DSK_TAU'] * kTotDsk - tauIce)
+            extDSK = (1. - p['DSK_COV']) + p['DSK_COV'] * np.exp(-p['DSK_TAU'] * kTotDsk - tauFeats)
         else:
             extDSK = np.ones(waveMod.size)
             
@@ -777,7 +781,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
         
         jDSK = extDSK * jDSK_0
         jDSK0 = np.interp(np.log(cont_profs['wave0']['DSK']), logWaveMod, jDSK)
-        if np.abs(jDSK0)== 0.: jDSK0 = 1.
+        if np.abs(jDSK0) == 0.: jDSK0 = 1.
         fDSK = p['DSK_FLX'] * cont_profs['flux0']['DSK'] / jDSK0 * jDSK
         fDSK[fDSK < 0] = 0.
         if comps:
@@ -833,17 +837,17 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
 
     if comps:
         
+        # Model components with extinction applied
         fCON = fCIR + fCLD + fCOO + fWRM + fHOT + fSTR + fSTB + fDSK
         fDST = fCIR + fCLD + fCOO + fWRM + fHOT
         fSRC = fSTR + fSTB + fDSK
         fFTS = fPAH + fLIN
-
         CompFluxes = {'wave':waveMod, 'fCIR':fCIR, 'fCLD':fCLD, 'fCOO':fCOO, 'fWRM':fWRM, 'fHOT':fHOT, 
                  'fLIN':fLIN, 'fPAH':fPAH, 'fSTR':fSTR, 'fSTB':fSTB, 'fDSK':fDSK,
                  'fCON':fCON, 'fDST':fDST, 'fSRC':fSRC, 'fFTS': fFTS,
                  'STB_100':fSTB_100, 'STB_010':fSTB_010, 'STB_002':fSTB_002}
 
-        # Model components
+        # Intrinsic model components (no extinction applied)
         fluxMod0 = fCIR_0 + fCLD_0 + fCOO_0 + fWRM_0 + fHOT_0 + fLIN_0 + fPAH_0 + fSTR_0 + fSTB_0 + fDSK_0
         fCON_0 = fCIR_0 + fCLD_0 + fCOO_0 + fWRM_0 + fHOT_0 + fSTR_0 + fSTB_0 + fDSK_0
         fDST_0 = fCIR_0 + fCLD_0 + fCOO_0 + fWRM_0 + fHOT_0
@@ -855,14 +859,16 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
 
         # Extinctions
         extComps = {'wave':waveMod, 'extCOO':extCOO, 'extWRM':extWRM, 'extHOT':extHOT, 'extPAH':extPAH, 
-                    'extSTR':extSTR, 'extSTB':extSTB, 'extDSK':extDSK,}
+                    'extSTR':extSTR, 'extSTB':extSTB, 'extDSK':extDSK}
 
         # E0/tau0
         emiss = {'jCIR':jCIR, 'jCLD':jCLD, 'jCOO':jCOO, 'jWRM':jWRM, 'jHOT':jHOT, 'jPAH':jPAH}
         tau0 = {'tau0COO':p['COO_TAU'], 'tau0WRM':p['WRM_TAU'], 'tau0HOT':p['HOT_TAU'], 'tau0PAH':p['PAH_TAU'],
                 'tauSTR':p['STR_TAU'], 'tau0STB':p['STB_TAU'], 'tau0DSK':p['DSK_TAU']}
 
-        return CompFluxes, CompFluxes_0, extComps, emiss, tau0
+        # VGRAD
+        vgrad = {'VGRAD':p['VGRAD']}
+        return CompFluxes, CompFluxes_0, extComps, emiss, tau0, vgrad
 
     else:
 
@@ -909,6 +915,7 @@ def cont_err(params, derivs, covar, pkeys=None):
                     totuncert += err 
 
     return np.sqrt(totuncert)
+
 
 def deriv(func, wave, params, funcargs=None, eps=1e-2):
     '''Takes a numerical derivative of callable with form f(pars, wave, funcargs)
@@ -1027,7 +1034,7 @@ def sedplot(wave, flux, sigma, comps, weights=None, npars=1):
     return fig, chiSqrTot
 
 
-def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=None):
+def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None):
     ''' Plot the SED and the CAFE fit over the spectrum wavelength range
 
     Arguments:
@@ -1090,21 +1097,20 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
     for i in range(len(gauss[0])):
         if pahext is None:
             pahext = np.ones(wavemod.shape)
-        # pahext = np.ones(wavemod.shape)
-        lflux = gauss_flux(wavemod, [[gauss[0][i]], [gauss[1][i]], [gauss[2][i]]], pahext)
+        lflux = gauss_flux(wavemod, [[gauss[0][i]], [gauss[1][i]], [gauss[2][i]]], ext=pahext)
         
-        if i == 0:
-            ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
-        else:
-            ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+        #if i == 0:
+        #    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+        #else:
+        #    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
     
     # Plot PAH features
     if plot_drude is True:
         for i in range(len(drude[0])):
             if pahext is None: 
                 pahext = np.ones(wavemod.shape)
-            # pahext = np.ones(wavemod.shape)
-            dflux = drude_prof(wavemod, [[drude[0][i]], [drude[1][i]], [drude[2][i]]], pahext)
+            dflux = drude_prof(wavemod, [[drude[0][i]], [drude[1][i]], [drude[2][i]]], ext=pahext)
 
             if i == 0:
                 ax1.plot(wavemod, dflux+fCont, color='purple', label='PAHs', alpha=alpha, linewidth=0.5)
@@ -1114,7 +1120,7 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
         ax1.plot(wavemod, fCont+fPAH, label='PAHs', color='purple', alpha=alpha)
 
     ax11 = ax1.twinx()
-    ax11.plot(wavemod, pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
+    ax11.plot(wavemod / (1.+vgrad['VGRAD']/2.998e5), pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
     ax11.set_ylim(0, 1.1)
     ax11.set_ylabel('Attenuation of Warm dust and PAH components', fontsize=14)
     ax11.tick_params(axis='y', labelsize=10)
@@ -1186,6 +1192,8 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, plot_drude=True, pahext=Non
     # ax2.yaxis.label.set_color('w')
     # #ax11.tick_params(axis='both', colors='w')
     # ax2.tick_params(direction='out', which='both', axis='both', colors='w')
+    
+    plt.show()
     
     return fig
 
@@ -1383,7 +1391,7 @@ def errplot(pars, name, outpath='', obj='', contour=False):
 def check_fit_pars(self, wave, flux_unc, fit_params, params, old_params, errors_exist):
 
     acceptFit = True
-    if errors_exist is False: print('No errors retuned') ; acceptFit = False
+    if errors_exist is False: print('The fitter did not return errors') ; acceptFit = False
 
     for par in fit_params:
         if par[0] not in ['g', 'd', 'o']:
@@ -1532,6 +1540,11 @@ def check_fit_pars(self, wave, flux_unc, fit_params, params, old_params, errors_
                         print(fit_params[featpar], 'lower than uncertainty', feat_fluxunc, ', fixing to 0.0')
                         params[featpar].value = 0.
                         params[featpar].vary = False
-                        
+    
+    else:
+        varys = [params[par].vary for par in params]
+        if np.sum(varys) == 0: print('All parameters set to NOT vary. Accepting fit even if no errors were returned') ; acceptFit = True
+
+
     return acceptFit
 

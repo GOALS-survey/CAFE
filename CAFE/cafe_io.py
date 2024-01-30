@@ -17,7 +17,7 @@ from asdf import AsdfFile
 
 import CAFE
 
-#import pdb, ipdb
+#import ipdb
 
 class cafe_io:
 
@@ -27,7 +27,7 @@ class cafe_io:
 
 
     @staticmethod
-    def init_paths(inopts, cafe_path=None, file_name=None):
+    def init_paths(inopts, cafe_path=None, file_name=None, output_path=None):
         # Path to load external tables
         if not inopts['PATHS']['TABPATH']:
             tablePath = cafe_path+'tables/'
@@ -35,18 +35,22 @@ class cafe_io:
             tablePath = inopts['PATHS']['TABPATH']
         
         # Create an output directory if necessary
-        if file_name is not None:
-            if not inopts['PATHS']['OUTPATH']:
-                if not os.path.exists(cafe_path+'output/'):
-                    os.mkdir(cafe_path+'output/')
-                    os.mkdir(cafe_path+'output/'+file_name)
-                outPath = cafe_path+'output/'+file_name+'/'
-            else:
+        if output_path is None:
+            if inopts['PATHS']['OUTPATH']:
                 if not os.path.exists(inopts['PATHS']['OUTPATH']):
                     os.mkdir(inopts['PATHS']['OUTPATH'])
                 outPath = inopts['PATHS']['OUTPATH']
+            else:
+                outPath = cafe_path+'output/'
         else:
-            outPath = './'
+            if not os.path.exists(output_path):
+                os.mkdir(output_path)
+            if file_name is not None:
+                if not os.path.exists(output_path+file_name):
+                    os.mkdir(output_path+file_name)
+                outPath = output_path+file_name+'/'
+            else:
+                outPath = output_path
 
         return tablePath, outPath
 
@@ -140,6 +144,8 @@ class cafe_io:
     def read_inst(instnames, tablePath):
         wMins = np.asarray([]) ; wMaxs = np.asarray([]) ; rSlopes = np.asarray([]) ; rBiases = np.asarray([])
         
+        if not isinstance(instnames, list): ValueError('The instrument/module names is not a list')
+
         files = os.listdir(tablePath+'resolving_power/')
         for i in files: #exclude hidden files from mac
             if i.startswith('.'):
@@ -149,7 +155,7 @@ class cafe_io:
         for inst in list(map(str.upper,instnames)):
             if any(inst in file for file in files):
                 for file in files:
-                    if inst in file: inst_files.append(file)
+                    if inst in file: inst_files.append(file) 
             else:
                 raise IOError('One or more resolving-power files not in directory. Or check the names.')
                 
@@ -173,15 +179,14 @@ class cafe_io:
             rSlopes = np.concatenate((rSlopes, [data[3]]))
             rBiases = np.concatenate((rBiases, [data[4]]))
     
-        inst = pd.DataFrame({'inst': instnames,
-                             'wMin': wMins,
-                             'wMax': wMaxs,
-                             'rSlope': rSlopes,
-                             'rBias': rBiases
+        inst_df = pd.DataFrame({'inst': instnames,
+                                'wMin': wMins,
+                                'wMax': wMaxs,
+                                'rSlope': rSlopes,
+                                'rBias': rBiases
         })
         
-        
-        return inst
+        return inst_df
 
 
 
@@ -252,7 +257,7 @@ class cafe_io:
 
 
     @staticmethod
-    def pah_table(parcube, x=0, y=0, parobj=False, all_pah=False, write2disk=False):
+    def pah_table(parcube, x=0, y=0, parobj=False, all_pah=False):
         """
         Output the table of PAH integrated powers
 
@@ -283,47 +288,54 @@ class cafe_io:
         for n in pah_name:
             p = df.filter(like=n, axis=0)
 
-            # --------------
-            # Flux estimates
-            # --------------
-            wav = p.filter(like='Wave', axis=0).value[0] * u.micron
+            # -------------
+            # Flux estimate
+            # -------------
+            wave = p.filter(like='Wave', axis=0).value[0] * u.micron
             
             gamma = p.filter(like='Gamma', axis=0).value[0]
             
             peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
 
-            x = np.linspace(2.5, 38, 200) * u.micron
-            y = peak * gamma**2 / ((x/wav - wav/x)**2 + gamma**2)
+            #x = np.linspace(2.5, 38, 200) * u.micron
+            #y = peak * gamma**2 / ((x/wave - wave/x)**2 + gamma**2)
 
             # integrated intensity (strength) -- in unit of W/m^2
-            pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wav)# * 1e-26 # * u.watt/u.m**2
+            pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wave)# * 1e-26 # * u.watt/u.m**2
             
-            pah_wave_list.append(wav.value)
+            pah_wave_list.append(wave.value)
             # Make unit to appear as W/m^2
             pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
 
-            # --------------------------
-            # Flux uncertainty estimates
-            # --------------------------
+            # -------------------------
+            # Flux uncertainty estimate
+            # -------------------------
             _wave_unc = p.filter(like='Wave', axis=0).stderr[0]
             _gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
             _peak_unc = p.filter(like='Peak', axis=0).stderr[0]
 
             # Only proceed if uncertainties exist
             if (_wave_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
-                wav_unc = _wave_unc * u.micron
+                wave_unc = _wave_unc * u.micron
                 gamma_unc = _gamma_unc
                 peak_unc = _peak_unc * u.Jy
 
-                g_over_w_unc = gamma / wav * np.sqrt((gamma_unc/gamma)**2 + (wav_unc/wav)**2) # uncertainty of gamma/wav
+                g_over_w_unc = gamma / wave * np.sqrt((gamma_unc/gamma)**2 + (wave_unc/wave)**2) # uncertainty of gamma/wave
                 
                 pah_strength_unc = (np.pi * const.c.to('micron/s') / 2) * \
-                                    (peak * gamma / wav) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wav))**2)# * 1e-26# * u.watt/u.m**2
+                                    (peak * gamma / wave) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wave))**2)# * 1e-26# * u.watt/u.m**2
 
                 # Make unit to appear as W/m^2
                 pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
             else:
                 pah_strength_unc_list.append(np.nan)
+
+            # ------------
+            # EQW estimate
+            # ------------
+
+            #EQW = np.trapz((I_nu_P - I_nu_C) / I_nu_C, x)
+
 
         # Define main PAH band dictionary
         mainpah_dict = {'PAH33': {'range': [3.25, 3.32]},
@@ -429,8 +441,8 @@ class cafe_io:
         for n in line_name:
             p = df.filter(like=n, axis=0)
 
-            wav = p.filter(like='Wave', axis=0).value[0] * u.micron
-            wav_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
+            wave = p.filter(like='Wave', axis=0).value[0] * u.micron
+            wave_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
             
             gamma = p.filter(like='Gamma', axis=0).value[0]
             gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
@@ -438,20 +450,20 @@ class cafe_io:
             peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
             peak_unc = p.filter(like='Peak', axis=0).stderr[0] * u.Jy
 
-            x = np.linspace(2.5, 38, 200) * u.micron
-            y = peak * gamma**2 / ((x/wav - wav/x)**2 + gamma**2)
+            #x = np.linspace(2.5, 38, 200) * u.micron
+            #y = peak * gamma**2 / ((x/wave - wave/x)**2 + gamma**2)
 
             # integrated intensity (strength) -- in unit of W/m^2
             # Gauss = 1 / np.sqrt(np.pi * np.log(2)) * Drude
             # 1 / np.sqrt(np.pi * np.log(2)) ~ 0.678
-            line_strength = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wav)# * 1e-26 # * u.watt/u.m**2
+            line_strength = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wave)# * 1e-26 # * u.watt/u.m**2
             
-            g_over_w_unc = gamma / wav * np.sqrt((gamma_unc/gamma)**2 + (wav_unc/wav)**2) # uncertainty of gamma/wav
+            g_over_w_unc = gamma / wave * np.sqrt((gamma_unc/gamma)**2 + (wave_unc/wave)**2) # uncertainty of gamma/wave
             
             line_strength_unc = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * \
-                                (peak * gamma / wav) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wav))**2)# * 1e-26# * u.watt/u.m**2
+                                (peak * gamma / wave) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wave))**2)# * 1e-26# * u.watt/u.m**2
 
-            line_wave_list.append(wav.value)
+            line_wave_list.append(wave.value)
             # Make unit to appear as W/m^2
             line_strength_list.append(line_strength.to(u.Watt/u.m**2).value)
             line_strength_unc_list.append(line_strength_unc.to(u.Watt/u.m**2).value)
@@ -485,7 +497,7 @@ class cafe_io:
 
 
     @staticmethod
-    def save_asdf(cafe, pah_tbl=True, line_tbl=True, file_name=None):
+    def save_asdf(cafe, pah_tbl=True, line_tbl=True, file_name=None, **kwargs):
         """
         Write the asdf file containing all the info about the model components
         """
@@ -494,7 +506,7 @@ class cafe_io:
             raise ValueError('The spectrum is not fitted yet.')
         else:
             from CAFE.cafe_helper import parcube2parobj
-            fitPars = parcube2parobj(cafe.parcube)
+            fitPars = parcube2parobj(cafe.parcube, **kwargs)
             
         from CAFE.cafe_lib import mask_spec, get_model_fluxes, get_feat_pars
 
@@ -505,10 +517,14 @@ class cafe_io:
         #cont_profs = prof_gen.make_cont_profs()
         
         # Get fitted results
-        CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cafe.cont_profs, comps=True)
-        
+        try:
+            CompFluxes, CompFluxes_0, extComps, e0, tau0, _ = get_model_fluxes(fitPars, wave, cafe.cont_profs, comps=True)
+        except:
+            #ipdb.set_trace()
+            raise ValueError('Could not get the model fluxes')
+
         # Narrow gauss and drude components have now an extra "redshift" from the VGRAD parameter
-        gauss, drude, gauss_opc = get_feat_pars(fitPars)
+        gauss, drude, gauss_opc = get_feat_pars(fitPars, apply_vgrad2waves=True)
         
         # Get PAH powers (intrinsic/extinguished)
         from CAFE.component_model import drude_int_fluxes

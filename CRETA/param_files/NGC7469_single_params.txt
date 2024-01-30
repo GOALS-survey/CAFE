@@ -1,12 +1,12 @@
-cubes = g140h, g235h, g395h, ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
-user_r_ap = 0.3                 # [arcsec] Aperture size
-user_ra = 23h03m15.614s         # RA of the extraction location
-user_dec = 08d52m26.23s         # Dec of the extraction location
+cubes = g395h #, ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
+user_r_ap = 0.564                 # [arcsec] Circular aperture radius
+user_ra = 23h03m15.6265s         # RA of the extraction location
+user_dec = 08d52m26.168s         # Dec of the extraction location
 point_source = False            # [True/False] True = Cone extraction. False = Cylinder extraction
 lambda_ap = 5.4                 # [microns] The user-specified aperture size (user_r_ap) will be defined at this wavelength (ignored if point_source=False; cylinder extraction)
 aperture_correction = False     # [True/False]
-centering = True                # [True/False] At lambda_cent, this will update user_ra,user_dec to recenter the extraction location  
-lambda_cent = 5.4               # [microns] The wavelength at which to perform the centering (ignored if centering=False)
+centering = False               # [True/False] At lambda_cent, this will update user_ra,user_dec to recenter the extraction location  
+lambda_cent = 4.0               # [microns] The wavelength at which to perform the centering (ignored if centering=False)
 background_sub = False          # [True/False]
 r_ann_in = 0.0                  # [arcsec] When background_sub=True, this defines the inner annulus size. This size will NOT scale with aperture size even when point_source=True
 ann_width = 0.0                 # [arcsec] When background_sub=True, this defines the annulus width. This size will NOT scale with aperture size even when point_source=True

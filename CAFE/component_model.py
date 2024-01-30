@@ -83,8 +83,8 @@ def gauss_flux(wave, gauss, ext=None):
     A1 = np.asarray(gauss[0]) # wave0
     gam = np.asarray(gauss[1]) # width in gamma
 
-    gam[gam<1e-5] = 1e-5  ### Minimum FWHM (um) - error avoidance
-    A0[A0<1e-14] = 1e-14  ### Avoid zeros/underflows
+    #gam[gam<1e-5] = 1e-5  ### Minimum FWHM (um) - error avoidance
+    #A0[A0<1e-14] = 1e-14  ### Avoid zeros/underflows
     A2 = A1*gam / 2.35482 ### From FWHM to sigma
     flux = np.zeros(wave.size)
 
@@ -174,7 +174,7 @@ def drude_prof(wave, drude, ext=None):
 
 
 def drude_int_fluxes(wave, drude, ext=None, scale=1.0, flxunits=u.Jy, wvunits=u.um):
-    ''' Computes integrated fluxe of each line in drude, with optional extinction
+    ''' Computes integrated flux of each line in drude, with optional extinction
 
     Arguments:
     wave -- array of wavelengths to compute fluxes
@@ -190,8 +190,8 @@ def drude_int_fluxes(wave, drude, ext=None, scale=1.0, flxunits=u.Jy, wvunits=u.
     '''
     if ext is None:
         ext = np.ones(wave.shape)
-    int_fluxes = np.empty(len(drude[0]))
-    totflux = np.empty(wave.shape)
+    int_fluxes = np.zeros(len(drude[0]))
+    totflux = np.zeros(wave.shape)
     wave = wave*wvunits
     for i in range(len(int_fluxes)):
         ### Get parameters for specific line
@@ -201,8 +201,8 @@ def drude_int_fluxes(wave, drude, ext=None, scale=1.0, flxunits=u.Jy, wvunits=u.
         flux = drude_prof(wave.value, lpars, ext=ext)
         totflux+=flux
         ### Units
-        flux = (flux*flxunits).to(u.erg/u.cm**2/u.s/wvunits, equivalencies=u.spectral_density(wave))
+        flux = (flux*flxunits).to(u.W/u.m**2/wvunits, equivalencies=u.spectral_density(wave))
         ### Integrate
         int_fluxes[i] = np.trapz(flux.value, wave.value)
 
-    return int_fluxes*(u.erg/u.cm**2/u.s)
+    return int_fluxes*(u.W/u.m**2)

@@ -9,8 +9,8 @@
 # meta: {name: opacity parameters}
 # schema: astropy-2.0
 name        wave     gamma     peak  mask
-H2Oice      3.050    0.12      0.2   0
-CO2ice      4.2722   0.0055    0.1   0
-CO11ice     4.381    0.10      0.1   0
-CO12ice     4.600    0.028     0.2   0
-CO13ice     4.6822   0.0017    0.1   0
+H2Oice      3.050    0.12      0.2   1
+CO2ice      4.2722   0.0055    0.1   1
+CO11ice     4.381    0.10      0.1   1
+CO12ice     4.600    0.028     0.2   1
+CO13ice     4.6822   0.0017    0.1   1
