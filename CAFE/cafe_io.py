@@ -19,6 +19,7 @@ import CAFE
 
 #import ipdb
 
+
 class cafe_io:
 
     def __init__(self):
@@ -335,7 +336,6 @@ class cafe_io:
             # ------------
 
             #EQW = np.trapz((I_nu_P - I_nu_C) / I_nu_C, x)
-
 
         # Define main PAH band dictionary
         mainpah_dict = {'PAH33': {'range': [3.25, 3.32]},
