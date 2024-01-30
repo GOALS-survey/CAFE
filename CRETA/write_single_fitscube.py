@@ -64,24 +64,24 @@ def write_single_fitscube(file_name, output_name):
                 fluxes_PSC =res[0].flux[2]
                 errors_PSC= res[0].uncertainty.array[0]
             
-            # for i in range(len(dct)):
-            #     for j in range(len(dct[i])):
-            #         fluxes[:,j,i] = dct[i][j].flux[0,:]
-            #         fluxes_stitched[:,j,i] = dct[i][j].flux[1,:]
-            #         DQ[:,j,i] = dct[i][j].flux[2,:]  
-            #         errors[:,j,i] = dct[i][j].uncertainty.array[0,:]
-            #         errors_stitched[:,j,i] = dct[i][j].uncertainty.array[1,:]
-            #         if aperture_correction:
-            #             fluxes_PSC[:,j,i] = dct[i][j].flux[2,:]
-            #             errors_PSC= dct[i][j].uncertainty.array[2,:]
-            #             DQ[:,j,i] = dct[i][j].flux[2,:] 
+           # for i in range(len(dct)):
+           #     for j in range(len(dct[i])):
+           #         fluxes[:,j,i] = dct[i][j].flux[0,:]
+           #         fluxes_stitched[:,j,i] = dct[i][j].flux[1,:]
+           #         DQ[:,j,i] = dct[i][j].flux[2,:]  
+           #         errors[:,j,i] = dct[i][j].uncertainty.array[0,:]
+           #         errors_stitched[:,j,i] = dct[i][j].uncertainty.array[1,:]
+           #         if aperture_correction:
+           #             fluxes_PSC[:,j,i] = dct[i][j].flux[2,:]
+           #             errors_PSC= dct[i][j].uncertainty.array[2,:]
+           #             DQ[:,j,i] = dct[i][j].flux[2,:] 
                         
                     
             
             
-            #%%write FITS multicard
-           keys = res[0].meta.keys()
-           values = list(res[0].meta.values())
+           #%%write FITS multicard
+           #keys = res[0].meta.keys()
+           #values = list(res[0].meta.values())
            NAXIS1, NAXIS2, NAXIS3 = 1, 1, len(fluxes)
             
            import astropy.io.fits as fits
@@ -108,16 +108,16 @@ def write_single_fitscube(file_name, output_name):
            header['CUNIT1'] = 'deg'
            header['CUNIT2'] = 'deg'
            header['CUNIT3'] = 'um '
-           header['PC1_1']  = -1
-           header['PC1_2']  = 0.0
-           header['PC1_3']  = 0
-           header['PC2_1']  = 0.0
-           header['PC2_2']  = 1.0
-           header['PC2_3']  = 0
-           header['PC3_1']  = 0
-           header['PC3_2']  = 0
-           header['PC3_3']  = 1
-           values[1] = values[1].replace("'", "")
+           header['PC1_1']  = -1.
+           header['PC1_2']  = 0.
+           header['PC1_3']  = 0.
+           header['PC2_1']  = 0.
+           header['PC2_2']  = 1.
+           header['PC2_3']  = 0.
+           header['PC3_1']  = 0.
+           header['PC3_2']  = 0.
+           header['PC3_3']  = 1.
+           #values[1] = values[1].replace("'", "")
            header['EXTRTYPE'] = dictionary[" 'exrtaction_type'"]
            header['APRAD'] = float(dictionary[" 'r_ap'"].split("'")[1])
            #add GRCNTRA , dec
@@ -147,3 +147,5 @@ def write_single_fitscube(file_name, output_name):
                 hdulist = fits.HDUList([hdu, h_flux,h_err,                       h_flux_stitched, h_err_stitched, h_dq,h_wave, h_names]) 
                 
            hdulist.writeto(output_name, overwrite=True)
+
+           hdulist.close()

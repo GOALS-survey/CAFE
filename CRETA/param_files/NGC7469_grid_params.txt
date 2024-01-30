@@ -1,11 +1,11 @@
-cubes = g395h, ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
-user_ra = 23h03m15.614s
-user_dec = 08d52m26.23s
-user_center = True
-centering = True
-lambda_cent = 5.4
-nx_steps = 3
-ny_steps = 3
-spax_size = 0.5
-step_size = -1 
+cubes = g395h #, ch1-short, ch1-medium, ch1-long, ch2-short, ch2-medium, ch2-long, ch3-short, ch3-medium, ch3-long, ch4-short, ch4-medium, ch4-long
+user_ra = 23h03m15.626s      # RA of the extraction location
+user_dec = 08d52m26.162s     # Dec of the extraction location
+user_center = True           # [True/False] Use the center defined by the user. Otherwise the center of the cube will be used.
+centering = False            # [True/False] At lambda_cent, this will update user_ra,user_dec to recenter the extraction location  
+lambda_cent = 4.0            # [microns] The wavelength at which to perform the centering (ignored if centering=False)
+nx_steps = 13                 # Number of steps in the X direction 
+ny_steps = 13                 # Number of steps in the Y direction
+spax_size = 0.3              # [arcsec] Spaxel size
+step_size = -1               # [arcsec] Step size between spaxels; -1 = Spaxel size
 convolve = False

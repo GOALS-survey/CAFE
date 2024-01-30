@@ -26,10 +26,11 @@ from CRETA.userAPI import userAPI
 from CRETA.write_single_fitscube import write_single_fitscube
 from CRETA.write_grid_fitscube import write_grid_fitscube
 
+import ipdb
+
 preprocess = cube_preproc()
 user = userAPI()
 #current_path = os.path.abspath(os.getcwd())+'/'
-start_time = time.time()
 
 class creta:
 
@@ -65,11 +66,13 @@ class creta:
         
     def singleExtraction(self, data_path, parfile_path, output_path=None, parfile_name='single_params.txt',
                          PSFs_path=None, output_filebase_name='last_result',
-                         aperture_type=0, convolve=False, user_ra=0, user_dec=0,
+                         aperture_type=0, convolve=False, user_ra=0., user_dec=0.,
                          user_r_ap=[0.25], point_source=False, lambda_ap=None, aperture_correction=False, centering=False,
                          lambda_cent=None, perband_cent=False, background=False, r_ann_in=None, ann_width=None, parameter_file=True):
         
-        import time 
+
+        import time
+        start_time = time.time()
 
         preprocess = cube_preproc()
 
@@ -86,6 +89,7 @@ class creta:
             output_path = './extractions/'
             os.makedirs(output_path)
             print('Ouput path /extractions/ created.')
+        if output_path[-1] != '/': output_path+'/'
 
         if PSFs_path is None:
             PSFs_path = self.creta_dir+'PSFs/'
@@ -135,7 +139,7 @@ class creta:
                     for file in files:
                         if sel_cube in file: files_sort.append(file)
                 else:
-                    raise Exception('One or more cubes not in data directory. Make sure you point to the right path with the "data_path" command-line keyword')
+                    raise Exception('One or more cubes not in data directory. Or make sure you point to the right path with the "data_path" command-line keyword. Currently you are pointing at: '+data_path)
                 if aperture_correction or convolve:
                     if any(sel_cube in PSF_file for PSF_file in PSF_files):
                         for PSF_file in PSF_files:
@@ -150,19 +154,24 @@ class creta:
             for i in range(len(aper_rs)):
                 user_rs_arcsec.append(float(aper_rs[i]))
 
-            params['user_ra'] = params['user_ra'].split("#")[0]
-            params['user_dec'] = params['user_dec'].split("#")[0]
+            params['user_ra'] = params['user_ra'].split("#")[0].replace(" ", "")
+            params['user_dec'] = params['user_dec'].split("#")[0].replace(" ", "")
 
             # Store aperture coordinates
             if 'm' in params['user_ra'] and 'm' in params['user_dec']:
                 from astropy.coordinates import SkyCoord
                 Stringc = SkyCoord(params['user_ra'], params['user_dec'], frame='icrs')
-                user_ra = float(repr(Stringc.ra).split(" ")[1])
-                user_dec = float(repr(Stringc.dec).split(" ")[1])
+                user_ra = Stringc.ra.value # float(repr(Stringc.ra).split(" ")[1])
+                user_dec = Stringc.dec.value # float(repr(Stringc.dec).split(" ")[1])
+                user_ra_sex, user_dec_sex = params['user_ra'], params['user_dec']
             else:    
                 user_ra = float(params['user_ra'])
                 user_dec = float(params['user_dec'])
-            
+                user_radec_sex = SkyCoord(user_ra, user_dec, frame='icrs', unit='deg')
+                user_ra_sex = user_radec_sex.ra.to_string(unit=u.hour)
+                user_dec_sex = user_radec_sex.dec.to_string()
+
+
         # Parameters are given by command line
         else:
             user_rs_arcsec = user_r_ap
@@ -182,7 +191,7 @@ class creta:
             params.append(str(background))
             params.append(str(r_ann_in))
             params.append(str(ann_width))
-            
+            user_ra_sex, user_dec_sex = str(user_ra), str(user_dec)
             
                          
         #%% 
@@ -198,7 +207,7 @@ class creta:
         print('########################################')
         print('Cubes: '+str(sel_cubes))
         print('Aperture radii: '+str(user_rs_arcsec)+' (arcsec)')
-        print('RA,δ: ['+str(user_ra)+','+str(user_dec)+'] (degrees)')
+        print('RA,δ: ['+str(user_ra_sex)+','+str(user_dec_sex)+'] (degrees)')
         print('Point Source: '+str(point_source))
         print('Aperture Correction: '+str(aperture_correction)+' (PSF Correction)')
         print('Centering: '+str(centering))
@@ -743,26 +752,31 @@ class creta:
     ########### --> Return cube_data  ############################
     # @res_spec1d: A list of data sub-channels. (list of SubCube)        
     ###############################################################################     
-    def gridExtraction(self, data_path='', PSFs_path='', output_path='', output_filebase_name='last_result',
-                       parfile_path='', parfile_name='grid_params.txt',
+    def gridExtraction(self, data_path, parfile_path, output_path=None, parfile_name='grid_params.txt',
+                       PSFs_path=None, output_filebase_name='last_result',
                        point_source=False, lambda_ap=None,  centering=False, lambda_cent=None, perband_cent=False,
                        parameter_file=True, plots=False, nx_steps=-1, ny_steps=-1, spax_size=-1, step_size=-1,
                        user_ra=0., user_dec=0., user_center=True, aperture_correction=False, convolve=False):
         
-
-        if data_path == '': data_path = self.creta_dir+'data/'
-        if data_path[-1] != '/': data_path+'/'
-        if PSFs_path == '': PSFs_path = self.creta_dir+'PSFs/'
-        if PSFs_path[-1] != '/': PSFs_path+'/'
-        if output_path == '': output_path = self.creta_dir+'extractions/'
-        if output_path[-1] != '/': output_path+'/'
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        if parfile_path == '': parfile_path = self.creta_dir+'param_files/'
-        if parfile_path[-1] != '/': parfile_path+'/'
         
+        import time
+        start_time = time.time()
+
+        if data_path[-1] != '/': data_path+'/'
+        if parfile_path[-1] != '/': parfile_path+'/'
+
+        if output_path is None:
+            output_path = './extractions/'
+            os.makedirs(output_path)
+            print('Ouput path /extractions/ created.')
+        if output_path[-1] != '/': output_path+'/'
+
+        if PSFs_path is None:
+            PSFs_path = self.creta_dir+'PSFs/'
+        if PSFs_path[-1] != '/': PSFs_path+'/'
+
+
         if parameter_file:
-            #grid_params = userAPI.loadUserParams(userAPI,'../CRETA/grid_params.txt')
             grid_params = userAPI.read_inipars(parfile_path+parfile_name)
             grid_params = grid_params['FAKE SECTION']
             
@@ -789,7 +803,7 @@ class creta:
                     for file in files:
                         if sel_cube in file: files_sort.append(file)
                 else:
-                    raise Exception('One or more cubes not in data directory')
+                    raise Exception('One or more cubes not in data directory. Or make sure you point to the right path with the "data_path" command-line keyword. Currently you are pointing at: '+data_path)
                 if aperture_correction or convolve:
                     if any(sel_cube in PSF_file for PSF_file in PSF_files):
                         for PSF_file in PSF_files:
@@ -818,11 +832,16 @@ class creta:
             if 'm' in grid_params['user_ra'] and 'm' in grid_params['user_dec']:
                 from astropy.coordinates import SkyCoord
                 Stringc = SkyCoord(grid_params['user_ra'], grid_params['user_dec'], frame='icrs')
-                user_ra = float(repr(Stringc.ra).split(" ")[1])
-                user_dec = float(repr(Stringc.dec).split(" ")[1])
+                user_ra = Stringc.ra.value # float(repr(Stringc.ra).split(" ")[1])
+                user_dec = Stringc.dec.value # float(repr(Stringc.dec).split(" ")[1])
+                user_ra_sex, user_dec_sex = grid_params['user_ra'], grid_params['user_dec']
             else:    
                 user_ra = float(grid_params['user_ra'])
                 user_dec = float(grid_params['user_dec'])
+                user_radec_sex = SkyCoord(user_ra, user_dec, frame='icrs', unit='deg')
+                user_ra_sex = user_radec_sex.ra.to_string(unit=u.hour)
+                user_dec_sex = user_radec_sex.dec.to_string()
+
                 
             user_center = grid_params['user_center'].split("#")[0].replace(" ",'') == 'True'
             
@@ -884,7 +903,7 @@ class creta:
         
         
         print('Cubes:', str(sel_cubes))
-        print('RA,δ: ['+str(user_ra)+','+str(user_dec)+'] (degrees)')
+        print('RA,δ: ['+str(user_ra_sex)+','+str(user_dec_sex)+'] (degrees)')
         print('Grid Extraction Parameters:')
         print('NX Steps:', nx_steps)
         print('NY Steps:', ny_steps)
@@ -922,7 +941,7 @@ class creta:
                 print('Old coordinates were:', user_ra, user_dec)
                 print('New coordinates are:', new_sky[0])
                 ra_cent = new_sky[0].ra
-                dec_cent = new_sky[0].dec  
+                dec_cent = new_sky[0].dec
             else:   
                 ra_cent = user_ra
                 dec_cent = user_dec
@@ -965,7 +984,6 @@ class creta:
             all_aps.append(aps)
             
             print(realData_all[i].name_band+" photometry exectued in: %s seconds" % (time.time() - time_photometry))        
-        
         
         
         #%% PQD
@@ -1023,7 +1041,7 @@ class creta:
                     # print(PCR)
                     
                 PSF_correction_ratio.append(PCR)
-                    # preprocess.plotGrid(PSF_cnt_sky[0].ra,PSF_cnt_sky[0].dec, step_size, nx_steps, ny_steps, PSF_all[i], r_ap)
+                # preprocess.plotGrid(PSF_cnt_sky[0].ra,PSF_cnt_sky[0].dec, step_size, nx_steps, ny_steps, PSF_all[i], r_ap)
                 # PSF_correction_ratio.append(np.array(subband_correction_ratio))
                 # subband_correction_ratio = []
                 PSC = np.array(PSF_correction_ratio) 
@@ -1052,12 +1070,12 @@ class creta:
                          'grid_center_DEC':dec_cent, 'exrtaction_type':aper_type, 'ap_corr':aperture_correction,
                          'Centering':centering, 'Centering_lambda':lambda_cent, 'NX':nx_steps, 'NY':ny_steps, 'spax_size':2*r_ap,
                          'step_size':step_size, 'step_indx': pixel_indices[grid_point_idx][0], 'step_indy':pixel_indices[grid_point_idx][1],
-                         'CDELT1':step_size, 'CDELT2':step_size, 'CRVAL3':cubes[0]['CRVAL3'], 'CRPIX3':1, 'CRDELT3':np.nan,
+                         'CDELT1':step_size, 'CDELT2':step_size, 'CRVAL3':cubes[0]['CRVAL3'], 'CRPIX3':cubes[0]['CRPIX3'], 'CDELT3':cubes[0]['CDELT3'],
                          'bkg_sub':False, 'bkg_r_in':0., 'bkg_an_w':0.
             }
             all_meta_dicts.append(meta_dict)    
-
-
+            
+            
             all_apers = []
             all_error = []
             PSC_flux = []
@@ -1333,5 +1351,6 @@ class creta:
         
         user.write_grid_fitscube(output_file_name)
       
+        print('Total execution time of grid extraction: %s seconds' % str(time.time() - start_time))
 
 

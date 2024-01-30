@@ -97,8 +97,8 @@ def write_grid_fitscube(file_name, output_name=None):
        
        
        #%%write FITS multicard
-       keys = res[0].meta.keys()
-       values = list(res[0].meta.values())
+       #keys = res[0].meta.keys()
+       #values = list(res[0].meta.values())
        NAXIS1, NAXIS2, NAXIS3 = fluxes.shape
        
        import astropy.io.fits as fits
@@ -128,16 +128,16 @@ def write_grid_fitscube(file_name, output_name=None):
        header['CUNIT1'] = 'deg'
        header['CUNIT2'] = 'deg'
        header['CUNIT3'] = 'um '
-       header['PC1_1']  = -1
-       header['PC1_2']  = 0.0
-       header['PC1_3']  = 0
-       header['PC2_1']  = 0.0
-       header['PC2_2']  = 1.0
-       header['PC2_3']  = 0
-       header['PC3_1']  = 0
-       header['PC3_2']  = 0
-       header['PC3_3']  = 1
-       values[1] = values[1].replace("'", "")
+       header['PC1_1']  = -1.
+       header['PC1_2']  = 0.
+       header['PC1_3']  = 0.
+       header['PC2_1']  = 0.
+       header['PC2_2']  = 1.
+       header['PC2_3']  = 0.
+       header['PC3_1']  = 0.
+       header['PC3_2']  = 0.
+       header['PC3_3']  = 1.
+       #values[1] = values[1].replace("'", "")
        header['EXTRTYPE'] =dictionary[" 'exrtaction_type'"]
        header['SPAXSIZE'] = float(dictionary[" 'spax_size'"])
        header['STEPSIZE'] = float(dictionary[" 'step_size'"])
@@ -163,12 +163,11 @@ def write_grid_fitscube(file_name, output_name=None):
        h_names = fits.BinTableHDU.from_columns(coldefs, name="Band_names")
        
        if aperture_correction:
-            hdulist = fits.HDUList([hdu, h_flux,h_err, h_flux_PSC, h_err_PSC, h_flux_stitched, h_err_stitched, h_dq, h_wave, h_names])
+            hdulist = fits.HDUList([hdu, h_flux, h_err, h_flux_PSC, h_err_PSC, h_flux_stitched, h_err_stitched, h_dq, h_wave, h_names])
        else:
-            hdulist = fits.HDUList([hdu, h_flux,h_err,                        h_flux_stitched, h_err_stitched, h_dq, h_wave, h_names]) 
+            hdulist = fits.HDUList([hdu, h_flux, h_err,                        h_flux_stitched, h_err_stitched, h_dq, h_wave, h_names]) 
        
        hdulist.writeto(output_name, overwrite=True)
-        
-      
        
+       hdulist.close()
   
