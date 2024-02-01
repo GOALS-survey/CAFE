@@ -829,8 +829,8 @@ class creta:
             grid_params['user_ra'] = grid_params['user_ra'].split("#")[0]
             grid_params['user_dec'] = grid_params['user_dec'].split("#")[0]
 
+            from astropy.coordinates import SkyCoord
             if 'm' in grid_params['user_ra'] and 'm' in grid_params['user_dec']:
-                from astropy.coordinates import SkyCoord
                 Stringc = SkyCoord(grid_params['user_ra'], grid_params['user_dec'], frame='icrs')
                 user_ra = Stringc.ra.value # float(repr(Stringc.ra).split(" ")[1])
                 user_dec = Stringc.dec.value # float(repr(Stringc.dec).split(" ")[1])
