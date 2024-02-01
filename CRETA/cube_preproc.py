@@ -847,7 +847,7 @@ class cube_preproc:
                 pixels_list.append([grids_xs[i], grids_ys[j]])
                 names.append(str(i)+"_"+str(j))
         
-        img = np.nanmedium(cube.cube_before[20:40], axis=0)
+        img = np.nanmedian(cube.cube_before[20:40], axis=0)
         #img = cube.cube_before[0,:,:]
         #for i in range(1,len(cube.cube_before)):
         #    img = img + cube.cube_before[i,:,:]
