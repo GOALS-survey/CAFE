@@ -67,8 +67,9 @@ class creta:
     def singleExtraction(self, data_path, parfile_path, output_path=None, parfile_name='single_params.txt',
                          PSFs_path=None, output_filebase_name='last_result',
                          aperture_type=0, convolve=False, user_ra=0., user_dec=0.,
-                         user_r_ap=[0.25], point_source=False, lambda_ap=None, aperture_correction=False, centering=False,
-                         lambda_cent=None, perband_cent=False, background=False, r_ann_in=None, ann_width=None, parameter_file=True):
+                         user_r_ap=None, point_source=False, lambda_ap=None, aperture_correction=False, centering=False,
+                         lambda_cent=None, perband_cent=False, background=False, r_ann_in=None, ann_width=None, parameter_file=True,
+                         ignore_DQ=False):
         
 
         import time
@@ -158,8 +159,8 @@ class creta:
             params['user_dec'] = params['user_dec'].split("#")[0].replace(" ", "")
 
             # Store aperture coordinates
+            from astropy.coordinates import SkyCoord
             if 'm' in params['user_ra'] and 'm' in params['user_dec']:
-                from astropy.coordinates import SkyCoord
                 Stringc = SkyCoord(params['user_ra'], params['user_dec'], frame='icrs')
                 user_ra = Stringc.ra.value # float(repr(Stringc.ra).split(" ")[1])
                 user_dec = Stringc.dec.value # float(repr(Stringc.dec).split(" ")[1])
@@ -234,13 +235,13 @@ class creta:
         #%% Load Data
         print('Loading Data')    
         ## getSubCubes is in userAPI.py file
-        realData_all = user.getSubCubes(data_path, files_sort, user_rs_arcsec, lambda_ap, point_source, isnotPSF, centering, background, r_in, width, aperture_type, False)
+        realData_all = user.getSubCubes(data_path, files_sort, user_rs_arcsec, lambda_ap, point_source, isnotPSF, centering, background, r_in, width, aperture_type, False, ignore_DQ)
         timePSF_loading = time.time()
 
         #%% Load PSFs: PSF_all is a list with all PSF sub-cubes sorted by wavelength
         if aperture_correction or convolve:
             print('Loading PSFs')
-            PSF_all = user.getSubCubes(PSFs_path, PSF_files_sort, user_rs_arcsec, lambda_ap, point_source, isPSF, centering, background, r_in, width, aperture_type, convolve)
+            PSF_all = user.getSubCubes(PSFs_path, PSF_files_sort, user_rs_arcsec, lambda_ap, point_source, isPSF, centering, background, r_in, width, aperture_type, convolve, ignore_DQ)
             print("PSF Cubes loaded in': %s seconds" % (time.time() - timePSF_loading))
         
         if convolve:
@@ -293,6 +294,7 @@ class creta:
         for i in range(len(realData_all)):
             realData_all[i].doCenters(ra_cent, dec_cent, isnotPSF, perband_cent)
             
+
         #%% PSF Photometry
         time_PSF_photometry_all = time.time()    
         if aperture_correction:
@@ -303,6 +305,7 @@ class creta:
                 PSF_all[i].doSinglePhotometry(isPSF, background) 
                 #PSF_all[i].doFluxUnitConversion()
             print("PSF Photometry executed in: %s seconds" % (time.time() - time_PSF_photometry_all))      
+
         
         #%% DATA Photometry
         time_data_photometry_all = time.time() 
@@ -329,7 +332,7 @@ class creta:
             preprocess.getSubcubesAll(realData_all, background, aperture_correction)
 
         
-        #%%aperture_correction 
+        #%% Aperture_correction 
         time_create_list_all  = time.time() 
         if aperture_correction:
             PSF_ratio = []
@@ -345,8 +348,8 @@ class creta:
                     error_PSF_corrected[i].append(np.array(realData_all[i].error_PSF_corrected)[j,:])
         
                         
-        #%%
-        print("Initiating stitching process")            
+        #%% Stitching
+        print("Applying stitching between cubes for every aperture")            
         data_dict = {}
         for i in range(len(realData_all)):
             data_dict[realData_all[i].name_band] = realData_all[i]
@@ -364,198 +367,199 @@ class creta:
         # Apply the stitching ratio
         for j in range(len(realData_all[0].rs[0])):          #for every aperture radius
 
-             file_naming = output_filebase_name+'_SingleExt_r'+str(user_rs_arcsec[j])+'as'
-
-             meta_dict = {'extraction_RA':ra_cent, 'extraction_DEC':dec_cent, "r_ap":aper_rs[j], "exrtaction_type":aper_type,
-                          "ap_corr":aperture_correction, "Centering":centering, 'Centering_lambda':l_c,
-                          "bkg_sub":background, "bkg_r_in":r_ann_in, "bkg_an_w":ann_width
-             }
-             
-             print("For radius", str(aper_rs[j]), "arcsec:")
-             for i in range(len(realData_all)):         # for every band name that would exist, except the last
-                 ##print('i == ', i , "j === ",j)
-                 #if cubesNames[i] in data_dict:        # if the datacube is avaliable
-                 data = data_dict[realData_all[i].name_band]
-                 
-                 #if cubesNames[i+1] in data_dict:  # if we can calculate the stitching ratio                         
-                 if aperture_correction: #if PSC, use stitch corrected spectrum
-                     beforeStitch = np.array(data.spectrum_PSF_corrected)[j,:]                     
-                     beforeStitch_error = np.array(data.error_PSF_corrected)[j,:]
-                     
-                 else:
-                     beforeStitch = np.array(data.corrected_spectrum)[:,j]                     
-                     beforeStitch_error = np.array(data.error)[:,j]
-                     
-                 stitched_flux = preprocess.stitchSpectrum(list(np.array(all_s_ratios)[j,:]), i, beforeStitch) #stitch aperture
-                 data.stitched_spectrum.append(stitched_flux)#stitched spectrum
-                 stitched_error= preprocess.stitchSpectrum(list(np.array(all_s_ratios)[j,:]), i, beforeStitch_error) #stitch aperture
-                 data.stitched_error.append(stitched_error) #stitched spectrum                                    
-
-                 #else: #if next cube does not exists
-                 #    
-                 #    data.stitched_spectrum.append([np.NaN] * len(data.apers))
-                 #    data.stitched_error.append([np.NaN] * len(data.apers))
-
-             ## The last sub-band is append as is, without stitching
-             #data = data_dict[cubesNames[len(cubesNames)-1]]     
-             #if aperture_correction:
-             #    data.stitched_spectrum.append(np.array(data.spectrum_PSF_corrected)[j,:])
-             #    data.stitched_error.append(np.array(data.error_PSF_corrected)[j,:])
-             #else:
-             #    data.stitched_spectrum.append(np.array(data.corrected_spectrum)[:,j])
-             #    data.stitched_error.append(np.array(data.error)[:,j])
-
-             all_stitched_spectrum = []
-             all_stitched_error = []
-             final_apers = []
-             final_ls = []
-             for i in range(len(realData_all)):
-
-                 final_apers.extend(np.array(realData_all[i].apers)[j,:]) 
-                 final_ls.extend(np.array(realData_all[i].ls)) 
-                 # print(realData_all[i].name_band , "  exei stitched ", np.array(realData_all[i].stitched_spectrum)[j,0])
-                 all_stitched_spectrum.extend(np.array(realData_all[i].stitched_spectrum)[j,:])
-                 all_stitched_error.extend(np.array(realData_all[i].stitched_error)[j,:]) #if aperture correction error user corrected error
-
-             
-             #Check if r_ap photometry contains NaNs
-             for i in range(len(realData_all)):
-                 if np.isnan(np.sum(final_apers[i])):
-                     print('WARNING: r_ap in', realData_all[i].name_band, 'contains NaNs or/and extends beyond the cube FOV at some wavelength')
-
-
-             spectrum_PSF_corrected_all = [] 
-             error_PSF_corrected_all = [] 
-             PSF_ratio_all = []      
+            file_naming = output_filebase_name+'_SingleExt_r'+str(user_rs_arcsec[j])+'as'
             
-             #PSF CORRECTION
-             if aperture_correction:
-                for i in range(len(spectrum_PSF_corrected)):
-                      spectrum_PSF_corrected_all.extend(np.array(spectrum_PSF_corrected[i])[j,:])  
-                      error_PSF_corrected_all.extend(np.array(error_PSF_corrected[i])[j,:])  
-                      PSF_ratio_all.extend(np.array(PSF_ratio[i])[j,:])
-                      
-
+            meta_dict = {'extraction_RA':ra_cent, 'extraction_DEC':dec_cent, "r_ap":aper_rs[j], "exrtaction_type":aper_type,
+                         "ap_corr":aperture_correction, "Centering":centering, 'Centering_lambda':l_c,
+                         "bkg_sub":background, "bkg_r_in":r_ann_in, "bkg_an_w":ann_width
+            }
             
-             #%%          
-             time_stitch = time.time()
-             res_all = []
-             res_all.append(all_ls)
-             res_all.append(all_names)
-             res_all.append(np.array(all_corrected_spectrum)[:,j])
-             res_all.append(np.array(all_error_spectrum)[:,j])
-             res_all.append(np.array(all_rs_arcsec)[:,j])
-            
-             if background:
-                 res_all.append(all_background)
-               
-             if aperture_correction:
-                 res_all.append(spectrum_PSF_corrected_all)
-                 res_all.append((error_PSF_corrected_all))
-                 res_all.append((PSF_ratio_all))
+            #print("For radius", str(aper_rs[j]), "arcsec:")
+            for i in range(len(realData_all)):         # for every band name that would exist, except the last
+                ##print('i == ', i , "j === ",j)
+                #if cubesNames[i] in data_dict:        # if the datacube is avaliable
+                data = data_dict[realData_all[i].name_band]
                 
-             if len(np.array(final_apers).shape)!=1:
-                 res_all.append(np.array(all_stitched_spectrum)[j,:])
-                 res_all.append(np.array(all_stitched_error)[j,:])
-             else:
-                 res_all.append(all_stitched_spectrum)
-                 res_all.append(np.array(all_stitched_error))
+                #if cubesNames[i+1] in data_dict:  # if we can calculate the stitching ratio                         
+                if aperture_correction: #if PSC, use stitch corrected spectrum
+                    beforeStitch = np.array(data.spectrum_PSF_corrected)[j,:]                     
+                    beforeStitch_error = np.array(data.error_PSF_corrected)[j,:]
                     
+                else:
+                    beforeStitch = np.array(data.corrected_spectrum)[:,j]                     
+                    beforeStitch_error = np.array(data.error)[:,j]
+                    
+                stitched_flux = preprocess.stitchSpectrum(list(np.array(all_s_ratios)[j,:]), i, beforeStitch) #stitch aperture
+                data.stitched_spectrum.append(stitched_flux) #stitched spectrum
+                stitched_error= preprocess.stitchSpectrum(list(np.array(all_s_ratios)[j,:]), i, beforeStitch_error) #stitch aperture
+                data.stitched_error.append(stitched_error) #stitched spectrum                                    
                 
-             # print("ERROR SHAPE: ",res_all)
-             all_DQ_list = []
-             for i in range(len(realData_all)):
-                 cube = realData_all[i]
-                 temp = cube.preprocess.getApertureDQList(cube)
-                 
-                 all_DQ_list.extend(temp)
-             res_all.append(all_DQ_list) 
-
-             print("Stitching performed in: %s seconds" % (time.time() - time_stitch))
-        #%%Create DF
-
-             time_writing_output = time.time()
+                #else: #if next cube does not exists
+                #    
+                #    data.stitched_spectrum.append([np.NaN] * len(data.apers))
+                #    data.stitched_error.append([np.NaN] * len(data.apers))
+                
+            ## The last sub-band is append as is, without stitching
+            #data = data_dict[cubesNames[len(cubesNames)-1]]     
+            #if aperture_correction:
+            #    data.stitched_spectrum.append(np.array(data.spectrum_PSF_corrected)[j,:])
+            #    data.stitched_error.append(np.array(data.error_PSF_corrected)[j,:])
+            #else:
+            #    data.stitched_spectrum.append(np.array(data.corrected_spectrum)[:,j])
+            #    data.stitched_error.append(np.array(data.error)[:,j])
             
-             column_names = ['Wave', 'Band_name', 'Flux_ap', 'Err_ap', 'R_ap']
+            all_stitched_spectrum = []
+            all_stitched_error = []
+            final_apers = []
+            final_ls = []
+            for i in range(len(realData_all)):
+                
+                final_apers.extend(np.array(realData_all[i].apers)[j,:]) 
+                final_ls.extend(np.array(realData_all[i].ls)) 
+                # print(realData_all[i].name_band , "  exei stitched ", np.array(realData_all[i].stitched_spectrum)[j,0])
+                all_stitched_spectrum.extend(np.array(realData_all[i].stitched_spectrum)[j,:])
+                all_stitched_error.extend(np.array(realData_all[i].stitched_error)[j,:]) #if aperture correction error user corrected error
+
+             
+            #Check if r_ap photometry contains NaNs
+            for i in range(len(realData_all)):
+                if np.isnan(final_apers[i]).all():
+                    print('WARNING: The extracted spectrum from', realData_all[i].name_band, 'contains all NaNs')
+                elif np.isnan(final_apers[i]).any():
+                    print('WARNING: The extracted spectrum from', realData_all[i].name_band, 'contains some NaNs or/and extends beyond the cube FOV at some wavelength')
+
+
+            spectrum_PSF_corrected_all = [] 
+            error_PSF_corrected_all = [] 
+            PSF_ratio_all = []      
             
-             if background:
+            #PSF CORRECTION
+            if aperture_correction:
+                for i in range(len(spectrum_PSF_corrected)):
+                    spectrum_PSF_corrected_all.extend(np.array(spectrum_PSF_corrected[i])[j,:])  
+                    error_PSF_corrected_all.extend(np.array(error_PSF_corrected[i])[j,:])  
+                    PSF_ratio_all.extend(np.array(PSF_ratio[i])[j,:])
+                            
+                    
+            #%%          
+            time_stitch = time.time()
+            res_all = []
+            res_all.append(all_ls)
+            res_all.append(all_names)
+            res_all.append(np.array(all_corrected_spectrum)[:,j])
+            res_all.append(np.array(all_error_spectrum)[:,j])
+            res_all.append(np.array(all_rs_arcsec)[:,j])
+            
+            if background:
+                res_all.append(all_background)
+                
+            if aperture_correction:
+                res_all.append(spectrum_PSF_corrected_all)
+                res_all.append((error_PSF_corrected_all))
+                res_all.append((PSF_ratio_all))
+                
+            if len(np.array(final_apers).shape)!=1:
+                res_all.append(np.array(all_stitched_spectrum)[j,:])
+                res_all.append(np.array(all_stitched_error)[j,:])
+            else:
+                res_all.append(all_stitched_spectrum)
+                res_all.append(np.array(all_stitched_error))
+                
+                
+            # print("ERROR SHAPE: ",res_all)
+            all_DQ_list = []
+            for i in range(len(realData_all)):
+                cube = realData_all[i]
+                temp = cube.preprocess.getApertureDQList(cube)
+                
+                all_DQ_list.extend(temp)
+            res_all.append(all_DQ_list) 
+            
+            print("Stitching performed in: %s seconds" % (time.time() - time_stitch))
+            #%%Create DF
+
+            time_writing_output = time.time()
+            
+            column_names = ['Wave', 'Band_name', 'Flux_ap', 'Err_ap', 'R_ap']
+            
+            if background:
                 column_names.append('Background')
-             if aperture_correction:
+            if aperture_correction:
                 column_names.append('Flux_ap_PSC')
                 column_names.append('Err_ap_PSC')
                 column_names.append('PSC')
                 
-             column_names.append('Flux_ap_st')    
-             column_names.append('Err_ap_st')
-             column_names.append('DQ')
-
-             # print(background,aperture_correction,len(res_all))
-                
-             df = pd.DataFrame(res_all)
+            column_names.append('Flux_ap_st')    
+            column_names.append('Err_ap_st')
+            column_names.append('DQ')
             
-             df = df.T
-             df.columns = column_names
-             df = df.sort_values(by=['Wave'])  
-
-             #CHANGE DF dType
-             df['Wave']= df['Wave'].astype(float)
-             df['Band_name']= df['Band_name'].astype(str)
-             df['Flux_ap']= df['Flux_ap'].astype(float)
-             df['Err_ap']= df['Err_ap'].astype(float)
-             df['R_ap']= df['R_ap'].astype(float)
-             if aperture_correction:
-                 df['Flux_ap_PSC']= df['Flux_ap_PSC'].astype(float)
-                 df['Err_ap_PSC']= df['Err_ap_PSC'].astype(float)
-                 df['PSC']= df['PSC'].astype(float)                 
-             df['Flux_ap_st']= df['Flux_ap_st'].astype(float)
-             df['Err_ap_st']= df['Err_ap_st'].astype(float)
-             df['DQ']= df['DQ'].astype(float)
-
-             #%% PLOT SPECTRA
-             fig = plt.figure(figsize=(11,8.5))
-
-             plt.loglog(df['Wave'],df['Flux_ap'],label = 'Flux', alpha=1., linewidth=0.25)
-             if aperture_correction:
+            # print(background,aperture_correction,len(res_all))
+            
+            df = pd.DataFrame(res_all)
+            
+            df = df.T
+            df.columns = column_names
+            df = df.sort_values(by=['Wave'])  
+            
+            #CHANGE DF dType
+            df['Wave']= df['Wave'].astype(float)
+            df['Band_name']= df['Band_name'].astype(str)
+            df['Flux_ap']= df['Flux_ap'].astype(float)
+            df['Err_ap']= df['Err_ap'].astype(float)
+            df['R_ap']= df['R_ap'].astype(float)
+            if aperture_correction:
+                df['Flux_ap_PSC']= df['Flux_ap_PSC'].astype(float)
+                df['Err_ap_PSC']= df['Err_ap_PSC'].astype(float)
+                df['PSC']= df['PSC'].astype(float)                 
+            df['Flux_ap_st']= df['Flux_ap_st'].astype(float)
+            df['Err_ap_st']= df['Err_ap_st'].astype(float)
+            df['DQ']= df['DQ'].astype(float)
+            
+            #%% PLOT SPECTRA
+            fig = plt.figure(figsize=(11,8.5))
+            
+            plt.loglog(df['Wave'],df['Flux_ap'],label = 'Flux', alpha=1., linewidth=0.25)
+            if aperture_correction:
                 plt.loglog(df['Wave'],df['Flux_ap_PSC'],label = 'Flux After PSC', alpha=1., linewidth=0.25)
-             plt.loglog(df['Wave'],df['Flux_ap_st'],label = 'Flux Stitched', alpha=1., linewidth=0.25)
-             plt.xlabel("Wavelength [μm]", fontsize=12)
-             plt.ylabel("Flux [Jy]", fontsize=12)
-
-             plt.loglog(df['Wave'],df['Err_ap'], linestyle='dashed', linewidth=0.1, label='Error')
-             if aperture_correction:
-                   plt.loglog(df['Wave'],df['Err_ap_PSC'], linestyle='dashed', linewidth=0.1, label='Error PSC')
-             plt.loglog(df['Wave'],df['Err_ap_st'], linestyle='dashed', linewidth=0.1, label='Error Stitched')             
-             #plt.xlabel("Wavelength [μm]", fontsize=12)
-             #plt.ylabel("Flux [Jy]", fontsize=12)
-
-             plt.legend(fontsize=12)
-             plt.savefig(output_path+file_naming+'_spectra.png', dpi=385)
-             #plt.show()
-             plt.close()
-             
-             aperture_lamda_issue = -1
-             if background:
+            plt.loglog(df['Wave'],df['Flux_ap_st'],label = 'Flux Stitched', alpha=1., linewidth=0.25)
+            plt.xlabel("Wavelength [μm]", fontsize=12)
+            plt.ylabel("Flux [Jy]", fontsize=12)
+            
+            plt.loglog(df['Wave'],df['Err_ap'], linestyle='dashed', linewidth=0.1, label='Error')
+            if aperture_correction:
+                plt.loglog(df['Wave'],df['Err_ap_PSC'], linestyle='dashed', linewidth=0.1, label='Error PSC')
+            plt.loglog(df['Wave'],df['Err_ap_st'], linestyle='dashed', linewidth=0.1, label='Error Stitched')             
+            #plt.xlabel("Wavelength [μm]", fontsize=12)
+            #plt.ylabel("Flux [Jy]", fontsize=12)
+            
+            plt.legend(fontsize=12)
+            plt.savefig(output_path+file_naming+'_spectra.png', dpi=385)
+            #plt.show()
+            plt.close()
+            
+            aperture_lamda_issue = -1
+            if background:
                 
-                if  len(np.where(np.array(all_rs)[:,j] > np.array(all_r_in))[0]) != 0 : 
+                if len(np.where(np.array(all_rs)[:,j] > np.array(all_r_in))[0]) != 0 : 
                     index_with_issue = np.where(np.array(all_rs)[:,j] > np.array(all_r_in))[0][0]
                     aperture_lamda_issue = all_ls[index_with_issue]
                     
                     
-             #create output file name based on timestamp       
-             now = datetime.datetime.now()
-             now = now.strftime("%Y-%m-%d %H:%M:%S")
-             now_str = str(now)
-             now_str = now_str.replace(':', '-')
-             now_str = now_str.replace(' ', '_')    
-             
-             #file_naming = "JWST_"+str(now_str)+'_'+str(user_rs_arcsec[j])+'as'
-             filenames_alls.append(file_naming)
-             user.writeResultsFile(file_naming+'.csv', params, df, all_s_ratios, output_path, ra_cent, dec_cent, aperture_lamda_issue, 0, 0, 0, 0, PSFs_path, data_path)
+            #create output file name based on timestamp       
+            now = datetime.datetime.now()
+            now = now.strftime("%Y-%m-%d %H:%M:%S")
+            now_str = str(now)
+            now_str = now_str.replace(':', '-')
+            now_str = now_str.replace(' ', '_')    
             
-             dfs_alls.append(df)
-             meta_alls.append(meta_dict)
-             print("Output written in: %s seconds" % (time.time() - time_writing_output))
-
+            #file_naming = "JWST_"+str(now_str)+'_'+str(user_rs_arcsec[j])+'as'
+            filenames_alls.append(file_naming)
+            user.writeResultsFile(file_naming+'.csv', params, df, all_s_ratios, output_path, ra_cent, dec_cent, aperture_lamda_issue, 0, 0, 0, 0, PSFs_path, data_path)
+            
+            dfs_alls.append(df)
+            meta_alls.append(meta_dict)
+            print("Output written in: %s seconds" % (time.time() - time_writing_output))
+            
         #return [dfs_alls, realData_all, meta_alls, filenames_alls]
         ##print("Execution Time: %s seconds" % (time.time() - start_time))
 

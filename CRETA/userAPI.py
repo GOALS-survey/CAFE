@@ -35,12 +35,12 @@ class userAPI:
 
 
     # get PSFs/REAL DATA cubes from API   
-    def getSubCubes(self, path, files, user_r_arcsec, lambda_ap, point_source, isPSF, centering, background, r_in, width, aperture_type, convolve):
+    def getSubCubes(self, path, files, user_r_arcsec, lambda_ap, point_source, isPSF, centering, background, r_in, width, aperture_type, convolve, ignore_DQ):
 
         # Create the list with subCubes elements 
         res = []
         for i in range(len(files)):
-            res.append(cube_handler(path, files[i], user_r_arcsec, lambda_ap, point_source, isPSF, centering, background, r_in, width, aperture_type, convolve))
+            res.append(cube_handler(path, files[i], user_r_arcsec, lambda_ap, point_source, isPSF, centering, background, r_in, width, aperture_type, convolve, ignore_DQ))
     
         return res
 
