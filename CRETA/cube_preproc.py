@@ -59,10 +59,11 @@ class cube_preproc:
         else:
             cube_name = 'ch' + str(hdu_list['PRIMARY'].header['CHANNEL']) + '_' + str(hdu_list['PRIMARY'].header['BAND'])
         output_file_name = str(hdu_list['PRIMARY'].header['OBS_ID'])
-        hdu_list.close()
-        
-        cube_data = fits.getdata(cube_file)
+
+        cube_data = SCI.data
         headers = SCI.header
+
+        hdu_list.close()        
 
         if 'MJD-BEG' in headers: del headers[10:16]
         if 'REFFRAME' in headers: del headers[12:30]
@@ -141,10 +142,11 @@ class cube_preproc:
             cube_name = 'ch' + str(hdu_list[instkey].header['CHANNEL'])+ '_' + str(hdu_list[instkey].header['BAND'])
         output_file_name = str(hdu_list[instkey].header['OBS_ID'])
             
+        cube_data = SCI.data
+        headers = SCI.header
+
         hdu_list.close()
         
-        cube_data = fits.getdata(cube_file)
-        headers = SCI.header
 
         if 'MJD-BEG' in headers: del headers[10:16]
         if 'REFFRAME' in headers: del headers[12:30]
@@ -296,7 +298,7 @@ class cube_preproc:
         
         c1 = SkyCoord(subcube.user_ra, subcube.user_dec, unit="deg")  #### TDS
         xx, yy, zz = subcube.wcs.world_to_pixel(c1, subcube.ls[0]*u.um)   #### TDS
-        sliceIm = np.nansum(image[10:20,:,:], axis=0)
+        sliceIm = np.nanmedian(image[20:40,:,:], axis=0)
         x, y = self.userCentroid(sliceIm, xx, yy) #, hbox_x=9, hbox_y=9)
         #x, y = self.imageCentroid(sliceIm)
         res = []
@@ -847,7 +849,7 @@ class cube_preproc:
                 pixels_list.append([grids_xs[i], grids_ys[j]])
                 names.append(str(i)+"_"+str(j))
         
-        img = np.nansum(cube.cube_before[10:20], axis=0)
+        img = np.nanmedian(cube.cube_before[20:40], axis=0)
         #img = cube.cube_before[0,:,:]
         #for i in range(1,len(cube.cube_before)):
         #    img = img + cube.cube_before[i,:,:]
