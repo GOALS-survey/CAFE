@@ -920,7 +920,7 @@ class creta:
 
         #%% Load Data
         print('Loading Data')  
-        realData_all = user.getSubCubes(data_path, files_sort, r_ap, l_ap, point_source, False, False, False, 0, 0 , 1, convolve, ignore_DQ=False)
+        realData_all = user.getSubCubes(data_path, files_sort, r_ap, l_ap, point_source, False, False, False, 0, 0 , 1, convolve, ignore_DQ)
         for i in range(len(realData_all)):
             realData_all[i].rs = [realData_all[i].rs] 
             if convolve:
@@ -935,7 +935,7 @@ class creta:
             for i in PSF_files: #exclude hidden files from mac
                 if i.startswith('.'):
                     PSF_files.remove(i)  
-            PSF_all = user.getSubCubes(PSFs_path, PSF_files, r, l_ap, point_source, True, centering, False, 0, 0, 1, convolve, ignore_DQ=False)         
+            PSF_all = user.getSubCubes(PSFs_path, PSF_files, r, l_ap, point_source, True, centering, False, 0, 0, 1, convolve, ignore_DQ)         
             
         
         #%% Centering Process
