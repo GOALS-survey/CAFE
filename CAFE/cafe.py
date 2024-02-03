@@ -114,8 +114,13 @@ def cafe_grinder(self, params, wave, flux, flux_unc, weight):
 
 class cubemod:
 
-    def __init__(self, cafe_dir='../CAFE/'):
-
+    def __init__(self, cafe_dir='../CAFE/', fit_spec_range=None):
+        """
+        Parameter
+        ---------
+            fit_spec_range : [lam_min, lam_max]
+                Set the spectral range to fit.
+        """
         self.cafe_dir = cafe_dir
 
 
@@ -157,7 +162,17 @@ class cubemod:
         masks = cube.masks[val_inds,:,:]
         bandnames = cube.bandnames[val_inds]
         header = cube.header
-        
+
+        # Set the fitting spectral range
+        if self.fit_spec_range is not None:
+            [lam_min, lam_max] = self.fit_spec_range
+            lam_idx = (waves >= lam_min) & (waves <= lam_max)
+            fluxes = fluxes[lam_idx]
+            flux_uncs = flux_uncs[lam_idx]
+            masks = masks[lam_idx]
+            bandnames = bandnames[lam_idx]
+            waves = waves[lam_idx]
+            
         # Warning if z=0
         if z == 0.0: print('WARNING: No redshfit provided. Assuming object is already in rest-frame (z=0).')        
         
