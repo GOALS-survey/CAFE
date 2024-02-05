@@ -1197,7 +1197,7 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_dr
     
     plt.show()
     
-    return fig
+    return (fig, ax1, ax2)
 
 
 def corrmatrixplot(params, outpath='', obj='', tag=''):
