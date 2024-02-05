@@ -796,7 +796,7 @@ class specmod:
             cafefig.savefig(savefig)
             
 
-
+    """
     # TO BE INTEGRATED WITH PLOT_SPEC_FIT
     def plot_cafefit(asdf_fn):
         """ Recover the CAFE plot based on the input asdf file
@@ -821,7 +821,7 @@ class specmod:
         (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
         
         return (cafefig, ax1, ax2)
-
+    """
 
 
     def plot_spec(self, savefig=None):
@@ -889,3 +889,31 @@ class specmod:
                 target.write_to(self.cafe_dir+'cafe_results/last_unnamed_cafefit.asdf', overwrite=True)
             else:
                 target.write_to(file_name+'.asdf', overwrite=True)
+
+# ===================================================
+
+def plot_cafefit(asdf_fn):
+    """ Recover the CAFE plot based on the input asdf file
+        INPUT:
+            asdf_fn: the asdf file that store the CAFE fitted parameters
+
+        OUTPUT:
+            A mpl axis object that can be modified for making the figure
+    """
+    af = asdf.open(asdf_fn)
+
+    wave = np.asarray(af.tree['cafefit']['obsspec']['wave'])
+    flux = np.asarray(af['cafefit']['obsspec']['flux'])
+    flux_unc = np.asarray(af['cafefit']['obsspec']['flux_unc'])
+
+    comps = af['cafefit']['CompFluxes']
+    extPAH = af['cafefit']['extComps']['extPAH']
+    g = af['cafefit']['gauss']
+    d = af['cafefit']['drude']
+
+    gauss = [g['wave'], g['width'], g['peak']]
+    drude = [d['wave'], d['width'], d['peak']]
+    (cafefig, ax1, ax2) = CAFE.cafe_lib.cafeplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
+
+    return (cafefig, ax1, ax2)
+
