@@ -796,7 +796,7 @@ class specmod:
             cafefig.savefig(savefig)
             
 
-    """
+    '''
     # TO BE INTEGRATED WITH PLOT_SPEC_FIT
     def plot_cafefit(asdf_fn):
         """ Recover the CAFE plot based on the input asdf file
@@ -821,7 +821,7 @@ class specmod:
         (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, plot_drude=True, pahext=extPAH)
         
         return (cafefig, ax1, ax2)
-    """
+    '''
 
 
     def plot_spec(self, savefig=None):
