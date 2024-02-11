@@ -88,7 +88,9 @@ class creta:
 
         if output_path is None:
             output_path = './extractions/'
-            os.makedirs(output_path)
+            if not os.path.exists(output_path):
+                # only attempt to make the output directory if it doesn't exist
+                os.makedirs(output_path)
             print('Ouput path /extractions/ created.')
         if output_path[-1] != '/': output_path+'/'
 
@@ -771,7 +773,9 @@ class creta:
 
         if output_path is None:
             output_path = './extractions/'
-            os.makedirs(output_path)
+            if not os.path.exists(output_path):
+                # only attempt to make the output directory if it doesn't exist
+                os.makedirs(output_path)
             print('Ouput path /extractions/ created.')
         if output_path[-1] != '/': output_path+'/'
 
