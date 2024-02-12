@@ -26,7 +26,7 @@ cafeio = cafe_io()
 
 #import ipdb
 
-def cafe_grinder(self, params, wave, flux, flux_unc, weight):
+def cafe_grinder(self, params, spec, phot):
 
     ### Read in global fit settings
     ftol = self.inopts['FIT OPTIONS']['FTOL']
@@ -48,8 +48,8 @@ def cafe_grinder(self, params, wave, flux, flux_unc, weight):
         old_params = copy.copy(params) # Parameters of the previous iteration
 
         #method = 'leastsq'
-        method = 'least_squares' #'nelder' if len(wave) >= 10000 else 'least_squares'
-        fitter = lm.Minimizer(chisquare, params, nan_policy='omit', fcn_args=(wave, flux, flux_unc, weight, self.cont_profs, show))
+        method = 'least_squares' #'nelder' if len(spec['wave']) >= 10000 else 'least_squares'
+        fitter = lm.Minimizer(chisquare, params, nan_policy='omit', fcn_args=(spec, phot, self.cont_profs, show))
         
         ### Note that which fitting method is faster here is pretty uncertain, changes by target
         try:
@@ -70,7 +70,7 @@ def cafe_grinder(self, params, wave, flux, flux_unc, weight):
             fit_params = copy.copy(result.params) # parameters of the current iteration that will not be changed
             params = result.params # Both params AND result.params will be modified by check_fit_parameters
             
-            acceptFit = check_fit_pars(self, wave, flux_unc, fit_params, params, old_params, result.errorbars)
+            acceptFit = check_fit_pars(self, spec['wave'], spec['flux_unc'], fit_params, params, old_params, result.errorbars)
             
         else:
             end = time.time()
@@ -256,12 +256,11 @@ class cubemod:
         for snr_ind in zip(ind_seq[0], ind_seq[1]): # (y,x)
 
             wave, flux, flux_unc, bandname, mask = mask_spec(self, x=snr_ind[1], y=snr_ind[0])
+            weight = 1./flux_unc**2
 
             if np.isnan(flux).any():
                 #ipdb.set_trace()
                 raise ValueError('Some of the flux values in the spectrum are NaN, which should not happen')
-
-            weight = 1./flux_unc**2
             
             spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
 
@@ -306,7 +305,7 @@ class cubemod:
 
             print('Fitting',len(params),'parameters')
             # Fit the spectrum
-            result = cafe_grinder(self, params, wave, flux, flux_unc, weight)
+            result = cafe_grinder(self, params, {'wave':wave, 'flux':flux, 'flux_unc':flux_unc, 'weight':weight})
             print('The VGRAD of the current spaxel is:',result.params['VGRAD'].value,'[km/s]')
 
             # Inject the result into the parameter cube
@@ -458,6 +457,8 @@ class cubemod:
                 except:
                     #ipdb.set_trace()
                     raise ValueError("Parameter is not in parameter cube. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
+            else:
+                raise ValueError("Parameter is not in parameter cube or 'Flux', 'Sigma', or 'FWHM'. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
 
         if 'Flux' in parname:
             if parname[0] == 'g' or parname[0] == 'o':
@@ -515,7 +516,7 @@ class specmod:
 
 
 
-    def read_spec(self, file_name, file_dir='.extractions/', extract='Flux_st', trim=True,
+    def read_spec(self, file_name, file_dir='./extractions/', extract='Flux_st', trim=True,
                   keep_next=False, z=0., read_columns=None, flux_unc=None,
                   lam_min=None, lam_max=None,
                   ):
@@ -527,10 +528,10 @@ class specmod:
             file_dir = self.cafe_dir + file_dir
 
 
+        print('Spec data:',file_dir+file_name)
         try:
             cube = cafeio.read_cretacube(file_dir+file_name, extract)
         except:
-            print('Load data:',file_dir+file_name)
             hdu = fits.PrimaryHDU()
             dummy = fits.ImageHDU(np.full(1,np.nan), name='Flux')
             dummy.header['EXTNAME'] = 'FLUX'
@@ -553,7 +554,7 @@ class specmod:
                     else:
                         name, extension = os.path.splitext(file_dir+file_name)
 
-                        if extension == '.dat':
+                        if extension == '.dat' or extension == '.txt':
                             tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'])
                         if extension == '.csv':
                             df = pd.read_csv(file_dir+file_name, skiprows=31)
@@ -611,7 +612,7 @@ class specmod:
         self.extract = extract
         
         # Remove the overlapping wavelengths between the spectral modules
-        val_inds = trim_overlapping(cube.bandnames, keep_next) if trim == True else np.full(len(cube.waves),True)
+        val_inds = trim_overlapping(cube.bandnames, keep_next) if trim == True else np.full(len(cube.waves), True)
         waves = cube.waves[val_inds]
         fluxes = cube.fluxes[val_inds]
         flux_uncs = cube.flux_uncs[val_inds]
@@ -632,6 +633,26 @@ class specmod:
         self.nx, self.ny, self.nz = cube.nx, cube.ny, cube.nz
         self.cube = cube
 
+        self.include_phot = False
+
+
+    def read_phot(self, file_name, file_dir='./extractions/'):
+
+        #tab = Table.read(file_dir+file_name, format='ascii.basic', names=['name', 'wave', 'flux', 'flux_unc', 'width'])
+        #self.pwaves = tab['wave'] / self.z
+        #self.pfluxes = tab['flux'] / self.z
+        #self.pflux_uncs = tab['flux_unc'] / self.z
+        #self.pbandnames = tab['name']
+        #self.pwidths = tab['width']
+
+        print('Phot data:',file_dir+file_name)
+        tab = np.genfromtxt(file_dir+file_name, comments='#', dtype='str')
+        self.pwaves = tab[:,1].astype(float) / (1+self.z)
+        self.pfluxes = tab[:,2].astype(float) / (1+self.z)
+        self.pflux_uncs = tab[:,3].astype(float) / (1+self.z)
+        self.pbandnames = tab[:,0]
+        self.pwidths = tab[:,4].astype(float) / (1+self.z)
+
 
 
     def fit_spec(self, 
@@ -649,6 +670,12 @@ class specmod:
         weight = 1./flux_unc**2
         spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
         
+        spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc, 'weight':weight}
+        if self.include_phot is True:
+            phot_dict = {'wave':self.pwaves, 'flux':self.pfluxes, 'flux_unc':self.pflux_uncs, 'width':self.pwidths}
+        else:
+            phot_dict = None
+
         # Initiate CAFE param generator
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         self.inpars = param_gen.inpars
@@ -684,7 +711,7 @@ class specmod:
             
         print('Fitting',len(params),'parameters')
         # Fit the spectrum
-        result = cafe_grinder(self, params, wave, flux, flux_unc, weight)
+        result = cafe_grinder(self, params, spec_dict, phot_dict)
         print('The VGRAD of the spectrum is:',result.params['VGRAD'].value,'[km/s]')
 
         #print(lm.fit_report(result))
@@ -732,6 +759,12 @@ class specmod:
         wave, flux, flux_unc, bandname, mask = mask_spec(self)
         spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
  
+        spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc}
+        if self.include_phot is True:
+            phot_dict = {'wave':self.pwaves, 'flux':self.pfluxes, 'flux_unc':self.pflux_uncs, 'width':self.pwidths}
+        else:
+            phot_dict = None
+
         # Plot features based on inital intput parameters
         # -----------------------------------------------
 
@@ -755,7 +788,7 @@ class specmod:
         # Get spectrum out of the feature parameters
         gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
         
-        cafefig = cafeplot(wave, flux, flux_unc, CompFluxes, gauss, drude, plot_drude=True, pahext=extComps['extPAH'])
+        cafefig = cafeplot(spec_dict, phot_dict, CompFluxes, gauss, drude, plot_drude=True, pahext=extComps['extPAH'])
 
 
 
@@ -770,6 +803,12 @@ class specmod:
         wave, flux, flux_unc, bandname, mask = mask_spec(self)
         spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
 
+        spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc}
+        if self.include_phot is True:
+            phot_dict = {'wave':self.pwaves, 'flux':self.pfluxes, 'flux_unc':self.pflux_uncs, 'width':self.pwidths}
+        else:
+            phot_dict = None
+
         if hasattr(self, 'parcube') is False:
             raise ValueError("The spectrum is not fitted yet")
         else:
@@ -783,7 +822,7 @@ class specmod:
         gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)  # params consisting all the fitted parameters
         
         #sedfig, chiSqrFin = sedplot(wave, flux, flux_unc, CompFluxes, weights=weight, npars=result.nvarys)
-        cafefig = cafeplot(wave, flux, flux_unc, CompFluxes, gauss, drude, vgrad=vgrad, plot_drude=True, pahext=extComps['extPAH'])
+        cafefig = cafeplot(spec_dict, phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, plot_drude=True, pahext=extComps['extPAH'])
         
         # figs = [sedfig, cafefig]
         
