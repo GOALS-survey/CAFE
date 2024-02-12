@@ -22,7 +22,7 @@ from CAFE.dustgrainfunc import grain_totemissivity
 from CAFE.component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
 
 
-# import pdb, ipdb
+import pdb, ipdb
 
 #################################
 ### Miscellaneous             ###
@@ -168,10 +168,11 @@ def calc_weights(wave, pwave, nBins):
     tsum = pweights.sum() + sweights.sum()
     pweights*=tsize/tsum
     sweights*=tsize/tsum
+
     return sweights, pweights
 
 
-def synphot(wave, flux, sigma, z=0., filters=None, filterPath='tables/filters/'):
+def synphot(wave, flux, func, z=0., filters=None, filterPath='tables/filters/'):
     ''' Integrate flux over the specified filters
 
     Integrate the spectrum over the transmission curve for the specific filter, in 
@@ -183,7 +184,7 @@ def synphot(wave, flux, sigma, z=0., filters=None, filterPath='tables/filters/')
     Arguments:
     wave  -- the rest wavelength of the spectrum
     flux -- the rest-frame fluxes
-    sigma -- the flux uncertainty at each wavelength
+    func -- the flux uncertainty at each wavelength
 
     Keyword Arguments:
     z -- Redshift (default 0.0)
@@ -193,41 +194,67 @@ def synphot(wave, flux, sigma, z=0., filters=None, filterPath='tables/filters/')
     Returns: Dict, containing the effective wavelength, flux measured in the
     filter, flux uncertainty in the filter, and the effective filter width
     '''
-    # Load filter transmission curves
+
     fwaves = []
     ftrans = []
-    for filt in filters:
-        data = np.genfromtxt(filterPath+'filter.'+filt.lower()+'.txt', comments=';')
-        fwaves.append(data[:,0])
-        ftrans.append(data[:,1])
+    if type(filters) is str:
+        # Load filter transmission curves
+        for filt in filters:
+            data = np.genfromtxt(filterPath+'filter.'+filt.lower()+'.txt', comments=';')
+            fwaves.append(data[:,0])
+            ftrans.append(data[:,1])
+    elif type(filters) is dict:
+        for i in range(len(filters)):
+            fwaves.append(np.linspace(filters['wave'][i]-filters['width'][i]/2, filters['wave'][i]+filters['width'][i]/2, 100))
+            ftrans.append(np.full_like(fwaves[i], 1.))
+    else:
+        raise RuntimeError('The filter information is incorrec. Either provide filenames or a dictionary with wavelengths and widths')
 
     # Convert flux density to wavelength units
-    flux*=3e14/wave**2
-    sigma*=3e14/wave**2
+    flux*=2.998e14/wave**2
+    func*=2.998e14/wave**2
 
-    logWave = np.log(wave)
-    synWave = []
-    synFlux = []
-    synSigma = []
-    synWidth = []
+    log_wave = np.log(wave)
+    #log_wave_obs = log_wave*(1+z)
+    syn_wave = []
+    syn_flux = []
+    syn_func = []
+    syn_width = []
     for i in range(len(filters)):
-        wave0 =  fwaves[i]*(1+z) ### Shift spec to observed frame for this
-        logWave0 = np.log(wave0)
-        flux0 = np.interp(logWave0, logWave, flux)*(1+z) ### due to the units we used
-        sigma0 = np.interp(logWave0, logWave, sigma)*(1+z)
-        trans = ftrans[i]/simps(wave0*ftrans[i], logWave0)
-        fluxTot = simps(wave0*trans*flux0, logWave0)
-        sigmaTot = simps(wave0*trans*sigma0, logWave0)
-        waveTot = simps(wave0*trans*wave0, logWave0)
-        widthTot = 1./np.nanmax(trans)
-        scale = waveTot**2/3e14
-        fluxTot*=scale
-        sigmaTot*=scale
-        synWave.append(waveTot)
-        synFlux.append(fluxTot)
-        synSigma.append(sigmaTot)
-        synWidth.append(widthTot)
-    return {'wave':synWave, 'flux':synFlux, 'sigma':synSigma, 'width':synWidth}
+        # TDS I think the integration was wrong (the 1+z's and logs). That's why the photometry looked "funny"
+        # Now everything is done in rest-frame
+        log_fwaves = np.log(fwaves[i])
+        flux_fwaves = np.interp(log_fwaves, log_wave, flux)*(1+z)
+        func_fwaves = np.interp(log_fwaves, log_wave, func)*(1+z)
+        trans = ftrans[i]/simps(fwaves[i]*ftrans[i], fwaves[i])
+        flux_tot = simps(fwaves[i]*trans*flux_fwaves, fwaves[i])
+        func_tot = simps(fwaves[i]*trans*func_fwaves, fwaves[i])
+        wave_tot = simps(fwaves[i]*trans*fwaves[i], fwaves[i])
+        width_tot = 1./np.nanmax(trans)
+        scale = wave_tot**2/2.998e14
+        syn_wave.append(wave_tot)
+        syn_flux.append(flux_tot*scale)
+        syn_func.append(func_tot*scale)
+        syn_width.append(width_tot)
+
+        #fwaves_obs = fwavess[i]*(1+z) ### Shift spec to observed frame for this
+        #log_fwaves_obs = np.log(fwaves_obs)
+        #flux_obs = np.interp(log_fwaves_obs, log_wave, flux)*(1+z) ### due to the units we used
+        #func_obs = np.interp(log_fwaves_obs, log_wave, func)*(1+z)
+        #trans = ftrans[i]/simps(fwaves_obs*ftrans[i], log_fwaves_obs)
+        #flux_tot = simps(fwaves_obs*trans*flux_obs, log_fwaves_obs)
+        #func_tot = simps(fwaves_obs*trans*func_obs, log_fwaves_obs)
+        #wave_tot = simps(fwaves_obs*trans*fwaves_obs, log_fwaves_obs)
+        #width_tot = 1./np.nanmax(trans)
+        #scale = wave_tot**2/2.998e14
+        #flux_tot*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
+        #func_tot*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
+        #syn_wave.append(wave_tot)/(1+z)
+        #syn_flux.append(flux_tot)
+        #syn_func.append(func_tot)
+        #syn_width.append(width_tot)
+
+    return {'wave':syn_wave, 'flux':syn_flux, 'func':syn_func, 'width':syn_width}
 
 
 #################################
@@ -269,7 +296,7 @@ def intTab(f, h):
 ##############################
 ### Goodness of Fit        ###
 ##############################
-def chisquare(params, wave, flux, error, weights, cont_profs, show=True):
+def chisquare(params, spec, phot, cont_profs, show=True):
     ''' Objective function for fitting
 
     This is the objective function to minimize in the fitting. Note
@@ -277,11 +304,8 @@ def chisquare(params, wave, flux, error, weights, cont_profs, show=True):
 
     Arguments:
     params -- lm parameters object being minimized
-    wave -- rest wavelength of the spectrum
-    flux -- measured fluxes at wave points
-    error -- flux error estimates
-    weights -- array of weights used to compute chi^2
-    redchis -- Previous redchi value, used for printing
+    spec -- dictionary with the spectroscopic data
+    phot -- dictionary with the photometric data
     cont_profs -- dictionary of arguments to be passed to the model flux computation
 
     Keyword Arguments:
@@ -290,9 +314,7 @@ def chisquare(params, wave, flux, error, weights, cont_profs, show=True):
     Returns: weighted mean-square difference between observed flux and the 
     CAFE model from params and cont_profs.
     '''
-    if weights is None:
-        weights = 1./error**2
-    model = get_model_fluxes(params, wave, cont_profs)
+    model = get_model_fluxes(params, spec['wave'], cont_profs, phot_dict=phot)
 
     # Note that this is the root of the thing who's sum you want to minimize
     # lmfit is kind of weird like that
@@ -308,8 +330,14 @@ def chisquare(params, wave, flux, error, weights, cont_profs, show=True):
         #print('chi^2/DOF:', np.round(redchi,3)) 
 
     #ipdb.set_trace()
-    return (flux-model)*np.sqrt(weights)
 
+    if phot is None:
+        weights = 1./spec['flux_unc']**2
+        return (spec['flux']-model)*np.sqrt(weights)
+    else:
+        weights = np.concatenate((1./spec['flux_unc']**2, 1./phot['flux_unc']**2))
+        flux = np.concatenate((spec['flux'], phot['flux']))
+        return (flux-model)*np.sqrt(weights)
 
 #def redchi(obs, model, weights, npars=0):
 #    ''' Basic weighted reduced-chi-squared calculation
@@ -407,7 +435,7 @@ def get_feat_pars(params, errors=False, apply_vgrad2waves=False):
 ############################
 #### Model Computations ####
 ############################
-def get_model_fluxes(params, wave, cont_profs, comps=False):
+def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     ''' Return the model flux
 
     Computes the model CAFE flux corresponding to pars and cont_profs at 
@@ -417,6 +445,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     Arguments:
     params -- lm Parameters object with CAFE continuum parameters
     wave -- wavelength points to compute flux
+    phot_dict -- dictionary with the photometric data and filter info
     Cont_Profs -- a dictionary containing:
         waveSED
         wave0
@@ -441,8 +470,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     logWave = np.log(wave)
     waveMod = cont_profs['waveSED']
     logWaveMod = np.log(waveMod)
-    if waveMod.shape == wave.shape and np.allclose(wave, waveMod): fixWave = False
-    else: fixWave=True
+    if waveMod.shape == wave.shape and np.allclose(wave, waveMod): selectModWaves = False
+    else: selectModWaves=True
     
     # Calculate total normalized dust opacity at 9.7 um
     kAbsTot = cont_profs['kAbs']['Carb'] + cont_profs['kAbs']['SilAmoTot']
@@ -455,8 +484,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     kExtTot /= kExtTot0
 
     # We shift the opacities by VGRAD
-    kAbsTot = np.interp(np.log(waveMod / (1+p['VGRAD']/2.998e5)), logWaveMod, kAbsTot)
-    kExtTot = np.interp(np.log(waveMod / (1+p['VGRAD']/2.998e5)), logWaveMod, kExtTot)
+    kAbsTot = np.interp(logWaveMod, np.log(waveMod * (1+p['VGRAD']/2.998e5)), kAbsTot)
+    kExtTot = np.interp(logWaveMod, np.log(waveMod * (1+p['VGRAD']/2.998e5)), kExtTot)
 
     kTot = kAbsTot
     kTot0 = kAbsTot0
@@ -477,7 +506,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     #          p['TAU_CO2'] * cont_profs['kCO2']
 
     # We shift the table opacities by VGRAD
-    tauFeats = np.interp(np.log(waveMod / (1+p['VGRAD']/2.998e5)), logWaveMod, tauFeats)
+    tauFeats = np.interp(logWaveMod, np.log(waveMod * (1+p['VGRAD']/2.998e5)), tauFeats)
     
     if gauss_opc[0].size > 0:
         tau_gopc = gauss_flux(waveMod, [gauss_opc[0], gauss_opc[1], gauss_opc[2]])
@@ -817,22 +846,29 @@ def get_model_fluxes(params, wave, cont_profs, comps=False):
     # print('LIN', fLIN) # This seems to differ slightly from IDL version
     # print('PAH', fPAH) # seems to be consistently about 2 percent off
 
-    if fixWave: 
+    if selectModWaves: 
         # For some reason using my spline function breaks things here
         #f1 = interp1d(logWaveMod, fluxMod)
         #flux = f1(logWave)
-        # Instead of interpolating, just chose the overlapping indices/wavelengths
+        # TDS Instead of interpolating, just chose the overlapping indices/wavelengths,
+        # since the model waves are defined based on the given/observed wavelengths
         flux = fluxMod[np.isin(logWaveMod, logWave)]
     else:
         flux = np.copy(fluxMod)
     #ipdb.set_trace()
 
     ### Integrate over filters
-    if cont_profs['DoFilter']:
-        photdict = synphot(waveMod*(1+cont_profs['z']), fluxMod, np.zeros(waveMod.size), 
-                           z=cont_profs['z'], filters=cont_profs['filters'])
-        for i in range(len(cont_profs['pwaves'])):
-            flux[np.abs(wave-cont_profs['pwaves'][i]) < 1e-14] = photdict['flux'][i]
+    if phot_dict is not None:
+        if cont_profs['filters'] is not None:
+            filters = cont_profs['filters']
+        else:
+            filters = {'wave':phot_dict['wave'], 'width':phot_dict['width']}
+            
+        sphot_dict = synphot(waveMod, fluxMod, np.zeros(waveMod.size), 
+                            z=cont_profs['z'], filters=filters)
+        
+        flux = np.concatenate((flux, sphot_dict['flux']))
+
     # Some of the long wavelength photometry is a little funny
 
     if comps:
@@ -1036,13 +1072,13 @@ def sedplot(wave, flux, sigma, comps, weights=None, npars=1):
     return fig, chiSqrTot
 
 
-def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None):
+def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None):
     ''' Plot the SED and the CAFE fit over the spectrum wavelength range
 
     Arguments:
     wave -- rest wavelength of observed spectrum
     flux -- observed flux values
-    sigma -- uncertainties in measured fluxes
+    func -- uncertainties in measured fluxes
     comps -- dict of component fluxes
 
     Keyword Arugments:
@@ -1067,10 +1103,21 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_dr
     fMod = fCir + fCld + fCoo + fWrm + fHot + fStb + fStr + fDsk + fLin + fPAH
     fCont = fCir + fCld + fCoo + fWrm + fHot + fStb + fStr + fDsk
     wavemod = comps['wave']
-
+    
     fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios':[3,1]}, figsize=(8,8), sharex=True)
-    ax1.scatter(wave, flux, marker='o', s=6, edgecolor='k', facecolor='none', label='Data', alpha=0.9)
-    ax1.errorbar(wave, flux, yerr=sigma, fmt='none', color='k', alpha=0.1)
+    ax1.scatter(spec['wave'], spec['flux'], marker='o', s=6, edgecolor='k', facecolor='none', label='Spec Data', alpha=0.9)
+    ax1.errorbar(spec['wave'], spec['flux'], yerr=spec['flux_unc'], fmt='none', color='k', alpha=0.1)
+    if phot is not None:
+        ax1.scatter(phot['wave'], phot['flux'], marker='x', s=18, edgecolor='none', facecolor='k', label='Phot Data', alpha=0.9)
+        ax1.errorbar(phot['wave'], phot['flux'], xerr=phot['width']/2, yerr=phot['flux_unc'], fmt='none', color='k', alpha=0.1)
+        wave = np.concatenate((spec['wave'], phot['wave']))
+        flux = np.concatenate((spec['flux'], phot['flux']))
+        sortinds = np.argsort(wave)
+        wave = wave[sortinds] ; flux = flux[sortinds]
+    else:
+        wave = spec['wave']
+        flux = spec['flux']
+                               
     ax1.plot(wavemod, fCont, color='gray', label='Continuum Fit', linestyle='-', zorder=4, alpha=0.8)
     ax1.plot(wavemod, fCont+fLin+fPAH, color='#4c956c', label='Total Fit', linewidth=1.5, zorder=5, alpha=0.85) # green
 
@@ -1101,11 +1148,11 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_dr
             pahext = np.ones(wavemod.shape)
         lflux = gauss_flux(wavemod, [[gauss[0][i]], [gauss[1][i]], [gauss[2][i]]], ext=pahext)
         
-    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
-        #if i == 0:
-        #    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
-        #else:
-        #    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+        #ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+        if i == 0:
+            ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='Lines', alpha=alpha, linewidth=0.4)
+        else:
+            ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
     
     # Plot PAH features
     if plot_drude is True:
@@ -1122,30 +1169,14 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_dr
         ax1.plot(wavemod, fCont+fPAH, label='PAHs', color='purple', alpha=alpha)
 
     ax11 = ax1.twinx()
-    ax11.plot(wavemod / (1.+vgrad['VGRAD']/2.998e5), pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
+    ax11.plot(wavemod * (1.+vgrad['VGRAD']/2.998e5), pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
     ax11.set_ylim(0, 1.1)
     ax11.set_ylabel('Attenuation of Warm dust and PAH components', fontsize=14)
     ax11.tick_params(axis='y', labelsize=10)
     #ax11.tick_params(direction='in', which='both', length=4, width=0.8, right=True)
 
-    # Find the flux min(1 um, 5 um) to set ylim in the plot
-    #if (len(flux[(wave > 0.9) & (wave < 1.2)]) != 0) & (len(flux[(wave > 4.8) & (wave < 5.2)]) != 0): 
-    #    min_flux_at1= np.nanmean(flux[(wave > 0.9) & (wave < 1.2)])
-    #    min_flux_at5 = np.nanmean(flux[(wave > 4.8) & (wave < 5.2)])
-    #    
-    #    min_flux = np.min([min_flux_at1, min_flux_at5])
-    #
-    #elif len(flux[(wave > 4.8) & (wave < 5.2)]) != 0: 
-    #    min_flux = np.nanmean(flux[(wave > 4.8) & (wave < 5.2)])
-    #
-    #elif len(flux[(wave > 0.9) & (wave < 1.2)]) != 0:
-    #    min_flux = flux[np.nanargmin(wave[(wave > 0.9) & (wave < 1.2)])]
-    #
-    #else:   
-    #    min_flux = flux[np.nanargmin(wave)]
-
-    min_flux = np.nanmin(flux[np.r_[0:100,-100:len(flux)]])
-    max_flux = np.nanmax(flux[np.r_[0:100,-100:len(flux)]])
+    min_flux = np.nanmin(spec['flux'][np.r_[0:100,-100:len(spec['flux'])]])
+    max_flux = np.nanmax(spec['flux'][np.r_[0:100,-100:len(spec['flux'])]])
 
     ax1.legend(loc='lower right')
     ax1.tick_params(direction='in', which='both', length=6, width=1, top=True)
@@ -1167,7 +1198,7 @@ def cafeplot(wave, flux, sigma, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_dr
     res = (flux-interpMod) / flux * 100 # in percentage
     std = np.nanstd(res)
     ax2.plot(wave, res, color='k', linewidth=1)
-    #ax2.plot(wave, (flux-interpMod)/sigma, color='k')
+    #ax2.plot(wave, (spec['flux']-interpMod)/func, color='k')
     ax2.axhline(0., color='k', linestyle='--')
     ax2.tick_params(direction='in', which='both', length=6, width=1,  right=True, top=True)
     ax2.tick_params(axis='x', labelsize=12)

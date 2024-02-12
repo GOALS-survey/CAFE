@@ -59,7 +59,7 @@ class CAFE_param_generator:
         # Make feature parameters object
         if 'RESOLUTIONS' in inpars['MODULES & TABLES']:
             instnames = inpars['MODULES & TABLES']['RESOLUTIONS']
-        else: raise IOError('No spectral modules given')
+        else: raise IOError('No spectral modules specified')
         
         if parobj_update is False:
             # Initialize the feature waves, gammas and peaks (and names for lines or complexes for PAHs) from input file
@@ -72,15 +72,15 @@ class CAFE_param_generator:
                                                       gopacity_table=inpars['MODULES & TABLES']['GOPACITIES_INPUT'])
             
         else:
-            # Read the feature waves, gammas and peaks from the provided parameter file
+            # Read the feature waves, gammas and peaks from the provided parameter object
             gauss, drude, gauss_opc = self.get_feats(parobj_update) # We do NOT apply VGRAD to the wavelengths
             
         if not inopts['FIT OPTIONS']['FITLINS']:
-            gauss = [[], [], [], [], []]
+            gauss = np.asarray([[], [], [], [], []])
         if not inopts['FIT OPTIONS']['FITPAHS']:
-            drude = [[], [], [], []]
+            drude = np.asarray([[], [], [], []])
         if not inopts['FIT OPTIONS']['FITOPCS']:
-            gauss_opc = [[], [], [], [], []]
+            gauss_opc = np.asarray([[], [], [], [], []])
             
         # Transform features into LMFIT parameters
         # Contrary to the continuum parameters, the feature parameters are constructed in an extra step
@@ -232,7 +232,7 @@ class CAFE_param_generator:
         # Calculate peaks
         # --------------------------
         fwhm = gam*wave0
-        # We estimate the underlying continuum under the lines at 3x the resolution of the instrument
+        # We estimate the underlying continuum under the lines at 2x the resolution (FWHM) of the instrument
         waveMinMax = [wave0 * (1. - 2.*gam), wave0 * (1. + 2.*gam)]
         
         peaks = np.zeros(wave0.shape)
@@ -249,10 +249,10 @@ class CAFE_param_generator:
                 featflux -= gauss_flux(wave, [wave0, gam, peak])
             peaks[peaks < 0.0] = 0.0
         
-        gauss = [np.asarray(wave0), np.asarray(gam), np.asarray(peaks*2.0), names, np.asarray(doubs)]
-        flux_left = flux - gauss_flux(wave, gauss) # Not sure if this is quite right
 
-        #if np.any(flux < 0): ipdb.set_trace()
+        gauss = [np.asarray(wave0), np.asarray(gam), np.asarray(peaks*2.0), names, np.asarray(doubs)]
+
+        flux_left = flux - gauss_flux(wave, gauss) # Not sure if this is quite right
 
         if get_all == True:
             if wave0.size != aWave0_kept.size+mWave0_kept.size+hWave0_kept.size: raise ValueError('Not all possible gauss features kept even when get_all=True')
@@ -747,32 +747,31 @@ class CAFE_prof_generator:
         #nUV = int(np.ceil(np.log10(maxUV/minUV)/(samplingUV*samplingSpec)))
         #waveUV = np.geomspace(minUV, maxUV, num=nUV)
         
-        samplingNIR = 4.
-        minNIR = 0.7 #1. # originally 0.3
-        maxNIR = wave[0] - (wave[1]-wave[0])
-        nNIR = int(np.ceil(np.log10(maxNIR/minNIR)/(samplingNIR*samplingSpec)))
-        waveNIR = np.geomspace(minNIR, maxNIR, num=nNIR)
+        if wave[0] >= 0.9:
+            samplingNIR = 4.
+            minNIR = 0.9 #1. # originally 0.3
+            maxNIR = wave[0] - (wave[1]-wave[0])
+            nNIR = int(np.ceil(np.log10(maxNIR/minNIR)/(samplingNIR*samplingSpec)))
+            waveNIR = np.geomspace(minNIR, maxNIR, num=nNIR)
+            waveSED = np.concatenate((waveNIR, wave))
+        else:
+            waveSED = wave
 
-        #samplingFIR = 4.
-        #minFIR = wave[-1] + wave[-1] - wave[-2]
-        #maxFIR = 1.3e3
-        #nFIR = int(np.ceil(np.log10(maxFIR/minFIR)/(samplingFIR*samplingSpec)))
-        #waveFIR = np.geomspace(minFIR, maxFIR, num=nFIR)
-        
         if wave[-1] <= 11:
             samplingMIR = 4
             minMIR = wave[-1] + (wave[-1]-wave[-2])
             maxMIR = 11.
             nMIR = int(np.ceil(np.log10(maxMIR/minMIR)/(samplingMIR*samplingSpec)))
             waveMIR = np.geomspace(minMIR, maxMIR, num=nMIR)
+            waveSED = np.concatenate((waveSED, waveMIR)) # waveUV, 
             
-            waveSED = np.concatenate((waveNIR, wave, waveMIR)) # waveUV, 
-
-        else:
-            #waveSED = np.concatenate((waveUV, waveNIR, wave, waveFIR)) # waveUV, 
-            waveSED = np.concatenate((waveNIR, wave)) # waveUV, 
-            #waveSED = np.sort(waveSED)
-            
+        if wave[-1] <= 40:
+            samplingFIR = 4.
+            minFIR = wave[-1] + (wave[-1]-wave[-2])
+            maxFIR = 40.
+            nFIR = int(np.ceil(np.log10(maxFIR/minFIR)/(samplingFIR*samplingSpec)))
+            waveFIR = np.geomspace(minFIR, maxFIR, num=nFIR)
+            waveSED = np.concatenate((waveSED, waveFIR))
             
         # Remove lam that are too close
         close_lam_sampling = []
@@ -781,6 +780,7 @@ class CAFE_prof_generator:
         waveSED = np.delete(waveSED, close_lam_sampling)
 
         self.waveSED = waveSED
+
 
 
     def load_grain_emissivity(self):
@@ -913,14 +913,6 @@ class CAFE_prof_generator:
         source100Myr = sourceSED(waveSED, 'SB100Myr', tablePath, norm=True, Jy=True)[1]
         sourceStr = sourceSED(waveSED, 'ISRF', tablePath, norm=True, Jy=True)[1]
         sourceDsk = sourceSED(waveSED, 'AGN', tablePath, norm=True, Jy=True)[1]
-
-        ## Neet to convert to um for integral for normalization
-        #const = 3e14/waveSED
-        #source2Myr/=np.trapz(const*source2Myr, np.log(waveSED))
-        #source10Myr/=np.trapz(const*source10Myr, np.log(waveSED))
-        #source100Myr/=np.trapz(const*source100Myr, np.log(waveSED))
-        #sourceStr/=np.trapz(const*sourceStr, np.log(waveSED))
-        #sourceDsk/=np.trapz(const*sourceDsk, np.log(waveSED))
 
         #ipdb.set_trace()
         result = {'source2Myr': source2Myr,
