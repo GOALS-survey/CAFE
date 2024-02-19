@@ -1,11 +1,8 @@
 import numpy as np
 import copy
 import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
-import configparser
-import ast
 from astropy.io import fits
 from astropy.table import Table
-import site
 
 import CAFE
 from CAFE.component_model import gauss_flux, drude_prof, pah_drude
@@ -13,6 +10,8 @@ from CAFE.dustgrainfunc import *
 from CAFE.cafe_io import *
 
 cafeio = cafe_io()
+
+#import ipdb
 
 class CAFE_param_generator:
 
@@ -25,16 +24,14 @@ class CAFE_param_generator:
         self.z = spec.redshift.value
         
         # Read in and opt files into dictionaries
-        inpars = cafeio.read_inifile(inparfile)
-        inopts = cafeio.read_inifile(optfile)
+        self.inpars = cafeio.read_inifile(inparfile)
+        self.inopts = cafeio.read_inifile(optfile)
 
-        self.inpars = inpars
-        self.inopts = inopts
-        tablePath, _ = cafeio.init_paths(inopts, cafe_path=cafe_path)
+        tablePath, _ = cafeio.init_paths(self.inopts, cafe_path=cafe_path)
         self.tablePath = tablePath
         
 
-    def make_parobj(self, get_all=False, parobj_update=False, init_parobj=False):
+    def make_parobj(self, get_all=False, force_all=False, parobj_update=False, init_parobj=False):
         """
         Build the Parameters object for lmfit based on the input spectrum.
         This function combines the Parameter obj output from "make_cont_pars"
@@ -57,14 +54,16 @@ class CAFE_param_generator:
         # However, the parameter .value's will be replaced by those in the parameter object
 
         # Make feature parameters object
-        if 'RESOLUTIONS' in inpars['MODULES & TABLES']:
+        if inpars['MODULES & TABLES']['RESOLUTIONS'] != '':
             instnames = inpars['MODULES & TABLES']['RESOLUTIONS']
+            if isinstance(instnames, str): instnames = [instnames] #raise ValueError('The instrument/module names is not a list')
         else: raise IOError('No spectral modules specified')
-        
+        self.instnames = instnames
+       
         if parobj_update is False:
             # Initialize the feature waves, gammas and peaks (and names for lines or complexes for PAHs) from input file
             # Note that these are just individual features, and do not include broad components or the parameters themselves
-            gauss, drude, gauss_opc = self.init_feats(self.wave, self.flux, self.flux_unc, self.z, self.tablePath, instnames, get_all=get_all,
+            gauss, drude, gauss_opc = self.init_feats(self.wave, self.flux, self.flux_unc, self.z, self.tablePath, instnames, get_all=get_all, force_all=force_all,
                                                       atomic_table=inpars['MODULES & TABLES']['ATOMIC_INPUT'],
                                                       molecular_table=inpars['MODULES & TABLES']['MOLECULAR_INPUT'],
                                                       hrecomb_table=inpars['MODULES & TABLES']['HRECOMB_INPUT'],
@@ -96,6 +95,9 @@ class CAFE_param_generator:
             print('The parameter object has',int((len(feat_params)-1)/3)-sum(gauss[4] == 1)-(len(drude[0])+len(gauss_opc[0])),'lines (of which',sum(gauss[4] == 1),'have double components),',len(drude[0]),'PAHs,',len(gauss_opc[0]),'extra opacity features,',len(params)-len(feat_params),'continuum parameters, and the VGRAD parameter')
         else:
             print('The parameter object has',int((len(feat_params)-1)/3)-sum((gauss[2] > 0) & (gauss[4] == 1))-(len(drude[0])+len(gauss_opc[0])),'lines (of which',sum((gauss[2] > 0) & (gauss[4] == 1)),'have double components),',len(drude[0]),'PAHs,',len(gauss_opc[0]),'extra opacity features,',len(params)-len(feat_params),'continuum parameters, and the VGRAD parameter')
+            if inopts['FIT OPTIONS']['FITLINS'] is False: print('Note that lines have been set to NOT be fitted')
+            if inopts['FIT OPTIONS']['FITPAHS'] is False: print('Note that PAHs have been set to NOT be fitted')
+            if inopts['FIT OPTIONS']['FITOPCS'] is False: print('Note that Gauss opacities have been set to NOT be fitted')
         
         return params
 
@@ -105,6 +107,7 @@ class CAFE_param_generator:
                    tablePath,
                    instnames,
                    get_all=False,
+                   force_all=False,
                    atomic_table=None, 
                    molecular_table=None, 
                    hrecomb_table=None,
@@ -137,7 +140,7 @@ class CAFE_param_generator:
         '''
 
         # Read the instrument wavelength coverages as DataFrames
-        inst_df = cafeio.read_inst(instnames, tablePath)
+        inst_df = cafeio.read_inst(instnames, wave, tablePath)
 
         minWave = np.nanmin(wave)
         maxWave = np.nanmax(wave)
@@ -151,6 +154,7 @@ class CAFE_param_generator:
         # Get atomic line table
         # ---------------------
         data = np.genfromtxt(tablePath+atomic_table, comments=';', dtype='str')
+        if data.ndim == 1: data = np.expand_dims(data, 0)
 
         aNames = data[:,0]
         aWave0 = data[:,1].astype(float)
@@ -174,6 +178,7 @@ class CAFE_param_generator:
         # Get molecular line table
         # ------------------------
         data = np.genfromtxt(tablePath+molecular_table, comments=';', dtype='str')
+        if data.ndim == 1: data = np.expand_dims(data, 0)
         
         mNames = data[:,0]
         mWave0 = data[:,1].astype(float)
@@ -196,6 +201,7 @@ class CAFE_param_generator:
         # Get recombination line table
         # ----------------------------
         data = np.genfromtxt(tablePath+hrecomb_table, comments=';', dtype='str')
+        if data.ndim == 1: data = np.expand_dims(data, 0)
 
         hNames = data[:,0]
         hWave0 = data[:,1].astype(float)
@@ -231,12 +237,12 @@ class CAFE_param_generator:
         # --------------------------
         # Calculate peaks
         # --------------------------
-        fwhm = gam*wave0
+        # fwhm = gam*wave0
         # We estimate the underlying continuum under the lines at 2x the resolution (FWHM) of the instrument
-        waveMinMax = [wave0 * (1. - 2.*gam), wave0 * (1. + 2.*gam)]
-        
         peaks = np.zeros(wave0.shape)
         if get_all == False:
+            waveMinMax = [wave0 * (1. - 2.*gam), wave0 * (1. + 2.*gam)]
+        
             # Identify gauss features that are absent and set their peak to 0
             nrep = 3
             featflux = np.copy(flux)
@@ -247,9 +253,12 @@ class CAFE_param_generator:
                 peaks += peak
                 #featflux -= gauss_flux(wave, gauss['wave'], gauss['gam'], gauss['peak'])
                 featflux -= gauss_flux(wave, [wave0, gam, peak])
-            peaks[peaks < 0.0] = 0.0
-        
 
+            if force_all == False:
+                peaks[peaks < 1e-10] = 0.0
+            else:
+                peaks[peaks <= 1e-10] = min(pk for pk in peaks if pk > 1e-10)
+        
         gauss = [np.asarray(wave0), np.asarray(gam), np.asarray(peaks*2.0), names, np.asarray(doubs)]
 
         flux_left = flux - gauss_flux(wave, gauss) # Not sure if this is quite right
@@ -262,6 +271,7 @@ class CAFE_param_generator:
         # Get PAH table
         # -------------
         pahTab = np.genfromtxt(tablePath+pah_table, comments=';')
+        if pahTab.ndim == 1: pahTab = np.expand_dims(pahTab, 0)
         wave0PAH = pahTab[:,0]
         gamPAH = pahTab[:,1]
         peakPAH = pahTab[:,2]
@@ -285,16 +295,20 @@ class CAFE_param_generator:
             if (ref_pah_wave >= minWave) and (ref_pah_wave <= maxWave):
                 # Get index of the ref PAH
                 idx = (np.abs(wave0PAH - ref_pah_wave)).argmin() # PAH band it's closest to the input PAH wavelength
-                # Get gamma of the selected reference PAH
-                fwhm = gamPAH[idx] * wave0PAH[idx]
-                # We estimate the underlying continuum under the PAHs in terms of velocity, at +/- 10000 km/s
-                waveMinMax = [wave0PAH[idx] * (1. - 10000./2.998e5), wave0PAH[idx] * (1. + 10000./2.998e5)]
-                fluxMinMax = np.interp(waveMinMax, wave, flux_left)
-                cont = 0.5 * (fluxMinMax[0] + fluxMinMax[1])
-                ref_pah_peak = np.interp(wave0PAH[idx], wave, flux_left) - cont
-                peakPAH_guess = peakPAH / peakPAH[idx] * ref_pah_peak
-
-                break
+                if instnames[0] != 'PHOTOMETRY':
+                    # Get gamma of the selected reference PAH
+                    fwhm = gamPAH[idx] * wave0PAH[idx]
+                    # We estimate the underlying continuum under the PAHs in terms of velocity, at +/- 10000 km/s
+                    waveMinMax = [wave0PAH[idx] * (1. - 10000./2.998e5), wave0PAH[idx] * (1. + 10000./2.998e5)]
+                    fluxMinMax = np.interp(waveMinMax, wave, flux_left)
+                    cont = 0.5 * (fluxMinMax[0] + fluxMinMax[1])
+                    ref_pah_peak = np.interp(wave0PAH[idx], wave, flux_left) - cont
+                    peakPAH_guess = peakPAH / peakPAH[idx] * ref_pah_peak
+                    break
+                else:
+                    ref_pah_peak = np.interp(wave0PAH[idx], wave, flux_left)/2.
+                    peakPAH_guess = peakPAH / peakPAH[idx] * ref_pah_peak
+                    break
 
         # If none of the listed PAHs are in the wavelength range
         if ref_pah_peak == 0.:
@@ -311,8 +325,9 @@ class CAFE_param_generator:
         # ----------------
         # Get gaussian opacity features
         # ----------------
-        opcTab = Table.read(tablePath+'/opacity/'+gopacity_table)
-
+        opcTab = Table.read(tablePath+'/opacity/'+gopacity_table, comment='#')
+        #if opcTab.ndim == 1: opcTab = np.expand_dims(opcTab, 0)
+        
         oNames = opcTab['name'].value
         oWave0 = opcTab['wave'].value
         oGam = opcTab['gamma'].value
@@ -709,7 +724,7 @@ class CAFE_prof_generator:
     optfile:
 
     """
-    def __init__(self, spec, inparfile, optfile, cafe_path='../CAFE/'):
+    def __init__(self, spec, inparfile, optfile, phot_dict, cafe_path='../CAFE/'):
         ## Read spec
         wave = spec.spectral_axis.value
         flux = spec.flux.value
@@ -719,16 +734,12 @@ class CAFE_prof_generator:
         self.flux = flux
         self.flux_unc = flux_unc
         self.z = z
+        
+       # Read optfile
+        self.inpars = cafeio.read_inifile(inparfile)
+        self.inopts = cafeio.read_inifile(optfile)
 
-        #waveSED = wave
-
-        # Read optfile
-        inpars = cafeio.read_inifile(inparfile)
-        inopts = cafeio.read_inifile(optfile)
-
-        self.inpars = inpars
-        self.inopts = inopts
-        tablePath, _ = cafeio.init_paths(inopts, cafe_path=cafe_path)
+        tablePath, _ = cafeio.init_paths(self.inopts, cafe_path=cafe_path)
         self.tablePath = tablePath
 
         # Define blackbody temperatures of ambient radiation field
@@ -736,58 +747,78 @@ class CAFE_prof_generator:
         # To make a temperature array that is finer at the high temperature end
         self.T_bb = np.geomspace(3.+30., 1750.+30., num=30)-30.
         
-        # Defining waveSED vector. This is taken directly from IDL
-        #waveSpecSED = np.geomspace(np.nanmin(wave), np.nanmax(wave), num=wave.size)
-        #samplingSpec = np.log10(np.nanmax(waveSpecSED)/np.nanmin(waveSpecSED))/waveSpecSED.size # The Delta_dex
-        samplingSpec = np.log10(np.nanmax(wave)/np.nanmin(wave))/wave.size
+        if self.inpars['MODULES & TABLES']['RESOLUTIONS'] != '':
+            instnames = self.inpars['MODULES & TABLES']['RESOLUTIONS']
+            if isinstance(instnames, str): instnames = [instnames] #raise ValueError('The instrument/module names is not a list')
+        else: raise IOError('No spectral modules specified')
+        self.instnames = instnames
 
-        #samplingUV = 20. # This is a downsampling factor wrt the spectroscopic sampling
+        if instnames[0] == 'PHOTOMETRY':
+            wave = np.geomspace(wave[0], wave[-1], num=int(np.ceil(np.log10(wave[-1]/wave[0])*250))) # This is equivalent to R~100
+
+        # Average sampling of the spectrum
+        eqRspec = wave.size/np.log10(np.nanmax(wave)/np.nanmin(wave)) # Equivalent to R
+
+        #undersampUV = 20. # This is a downsampling factor wrt the spectroscopic sampling
         #minUV = 1e-3
         #maxUV = 0.3
-        #nUV = int(np.ceil(np.log10(maxUV/minUV)/(samplingUV*samplingSpec)))
+        #nUV = int(np.ceil(np.log10(maxUV/minUV)*eqRspec/undersampUV))
         #waveUV = np.geomspace(minUV, maxUV, num=nUV)
         
-        if wave[0] >= 0.9:
-            samplingNIR = 4.
-            minNIR = 0.9 #1. # originally 0.3
+        if wave[0] >= 1.5:
+            undersampNIR = 4. # = 4 times worse than the average sampling of the spectrum 
+            minNIR = 1.5 #1. # originally 0.3
             maxNIR = wave[0] - (wave[1]-wave[0])
-            nNIR = int(np.ceil(np.log10(maxNIR/minNIR)/(samplingNIR*samplingSpec)))
+            nNIR = int(np.ceil(np.log10(maxNIR/minNIR)*eqRspec/undersampNIR))
             waveNIR = np.geomspace(minNIR, maxNIR, num=nNIR)
             waveSED = np.concatenate((waveNIR, wave))
         else:
             waveSED = wave
 
-        if wave[-1] <= 11:
-            samplingMIR = 4
+        if wave[-1] <= 30.:
+            undersampMIR = 4
             minMIR = wave[-1] + (wave[-1]-wave[-2])
-            maxMIR = 11.
-            nMIR = int(np.ceil(np.log10(maxMIR/minMIR)/(samplingMIR*samplingSpec)))
+            maxMIR = 30.
+            nMIR = int(np.ceil(np.log10(maxMIR/minMIR)*eqRspec/undersampMIR))
             waveMIR = np.geomspace(minMIR, maxMIR, num=nMIR)
             waveSED = np.concatenate((waveSED, waveMIR)) # waveUV, 
             
-        if wave[-1] <= 40:
-            samplingFIR = 4.
-            minFIR = wave[-1] + (wave[-1]-wave[-2])
-            maxFIR = 40.
-            nFIR = int(np.ceil(np.log10(maxFIR/minFIR)/(samplingFIR*samplingSpec)))
-            waveFIR = np.geomspace(minFIR, maxFIR, num=nFIR)
-            waveSED = np.concatenate((waveSED, waveFIR))
+        if phot_dict is not None:
+            if phot_dict['wave'][0] < waveSED[0]:
+                undersampOpt = 4.
+                minOpt = phot_dict['wave'][0] - phot_dict['width'][0]
+                maxOpt = np.nanmax((waveSED[0] - (waveSED[1]-waveSED[0]), phot_dict['wave'][0]))
+                nOpt = int(np.ceil(np.log10(maxOpt/minOpt)*eqRspec/undersampOpt))
+                waveOpt = np.geomspace(minOpt, maxOpt, num=nOpt)
+                waveSED = np.concatenate((waveSED, waveOpt))
+
+            if phot_dict['wave'][-1] > waveSED[-1]:
+                undersampFIR = 4.
+                minFIR = np.nanmin((waveSED[-1] + (waveSED[-1]-waveSED[-2]), phot_dict['wave'][-1]))
+                maxFIR = phot_dict['wave'][-1] + phot_dict['width'][-1]
+                nFIR = int(np.ceil(np.log10(maxFIR/minFIR)*eqRspec/undersampFIR))
+                waveFIR = np.geomspace(minFIR, maxFIR, num=nFIR)
+                waveSED = np.concatenate((waveSED, waveFIR))
             
-        # Remove lam that are too close
-        close_lam_sampling = []
+
+        # Remove wavelengths that are too close
+        close_wave_sampling = []
         for i in range(waveSED.size-1):
-            if waveSED[i+1] - waveSED[i] < 1e-14: close_lam_sampling.append(i)
-        waveSED = np.delete(waveSED, close_lam_sampling)
+            if waveSED[i+1] - waveSED[i] < 1e-14: close_wave_sampling.append(i)
+        waveSED = np.delete(waveSED, close_wave_sampling)
 
         self.waveSED = waveSED
 
 
 
     def load_grain_emissivity(self):
+
         waveSED = self.waveSED
+
         inpars = self.inpars
         inopts = self.inopts
         tablePath = self.tablePath
+
         T_bb = self.T_bb
 
         # Get the source of the continuum component
@@ -857,10 +888,13 @@ class CAFE_prof_generator:
 
 
     def load_grain_opacity(self):
+
         waveSED = self.waveSED
+
         inpars = self.inpars
         inopts = self.inopts
         tablePath = self.tablePath
+
         T_bb = self.T_bb
 
         # Load additional opacity sources and Draine/OHMc scaling factors
@@ -905,7 +939,9 @@ class CAFE_prof_generator:
 
 
     def get_sed(self):
+
         waveSED = self.waveSED
+
         tablePath = self.tablePath        
 
         source2Myr = sourceSED(waveSED, 'SB2Myr', tablePath, norm=True, Jy=True)[1]
@@ -927,11 +963,13 @@ class CAFE_prof_generator:
 
     def make_cont_profs(self):
         
-        inopts = self.inopts
         wave = self.wave
         flux = self.flux
         z = self.z
         
+        inpars = self.inpars
+        inopts = self.inopts
+
         # waveSED
         # -------
         waveSED = self.waveSED
@@ -1014,6 +1052,7 @@ class CAFE_prof_generator:
                       #'pwaves':pwave, 'filters':pfilt, # photometry info
                       'pwaves':None, 'filters':None, # tmp - Don't consider photometry
                       
+                      'Resolutions':self.instnames, # setting
                       'DoFilter':inopts['MODEL OPTIONS']['DOFILTER'], # setting
                       'ExtOrAbs':inopts['MODEL OPTIONS']['EXTORABS'], # setting
                       'FASTTEMP':inopts['FIT OPTIONS']['FASTTEMP'], # setting
@@ -1026,14 +1065,12 @@ class CAFE_prof_generator:
 
 class CAFE_parcube_generator:
 
-    def __init__(self, cube, params, inparfile, optfile):
+    def __init__(self, cube, params):
 
         self.parcube_header = cube.header #cube['FLUX'].header
         self.nx = cube.nx #cube[extract].header['NAXIS1']
         self.ny = cube.ny #cube[extract].header['NAXIS2']
         self.params = params
-        self.inparfile = inparfile
-        self.optfile = optfile
 
 
     def make_parcube(self):    
@@ -1073,6 +1110,7 @@ class CAFE_parcube_generator:
         return parcube
 
     
+
 def parobj2parcube(parobj, parcube, x=0, y=0):
     """
     Insert values in the Parameter object into an existing parcube
