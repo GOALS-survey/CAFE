@@ -17,7 +17,7 @@ from asdf import AsdfFile
 
 import CAFE
 
-#import ipdb
+import ipdb
 
 
 class cafe_io:
@@ -142,50 +142,66 @@ class cafe_io:
     
 
     @staticmethod
-    def read_inst(instnames, tablePath):
+    def read_inst(instnames, waves, tablePath):
+        """
+        instnames: instrument/module names, taken from the .ini list (list)
+        """
+
         wMins = np.asarray([]) ; wMaxs = np.asarray([]) ; rSlopes = np.asarray([]) ; rBiases = np.asarray([])
         
-        if not isinstance(instnames, list): ValueError('The instrument/module names is not a list')
-
-        files = os.listdir(tablePath+'resolving_power/')
-        for i in files: #exclude hidden files from mac
-            if i.startswith('.'):
-                files.remove(i)
+        if instnames[0] != 'PHOTOMETRY':
+            # Load all files in the resolving power folder
+            files = os.listdir(tablePath+'resolving_power/')
+            for i in files: #exclude hidden files from mac
+                if i.startswith('.'):
+                    files.remove(i)
+        
+            # Get the names of the files for each instrument/module
+            inst_files = []
+            for inst in list(map(str.upper,instnames)):
+                if any(inst in file for file in files):
+                    for file in files:
+                        if inst in file: inst_files.append(file) 
+                else:
+                    raise IOError('One or more resolving-power files not in directory. Or check the names.')
                 
-        inst_files = []
-        for inst in list(map(str.upper,instnames)):
-            if any(inst in file for file in files):
-                for file in files:
-                    if inst in file: inst_files.append(file) 
-            else:
-                raise IOError('One or more resolving-power files not in directory. Or check the names.')
-                
-        for inst_fn in inst_files:
-            try:
-                data = np.genfromtxt(tablePath+'resolving_power/'+inst_fn, comments=';')
-            except:
+            # For each instrument/module
+            for inst_fn in inst_files:
                 try:
-                    rfitstable = fits.open(tablePath+'resolving_power/'+inst_fn)
-                    data = np.full(5, np.nan)
-                    data[1] = rfitstable[1].data[0][0]  # Min wave
-                    data[2] = rfitstable[1].data[-1][0] # Max wave
-                    data[3] = (rfitstable[1].data[-1][2] - rfitstable[1].data[0][2]) / (rfitstable[1].data[-1][0] - rfitstable[1].data[0][0]) # R_s
-                    data[4] = rfitstable[1].data[-1][2] - data[3] * rfitstable[1].data[-1][0] # Bias
-                    rfitstable.close()
+                    data = np.genfromtxt(tablePath+'resolving_power/'+inst_fn, comments=';')
                 except:
-                    Exception('Resolving power table format not recognized')
+                    try:
+                        rfitstable = fits.open(tablePath+'resolving_power/'+inst_fn)
+                        data = np.full(5, np.nan)
+                        data[1] = rfitstable[1].data[0][0]  # Min wave
+                        data[2] = rfitstable[1].data[-1][0] # Max wave
+                        data[3] = (rfitstable[1].data[-1][2] - rfitstable[1].data[0][2]) / (rfitstable[1].data[-1][0] - rfitstable[1].data[0][0]) # R_s
+                        data[4] = rfitstable[1].data[-1][2] - data[3] * rfitstable[1].data[-1][0] # Bias
+                        rfitstable.close()
+                    except:
+                        raise Exception('Resolving power table format not recognized')
                     
-            wMins = np.concatenate((wMins, [data[1]]))
-            wMaxs = np.concatenate((wMaxs, [data[2]]))
-            rSlopes = np.concatenate((rSlopes, [data[3]]))
-            rBiases = np.concatenate((rBiases, [data[4]]))
+                wMins = np.concatenate((wMins, [data[1]]))
+                wMaxs = np.concatenate((wMaxs, [data[2]]))
+                rSlopes = np.concatenate((rSlopes, [data[3]]))
+                rBiases = np.concatenate((rBiases, [data[4]]))
     
-        inst_df = pd.DataFrame({'inst': instnames,
+        else:
+            wMins = np.concatenate((wMins, [np.nanmin(waves)]))
+            wMaxs = np.concatenate((wMaxs, [np.nanmax(waves)]))
+            rSlopes = np.concatenate((rSlopes, [0.]))
+            if len(instnames) == 2:
+                rBiases = np.concatenate((rBiases, [float(instnames[1])]))
+            else:
+                print('No resolving power provided. Assuming R=50')
+                rBiases = np.concatenate((rBiases, [50.]))
+        
+        instnms = instnames if instnames[0] != 'PHOTOMETRY' else [instnames[0]]
+        inst_df = pd.DataFrame({'inst': instnms,
                                 'wMin': wMins,
                                 'wMax': wMaxs,
                                 'rSlope': rSlopes,
-                                'rBias': rBiases
-        })
+                                'rBias': rBiases})
         
         return inst_df
 
@@ -258,7 +274,7 @@ class cafe_io:
 
 
     @staticmethod
-    def pah_table(parcube, x=0, y=0, parobj=False, all_pah=False):
+    def pah_table(parcube, x=0, y=0, pahext=None, parobj=False, all_pah=False):
         """
         Output the table of PAH integrated powers
 
@@ -292,11 +308,12 @@ class cafe_io:
             # -------------
             # Flux estimate
             # -------------
-            wave = p.filter(like='Wave', axis=0).value[0] * u.micron
+            wave = p.filter(like='Wave', axis=0).value.values[0] * u.micron
             
-            gamma = p.filter(like='Gamma', axis=0).value[0]
+            gamma = p.filter(like='Gamma', axis=0).value.values[0]
             
-            peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
+            peak = p.filter(like='Peak', axis=0).value.values[0] * u.Jy
+            if pahext is not None: peak *= np.interp(wave.value, pahext['wave'], pahext['ext'])
 
             #x = np.linspace(2.5, 38, 200) * u.micron
             #y = peak * gamma**2 / ((x/wave - wave/x)**2 + gamma**2)
@@ -311,9 +328,10 @@ class cafe_io:
             # -------------------------
             # Flux uncertainty estimate
             # -------------------------
-            _wave_unc = p.filter(like='Wave', axis=0).stderr[0]
-            _gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
-            _peak_unc = p.filter(like='Peak', axis=0).stderr[0]
+            _wave_unc = p.filter(like='Wave', axis=0).stderr.values[0]
+            _gamma_unc = p.filter(like='Gamma', axis=0).stderr.values[0]
+            _peak_unc = p.filter(like='Peak', axis=0).stderr.values[0]
+            if pahext is not None: _peak_unc *= np.interp(wave.value, pahext['wave'], pahext['ext'])
 
             # Only proceed if uncertainties exist
             if (_wave_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
@@ -417,7 +435,7 @@ class cafe_io:
 
 
     @staticmethod
-    def line_table(parcube, x=0, y=0, parobj=False):
+    def line_table(parcube, x=0, y=0, lineext=None, parobj=False):
         """
         Output the table of line integrated powers
         """
@@ -441,14 +459,17 @@ class cafe_io:
         for n in line_name:
             p = df.filter(like=n, axis=0)
 
-            wave = p.filter(like='Wave', axis=0).value[0] * u.micron
-            wave_unc = p.filter(like='Wave', axis=0).stderr[0] * u.micron
+            wave = p.filter(like='Wave', axis=0).value.values[0] * u.micron
+            wave_unc = p.filter(like='Wave', axis=0).stderr.values[0] * u.micron
             
-            gamma = p.filter(like='Gamma', axis=0).value[0]
-            gamma_unc = p.filter(like='Gamma', axis=0).stderr[0]
+            gamma = p.filter(like='Gamma', axis=0).value.values[0]
+            gamma_unc = p.filter(like='Gamma', axis=0).stderr.values[0]
             
-            peak = p.filter(like='Peak', axis=0).value[0] * u.Jy
-            peak_unc = p.filter(like='Peak', axis=0).stderr[0] * u.Jy
+            peak = p.filter(like='Peak', axis=0).value.values[0] * u.Jy
+            peak_unc = p.filter(like='Peak', axis=0).stderr.values[0] * u.Jy
+            if lineext is not None:
+                ext = np.interp(wave.value, lineext['wave'], lineext['ext'])
+                peak *= ext ; peak_unc *= ext
 
             #x = np.linspace(2.5, 38, 200) * u.micron
             #y = peak * gamma**2 / ((x/wave - wave/x)**2 + gamma**2)

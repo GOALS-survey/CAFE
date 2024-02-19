@@ -6,14 +6,8 @@ shouldn't need to be changed to alter how CAFE is doing its fitting
 
 import numpy as np 
 import matplotlib.pyplot as plt 
-#import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
 from scipy.interpolate import interp1d, splrep, splev, RegularGridInterpolator
 from scipy.integrate import simps
-#from scipy.special import erf
-#import time
-#import sys
-from astropy.table import QTable
-import astropy.units as u
 from astropy.stats import mad_std
 from matplotlib.ticker import ScalarFormatter
 
@@ -22,7 +16,7 @@ from CAFE.dustgrainfunc import grain_totemissivity
 from CAFE.component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
 
 
-import pdb, ipdb
+#import ipdb
 
 #################################
 ### Miscellaneous             ###
@@ -67,6 +61,9 @@ def trim_overlapping(bandnames, keep_next):
         
 
 def mask_spec(data, x=0, y=0):
+    """
+    This function masks extreme outliers in the data
+    """
     
     if data.masks.ndim != 1:
         mask = data.masks[:,y,x] != 0
@@ -166,13 +163,13 @@ def calc_weights(wave, pwave, nBins):
     # Normalize and return
     tsize = pweights.size + sweights.size
     tsum = pweights.sum() + sweights.sum()
-    pweights*=tsize/tsum
-    sweights*=tsize/tsum
+    pweights *= tsize/tsum
+    sweights *= tsize/tsum
 
     return sweights, pweights
 
 
-def synphot(wave, flux, func, z=0., filters=None, filterPath='tables/filters/'):
+def synphot(wave, flux, z=0., filters=None, dofilter=False, filterPath='tables/filters/'):
     ''' Integrate flux over the specified filters
 
     Integrate the spectrum over the transmission curve for the specific filter, in 
@@ -184,7 +181,6 @@ def synphot(wave, flux, func, z=0., filters=None, filterPath='tables/filters/'):
     Arguments:
     wave  -- the rest wavelength of the spectrum
     flux -- the rest-frame fluxes
-    func -- the flux uncertainty at each wavelength
 
     Keyword Arguments:
     z -- Redshift (default 0.0)
@@ -192,7 +188,7 @@ def synphot(wave, flux, func, z=0., filters=None, filterPath='tables/filters/'):
     filterPath -- directory for filter files
 
     Returns: Dict, containing the effective wavelength, flux measured in the
-    filter, flux uncertainty in the filter, and the effective filter width
+    filter, and the effective filter width
     '''
 
     fwaves = []
@@ -204,57 +200,67 @@ def synphot(wave, flux, func, z=0., filters=None, filterPath='tables/filters/'):
             fwaves.append(data[:,0])
             ftrans.append(data[:,1])
     elif type(filters) is dict:
-        for i in range(len(filters)):
-            fwaves.append(np.linspace(filters['wave'][i]-filters['width'][i]/2, filters['wave'][i]+filters['width'][i]/2, 100))
-            ftrans.append(np.full_like(fwaves[i], 1.))
-    else:
-        raise RuntimeError('The filter information is incorrec. Either provide filenames or a dictionary with wavelengths and widths')
+        for i in range(len(filters['wave'])):
+            #if dofilter == True and filters['width'][i] == 0.: raise IOError('You are requiring to perform synthetic photometry but some data in SED/photometric table have no filter width.')
+            if dofilter is False or (dofilter is True and filters['width'][i] == 0.):
+                fwaves.append(filters['wave'][i])
+            else:
+                fwaves.append(np.linspace(filters['wave'][i]-filters['width'][i]/2, filters['wave'][i]+filters['width'][i]/2, 100))
+                ftrans.append(np.full_like(fwaves[i], 1.))
 
-    # Convert flux density to wavelength units
-    flux*=2.998e14/wave**2
-    func*=2.998e14/wave**2
+    else:
+        raise RuntimeError('You are requiring to perform synthetic photometry but there is no filter dictionary or transmission files.')
+
+    syn_wave = []
+    syn_flux = []
+    syn_width = []
 
     log_wave = np.log(wave)
     #log_wave_obs = log_wave*(1+z)
-    syn_wave = []
-    syn_flux = []
-    syn_func = []
-    syn_width = []
-    for i in range(len(filters)):
-        # TDS I think the integration was wrong (the 1+z's and logs). That's why the photometry looked "funny"
-        # Now everything is done in rest-frame
-        log_fwaves = np.log(fwaves[i])
-        flux_fwaves = np.interp(log_fwaves, log_wave, flux)*(1+z)
-        func_fwaves = np.interp(log_fwaves, log_wave, func)*(1+z)
-        trans = ftrans[i]/simps(fwaves[i]*ftrans[i], fwaves[i])
-        flux_tot = simps(fwaves[i]*trans*flux_fwaves, fwaves[i])
-        func_tot = simps(fwaves[i]*trans*func_fwaves, fwaves[i])
-        wave_tot = simps(fwaves[i]*trans*fwaves[i], fwaves[i])
-        width_tot = 1./np.nanmax(trans)
-        scale = wave_tot**2/2.998e14
-        syn_wave.append(wave_tot)
-        syn_flux.append(flux_tot*scale)
-        syn_func.append(func_tot*scale)
-        syn_width.append(width_tot)
 
-        #fwaves_obs = fwavess[i]*(1+z) ### Shift spec to observed frame for this
-        #log_fwaves_obs = np.log(fwaves_obs)
-        #flux_obs = np.interp(log_fwaves_obs, log_wave, flux)*(1+z) ### due to the units we used
-        #func_obs = np.interp(log_fwaves_obs, log_wave, func)*(1+z)
-        #trans = ftrans[i]/simps(fwaves_obs*ftrans[i], log_fwaves_obs)
-        #flux_tot = simps(fwaves_obs*trans*flux_obs, log_fwaves_obs)
-        #func_tot = simps(fwaves_obs*trans*func_obs, log_fwaves_obs)
-        #wave_tot = simps(fwaves_obs*trans*fwaves_obs, log_fwaves_obs)
-        #width_tot = 1./np.nanmax(trans)
-        #scale = wave_tot**2/2.998e14
-        #flux_tot*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
-        #func_tot*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
-        #syn_wave.append(wave_tot)/(1+z)
-        #syn_flux.append(flux_tot)
-        #syn_func.append(func_tot)
-        #syn_width.append(width_tot)
+    for i in range(len(filters['wave'])):
+        if dofilter is False or (dofilter is True and filters['width'][i] == 0.):
+            #f1 = interp1d(log_wave, flux)
+            #syn_conv = f1(np.log(fwaves))
+            flux_conv = np.interp(np.log(fwaves[i]), log_wave, flux)
+            syn_flux.append(flux_conv)
+            syn_wave.append(fwaves[i])
+            syn_width.append(0.)
 
-    return {'wave':syn_wave, 'flux':syn_flux, 'func':syn_func, 'width':syn_width}
+        else:
+            # Convert flux density to wavelength units
+            flux*=2.998e14/wave**2
+            # TDS I think the integration was wrong (the 1+z's and logs). That's why the photometry looked "funny"
+            # Now everything is done in rest-frame since the filters/photometry (and the photo-spec itself) is already in rest-frame
+            log_fwaves = np.log(fwaves[i])
+            flux_fwaves = np.interp(log_fwaves, log_wave, flux)
+            trans = ftrans[i]/simps(fwaves[i]*ftrans[i], fwaves[i])
+            flux_conv = simps(fwaves[i]*trans*flux_fwaves, fwaves[i])
+            wave_conv = simps(fwaves[i]*trans*fwaves[i], fwaves[i])
+            width_conv = 1./np.nanmax(trans)
+            syn_flux.append(flux_conv*wave_conv**2/2.998e14)
+            syn_wave.append(wave_conv)
+            syn_width.append(width_conv)
+            
+            #fwaves_obs = fwavess[i]*(1+z) ### Shift spec to observed frame for this
+            #log_fwaves_obs = np.log(fwaves_obs)
+            #flux_obs = np.interp(log_fwaves_obs, log_wave, flux)*(1+z) ### due to the units we used
+            #func_obs = np.interp(log_fwaves_obs, log_wave, func)*(1+z)
+            #trans = ftrans[i]/simps(fwaves_obs*ftrans[i], log_fwaves_obs)
+            #flux_conv = simps(fwaves_obs*trans*flux_obs, log_fwaves_obs)
+            #func_conv = simps(fwaves_obs*trans*func_obs, log_fwaves_obs)
+            #wave_conv = simps(fwaves_obs*trans*fwaves_obs, log_fwaves_obs)
+            #width_conv = 1./np.nanmax(trans)
+            #scale = wave_conv**2/2.998e14
+            #flux_conv*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
+            #func_conv*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
+            #syn_wave.append(wave_conv)/(1+z)
+            #syn_flux.append(flux_conv)
+            #syn_func.append(func_conv)
+            #syn_width.append(width_conv)
+
+    # Values are returned in rest-frame
+    return {'wave':syn_wave, 'flux':syn_flux, 'width':syn_width}
 
 
 #################################
@@ -470,8 +476,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     logWave = np.log(wave)
     waveMod = cont_profs['waveSED']
     logWaveMod = np.log(waveMod)
-    if waveMod.shape == wave.shape and np.allclose(wave, waveMod): selectModWaves = False
-    else: selectModWaves=True
+    if waveMod.shape == wave.shape and np.allclose(wave, waveMod): sameWaves = True
+    else: sameWaves = False
     
     # Calculate total normalized dust opacity at 9.7 um
     kAbsTot = cont_profs['kAbs']['Carb'] + cont_profs['kAbs']['SilAmoTot']
@@ -519,6 +525,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     if p['CIR_FLX'] > 0:
         # Skipping the if E_CIR = 0 conditional because I don't think it's actually called
         # NOTE - grain_totemissivity is completely untested
+        # Tested by TDS
         jCIR = grain_totemissivity(waveMod, p['CIR_TMP'], E_T=cont_profs['E_CIR'], FASTTEMP=cont_profs['FASTTEMP'])
 
         jCIR0 = np.interp(np.log(cont_profs['wave0']['CIR']), logWaveMod, jCIR)
@@ -596,7 +603,6 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
 
     ### WRM component flux
     if p['WRM_FLX'] > 0:
-        # The first onion conditional is here, I'm skipping it for now
         if p['WRM_TAU'] > 0:
             tauScrWRM = (1. - p['WRM_MIX'])*(p['WRM_TAU'] * kTot + tauFeats)
             tauMixWRM = p['WRM_MIX'] * (p['WRM_TAU'] * kTot + tauFeats)
@@ -609,7 +615,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
             extWRM = np.ones(waveMod.size)
 
         # Skipping the size 0 condition again
-        jWRM_0 = grain_totemissivity(waveMod,  p['WRM_TMP'], E_T=cont_profs['E_WRM'], FASTTEMP=cont_profs['FASTTEMP'])
+        jWRM_0 = grain_totemissivity(waveMod, p['WRM_TMP'], E_T=cont_profs['E_WRM'], FASTTEMP=cont_profs['FASTTEMP'])
 
         jWRM = extWRM * jWRM_0
         jWRM0 = np.interp(np.log(cont_profs['wave0']['WRM']), logWaveMod, jWRM)
@@ -632,7 +638,6 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
 
     ### HOT component flux
     if p['HOT_FLX'] > 0:
-        # Another onion conditional
         if p['HOT_TAU'] > 0:
             tauScrHOT = (1. - p['HOT_MIX'])*(p['HOT_TAU'] * kTot + tauFeats)
             tauMixHOT = p['HOT_MIX'] * (p['HOT_TAU'] * kTot + tauFeats)
@@ -645,7 +650,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
             extHOT = np.ones(waveMod.size)
 
         # Skipping the size 0 condition again
-        jHOT_0 = grain_totemissivity(waveMod,  p['HOT_TMP'], E_T=cont_profs['E_HOT'], FASTTEMP=cont_profs['FASTTEMP'])
+        jHOT_0 = grain_totemissivity(waveMod, p['HOT_TMP'], E_T=cont_profs['E_HOT'], FASTTEMP=cont_profs['FASTTEMP'])
 
         jHOT = extHOT * jHOT_0
         jHOT0 = np.interp(np.log(cont_profs['wave0']['HOT']), logWaveMod, jHOT)
@@ -846,32 +851,38 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     # print('LIN', fLIN) # This seems to differ slightly from IDL version
     # print('PAH', fPAH) # seems to be consistently about 2 percent off
 
-    if selectModWaves: 
+    if sameWaves is True: 
+        # If the wavelengths are exactly the same
+        flux = np.copy(fluxMod)
+    else:
         # For some reason using my spline function breaks things here
         #f1 = interp1d(logWaveMod, fluxMod)
         #flux = f1(logWave)
-        # TDS Instead of interpolating, just chose the overlapping indices/wavelengths,
+        # TDS: Instead of interpolating, just chose the overlapping indices/wavelengths,
         # since the model waves are defined based on the given/observed wavelengths
-        flux = fluxMod[np.isin(logWaveMod, logWave)]
-    else:
-        flux = np.copy(fluxMod)
-    #ipdb.set_trace()
+        if cont_profs['Resolutions'][0] != 'PHOTOMETRY':
+            flux = fluxMod[np.isin(logWaveMod, logWave)]
+        else:
+            # In case we are fitting a photometric spectrum (SED)
+            filters = {'wave':wave, 'width':np.full_like(wave, 0.)}
+            sphot_dict = synphot(waveMod, fluxMod, z=cont_profs['z'], filters=filters, dofilter=cont_profs['DoFilter'])
+            flux = sphot_dict['flux']
 
-    ### Integrate over filters
+    ### Calculate photometric data points
     if phot_dict is not None:
         if cont_profs['filters'] is not None:
             filters = cont_profs['filters']
         else:
             filters = {'wave':phot_dict['wave'], 'width':phot_dict['width']}
             
-        sphot_dict = synphot(waveMod, fluxMod, np.zeros(waveMod.size), 
-                            z=cont_profs['z'], filters=filters)
+        sphot_dict = synphot(waveMod, fluxMod, z=cont_profs['z'], filters=filters, dofilter=cont_profs['DoFilter'])
         
         flux = np.concatenate((flux, sphot_dict['flux']))
+        
 
     # Some of the long wavelength photometry is a little funny
 
-    if comps:
+    if comps is True:
         
         # Model components with extinction applied
         fCON = fCIR + fCLD + fCOO + fWRM + fHOT + fSTR + fSTB + fDSK
@@ -906,6 +917,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
 
         # VGRAD
         vgrad = {'VGRAD':p['VGRAD']}
+
         return CompFluxes, CompFluxes_0, extComps, emiss, tau0, vgrad
 
     else:
@@ -1072,7 +1084,7 @@ def sedplot(wave, flux, sigma, comps, weights=None, npars=1):
     return fig, chiSqrTot
 
 
-def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None):
+def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None, save_name=False):
     ''' Plot the SED and the CAFE fit over the spectrum wavelength range
 
     Arguments:
@@ -1148,11 +1160,11 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
             pahext = np.ones(wavemod.shape)
         lflux = gauss_flux(wavemod, [[gauss[0][i]], [gauss[1][i]], [gauss[2][i]]], ext=pahext)
         
-        #ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
-        if i == 0:
-            ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='Lines', alpha=alpha, linewidth=0.4)
-        else:
-            ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+        ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
+        #if i == 0:
+        #    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='Lines', alpha=alpha, linewidth=0.4)
+        #else:
+        #    ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
     
     # Plot PAH features
     if plot_drude is True:
@@ -1171,12 +1183,12 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     ax11 = ax1.twinx()
     ax11.plot(wavemod * (1.+vgrad['VGRAD']/2.998e5), pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
     ax11.set_ylim(0, 1.1)
-    ax11.set_ylabel('Attenuation of Warm dust and PAH components', fontsize=14)
+    ax11.set_ylabel(r'$\tau_{\rm{Warm, PAH}}', fontsize=14)
     ax11.tick_params(axis='y', labelsize=10)
     #ax11.tick_params(direction='in', which='both', length=4, width=0.8, right=True)
 
-    min_flux = np.nanmin(spec['flux'][np.r_[0:100,-100:len(spec['flux'])]])
-    max_flux = np.nanmax(spec['flux'][np.r_[0:100,-100:len(spec['flux'])]])
+    min_flux = np.nanmin(spec['flux'][np.r_[0:5,-5:len(spec['flux'])]])
+    max_flux = np.nanmax(spec['flux'][np.r_[0:5,-5:len(spec['flux'])]])
 
     ax1.legend(loc='lower right')
     ax1.tick_params(direction='in', which='both', length=6, width=1, top=True)
@@ -1205,7 +1217,7 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     ax2.tick_params(axis='y', labelsize=12)
     ax2.set_ylim(-4*std, 4*std)
     #ax2.set_ylim(bottom=-4, top=4)
-    ax2.set_xlabel(r'$\lambda_{rest}$ $(\mu m)$', fontsize=14)
+    ax2.set_xlabel(r'$\lambda_{\rm{rest}}$ $(\mu \rm{m})$', fontsize=14)
     #ax2.set_ylabel(r'$f^{data}_\nu - f^{tot}_\nu$ $(\sigma)$', fontsize=14)
     ax2.set_ylabel('Residuals (%)', fontsize=14)
 
@@ -1226,9 +1238,13 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     # #ax11.tick_params(axis='both', colors='w')
     # ax2.tick_params(direction='out', which='both', axis='both', colors='w')
     
-    plt.show()
-    
-    return (fig, ax1, ax2)
+    if save_name is False:
+        plt.show()
+        return (fig, ax1, ax2)
+    else:
+        fig.savefig(save_name, dpi=500, format='png', bbox_inches='tight')
+        plt.close()
+
 
 
 def corrmatrixplot(params, outpath='', obj='', tag=''):
