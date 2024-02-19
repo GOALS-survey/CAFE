@@ -15,3 +15,4 @@ Contributors
 ------------
 * Tanio Diaz-Santos
 * Thomas Lai
+* Luke Finnerty
