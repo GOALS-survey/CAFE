@@ -2,7 +2,7 @@
 
 import numpy as np
 import numpy.ma as ma
-import ipdb
+#import ipdb
 
 def get_fit_sequence(image, snr_ind_seq=None, sorting_seq='snr', neighbor_dist=1.5, verbose=True, **kwargs):
         
