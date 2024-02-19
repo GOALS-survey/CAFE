@@ -1183,7 +1183,7 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     ax11 = ax1.twinx()
     ax11.plot(wavemod * (1.+vgrad['VGRAD']/2.998e5), pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
     ax11.set_ylim(0, 1.1)
-    ax11.set_ylabel(r'$\tau_{\rm{Warm, PAH}}', fontsize=14)
+    ax11.set_ylabel(r'$\tau_{\rm{Warm, PAH}}$', fontsize=14)
     ax11.tick_params(axis='y', labelsize=10)
     #ax11.tick_params(direction='in', which='both', length=4, width=0.8, right=True)
 
