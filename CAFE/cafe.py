@@ -722,16 +722,19 @@ class specmod:
         # Create contcube that stores the continuum profile of each component
         fitPars = parcube2parobj(parcube)
 
-        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
+        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, phot_dict, cafe_path=self.cafe_dir)
         cont_profs = prof_gen.make_cont_profs()
 
-        CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
+        #CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
+
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
 
         contcube = {'CompFluxes': CompFluxes,
                     'CompFluxes_0': CompFluxes_0,
                     'extComps': extComps,
                     'e0': e0,
                     'tau0': tau0,
+                    'vgrad': vgrad
                     }
 
         self.contcube = contcube
@@ -743,11 +746,13 @@ class specmod:
         parcube.writeto(self.parcube_dir+self.parcube_name+'.fits', overwrite=True)
 
         # Save contcube to disk
+        """
         self.contcube_dir = outPath
         self.contcube_name = self.result_file_name+'_contcube'
         print('Saving continuum profile in cube to disk:',self.contcube_dir+self.contcube_name)
         contcube.writeto(self.contcube_dir+self.contcube_name+'.fits', overwrite=True)
-                     
+        """
+
         # Write best fit as paramfile
         print('Saving init file to disk:', self.parcube_dir+self.result_file_name+'_fitpars.ini')
         cafeio.write_inifile(result.params, self.inpars, self.parcube_dir+self.result_file_name+'_fitpars.ini')
@@ -767,15 +772,23 @@ class specmod:
         cafefig = cafeplot(spec_dict, phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.parcube_dir+self.result_file_name+'_fitfigure.png')
 
         # Make and save tables
-        self.pahs = cafeio.pah_table(parcube)
+        """
+        self.pahs = cafeio.pah_table(parcube, contcube=contcube)
         cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable_int', overwrite=True)
+        
         self.pahs = cafeio.pah_table(parcube, pahext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
         cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable_obs', overwrite=True)
+        
         self.lines = cafeio.line_table(parcube)
         cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable_int', overwrite=True)
+        
         self.lines = cafeio.line_table(parcube, lineext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
         cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable_obs', overwrite=True)
-        
+        """
+        self.pahs = cafeio.pah_table(parcube, contcube=contcube)
+        cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable', overwrite=True)
+
+
         return self
 
     
