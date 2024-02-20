@@ -5,66 +5,16 @@ Introduction
 Usage
 -----
 
-The current version of ``CAFE`` (v1.0.0) is released together with two jupyter notebooks that walk the user through the process of extraction (see *IIZw096_MIRI_spec_CRETA.ipynb* within the *CRETA/notebooks/* folder) and fitting (see *IIZw096_MIRI_spec_CAFE.ipynb* within the *CAFE/notebooks/* folder) of a spectrum obtained from JWST MIRI/MRS cubes produced by the data pipeline. For the user’s convenience, there is also a python (.py) script for command line executions to be found within the *CAFE/notebooks/* folder that users may edit as they see fit.
+The current version of ``CAFE`` (v1.0.0) is released together with a jupyter notebook that walks the user through the process of fitting an spectrum obtained from JWST MIRI/MRS cubes produced by the pipeline. The jupyter notebook, named **CAFE_tutorial_NGC7469_1D.ipynb**, can be found in the ./notebooks/ folder at the GitHub repository, and can be copied to a working directory created by the user.
 
-The user can use ``CAFE`` from two starting points:
+``CAFE`` is able to read any spectrum provided by the user in a simple *‘.txt’* file containing a table with columns reporting: wavelength, flux, and error flux. (In future versions of ``CAFE``, the ``CRETA`` extraction tool will be supported, and produce outputs/extractions that can be fed directly to the ``CAFE`` fitter as well).
 
-1. **Extraction**. JWST IFU cubes:
+In the notebook, after setting up the necessary paths pointing to where the data are located and where the output results from the fitting will be stored, an spectrum of a region from the galaxy NGC 7469 is downloaded from the cloud. Next, the redshift of the source is set, together with the name of the file containing the spectrum, and the *.ini* and *.cafe* files necessary for the initialization of the fit (located in the *CAFE/inp_parfiles/* and *CAFE/opt_parfiles/* folders). These two last files control, respectively: (1) the initial value of the parameters related to the continuum components, as well as what parameters are allowed to vary and by how much for each feature type (continua, lines, PAHs, user opacities); and (2) whether some features can be fitted, as well as other more code-specific variables (we do not recommend changing any of these, as some have not been tested). We refer the user to the next section for a more detailed description of these files.
 
-The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some or all data cubes that the user has copied and made available in the *data/* directory within ``CRETA``. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. Inside it, the user can specify:
+After, the spectrum can be read from disk and plotted together with the initial (default) model decomposition for visual inspection. The user can tweak the initial model by modifying keywords in the *.ini* parameter file. These keywords refer either to model parameters themselves (e.g., peak line fluxes, dust component temperatures, etc.), constraints for each or a combination of model parameters (e.g., line width variation limits, optical depth variation limits for dust components, etc.), specific names of files, or in general info needed for the setup.
 
-   ``cubes``: The cubes to be extracted (currently, only MIRI/MRS; the names provided here need to match or be a sub-string of the cube file names)
+Once the user is satisfied with the initial guess model, the spectral fitting can be run. ``CAFE`` uses the ``LMFIT`` python package to minimize the data-model residuals using the Trust Region Reflective least-squares method (``least_squares``), and based on the χ2 statistic.
 
-   ``user_r_ap``: The radius of the circular aperture used for the extraction
-
-   ``user_ra``, ``user_dec``: RA and Dec coordinates of the source
-
-   ``point_source``: The method of extractions (point source: cone extraction, with radius increasing linearly with wavelength; extended source: cylinder extraction, with constant radius)
-
-   ``lambda_ap``: Wavelength reference for the definition of aperture radius (if point source extractions; ignored otherwise)
-
-   ``aperture_correction``: Whether to perform aperture correction based on PSF cubes
-
-   ``centering``: Whether to perform a centroid centering on the user provided coordinates
-
-   ``lambda_cent``: Wavelength at which the centering will be performed (ignored otherwise)
-
-   ``background_sub``: Whether to perform an annulus-based background subtraction prior to the aperture photometry
-
-   ``r_ann_in``: Inner radius of the background annulus (ignored otherwise)
-
-   ``ann_width``: Width of the background annulus (ignored otherwise)
-
-Options for directory setup (specified in the command execution only):
-
-   ``data_path`` (default: *CRETA/data/*)
-
-   ``PSFs_path`` (default: *CRETA/PSFs/*)
-
-   ``output_path`` (default: *CRETA/extractions/*)
-
-   ``output_filebase_name`` (default: *‘last_result’*)
-
-   ``parfile_path`` (default: *CRETA/param_files/*)
-
-   ``parfile_name`` (default: *‘single_params.txt’*)
-
-
-``CRETA`` will return a *‘_cube.fits’* file containing the extracted spectrum, which can be fed directly to ``CAFE`` for fitting.
-
-The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CRETA/notebooks/* folder in the Git repository.
-
-2. **Fitting**. An individual, 1D spectrum (``CAFE`` v1.0):
-
-``CAFE`` is able to read spectra that have been either extracted from ``CRETA`` (see above 1.) or provided by the user in a simple *‘.txt’* file containing a table with columns reporting wavelength, flux, and error flux.
-
-Once the spectrum is read, it can be plotted together with the initial (default) model decomposition for visual inspection. The user can tweak the initial model by modifying keywords in a number of files (described in the following section). These keywords refer either to model parameters themselves (e.g., peak line fluxes, dust component temperatures, etc.), constraints for each or a combination of model parameters (e.g., line width variation limits, optical depth variation limits for dust components, etc.), specific names of files, or in general info needed for the setup.
-
-Once the user is satisfied with the initial, guess model, the spectral fitting can be run. ``CAFE`` uses the ``LMFIT`` python package to minimize the data-model residuals using the Trust Region Reflective least-squares method (``least_squares``), and based on the χ2 statistic.
-
-The ``CAFE`` fitter returns a parameter object containing the best/optimized parameters from which physical quantities and observables can be extracted (e.g., temperatures) or constructed (e.g., fluxes, based on the feature peak and width). The parameter information can be dumped into python dictionaries for further use, or stored in data tables. In addition, the parameter object is saved to disk as a .fits file in a ‘parameter cube’, which can be read at a later stage to run further fits or generate new dictionaries or data tables. The parameter cubes are stored in the *‘output/’* folder using a default name that is the same as the input spectrum file.
-
-The specific steps to achieve this can be found in the appropriate jupyter notebook inside the *CAFE/notebooks/* folder in the Git repository.
 
 
 CAFE Setup Files
@@ -126,7 +76,16 @@ Within this file the user can specify the following:
 CAFE Output files
 -----------------
 
-Text describing the tables written on disk with the fluxes and other feature parameters.
+The ``CAFE`` fitter returns a parameter object containing the best/optimized parameters from which physical quantities and observables can be extracted (e.g., temperatures) or constructed (e.g., fluxes, based on the feature peak and width). All the parameter information is dumped into python dictionaries for further use and stored in data tables on disk, in the *cafe_output/* directory. In addition, the parameter object is saved to disk as a .fits file in a ‘parameter cube‘, which can be read at a later stage to run further fits or generate new dictionaries or data tables (see jupyter notebook section "RESTORE CAFE SESSION FROM DISK"). All these optputs are stored in the *‘cafe_output/’* folder using a default name that is the same as the input spectrum file. In summary the output files from ``CAFE`` are:
+
+* *_cafefit.asdf* : A file containing dictionaries with all the parameter information
+* *_parcube.fits* : A file containing all the info necessary to recover a previous CAFE fitting session
+* *_fitpars.ini* : A file containing all the fitted parameters in the format of an *.ini* file, which can be used to initialize the fit of other spectra
+* *_fitfigure.png* : A file containing a figure of the last fit performed
+* *_linetable_???.ecsv* : A file containing the ??? (=int: intrinsic; =obs: observed) fluxes of the fitted emission lines
+* *_pahtable_???.ecsv* : A file containing the ??? (=int: intrinsic; =obs: observed) fluxes of the fitted PAH features
+
+All this steps can be found in the jupyter notebook inside the *notebooks/* folder in the GitHub repository.
 
 
 Caveat
