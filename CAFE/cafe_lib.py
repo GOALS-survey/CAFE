@@ -503,7 +503,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     # Additional opacity sources
     #tauFeats = p['TAU_ICE']*(p['ICE_RAT']*0.25*cont_profs['kIce3']+cont_profs['kIce6']) + p['TAU_HAC']*cont_profs['kHac'] + p['TAU_CORV']*cont_profs['kCOrv']
     tauFeats = p['ICE3_TAU'] * (0.25*cont_profs['kIce3']) + p['ICE6_TAU'] * cont_profs['kIce6'] + \
-             p['HAC_TAU'] * cont_profs['kHac'] + p['CORV_TAU']*cont_profs['kCOrv'] + \
+             p['HAC_TAU'] * cont_profs['kHac'] + p['CORV_TAU'] * cont_profs['kCOrv'] + \
              p['CO2_TAU'] * cont_profs['kCO2'] + \
              p['CRYSI_233_TAU']*cont_profs['kCrySi_233']
 
@@ -1181,9 +1181,9 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
         ax1.plot(wavemod, fCont+fPAH, label='PAHs', color='purple', alpha=alpha)
 
     ax11 = ax1.twinx()
-    ax11.plot(wavemod * (1.+vgrad['VGRAD']/2.998e5), pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
+    ax11.plot(wavemod, pahext, linestyle='dashed', color='gray', alpha=0.5, linewidth=0.6)
     ax11.set_ylim(0, 1.1)
-    ax11.set_ylabel(r'$\tau_{\rm{Warm, PAH}}$', fontsize=14)
+    ax11.set_ylabel(r'Attenuation fraction $_{\rm{Warm\,dust, PAHs, Lines}}$', fontsize=14)
     ax11.tick_params(axis='y', labelsize=10)
     #ax11.tick_params(direction='in', which='both', length=4, width=0.8, right=True)
 

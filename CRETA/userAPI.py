@@ -63,6 +63,21 @@ class userAPI:
         return [res, res_files]    
                  
       #%%
+    def create_output_path(self, opath):
+        """
+        Check for existence of the desired output directory and create it
+        if it doesn't exist
+        """
+        if opath is None:
+            opath = './extractions/'
+            if not os.path.exists(opath):
+                # only attempt to make the output directory if it doesn't exist
+                os.makedirs(opath)
+            print('Ouput path', opath, 'created.')
+        if opath[-1] != '/': opath+'/'
+
+        return opath
+
     def loadUserParams(self, filename):
         
         f = open(filename, "r")

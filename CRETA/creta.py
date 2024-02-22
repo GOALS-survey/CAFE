@@ -38,7 +38,7 @@ class creta:
 
         self.creta_dir = creta_dir
         print('CAFE Region Extraction Tool Automaton (CRETA) initialized')
-    
+
 #%%
     ##### Function for single point extraction                                #####
     ###############################################################################  
@@ -86,11 +86,7 @@ class creta:
         if data_path[-1] != '/': data_path+'/'
         if parfile_path[-1] != '/': parfile_path+'/'
 
-        if output_path is None:
-            output_path = './extractions/'
-            os.makedirs(output_path)
-            print('Ouput path /extractions/ created.')
-        if output_path[-1] != '/': output_path+'/'
+        output_path = user.create_output_path(output_path)
 
         if PSFs_path is None:
             PSFs_path = self.creta_dir+'PSFs/'
@@ -769,11 +765,7 @@ class creta:
         if data_path[-1] != '/': data_path+'/'
         if parfile_path[-1] != '/': parfile_path+'/'
 
-        if output_path is None:
-            output_path = './extractions/'
-            os.makedirs(output_path)
-            print('Ouput path /extractions/ created.')
-        if output_path[-1] != '/': output_path+'/'
+        output_path = user.create_output_path(output_path)
 
         if PSFs_path is None:
             PSFs_path = self.creta_dir+'PSFs/'
