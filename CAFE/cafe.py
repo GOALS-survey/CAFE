@@ -722,7 +722,7 @@ class specmod:
         # Create contcube that stores the continuum profile of each component
         fitPars = parcube2parobj(parcube)
 
-        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
+        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, phot_dict, cafe_path=self.cafe_dir)
         cont_profs = prof_gen.make_cont_profs()
 
         CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
