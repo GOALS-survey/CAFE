@@ -12,8 +12,9 @@ import astropy.units as u
 from astropy import constants as const
 from astropy.stats import mad_std
 import pandas as pd
-from astropy.io import fits 
+from astropy.io import fits
 import astropy
+import pickle
 #import importlib as imp
 
 import CAFE
@@ -720,12 +721,7 @@ class specmod:
         self.parcube = parcube
 
         # Create contcube that stores the continuum profile of each component
-        fitPars = parcube2parobj(parcube)
-
-        prof_gen = CAFE_prof_generator(spec, inparfile, optfile, phot_dict, cafe_path=self.cafe_dir)
-        cont_profs = prof_gen.make_cont_profs()
-
-        CompFluxes, CompFluxes_0, extComps, e0, tau0 = get_model_fluxes(fitPars, wave, cont_profs, comps=True)
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(result.params, wave, self.cont_profs, comps=True)        
 
         contcube = {'CompFluxes': CompFluxes,
                     'CompFluxes_0': CompFluxes_0,
@@ -745,8 +741,10 @@ class specmod:
         # Save contcube to disk
         self.contcube_dir = outPath
         self.contcube_name = self.result_file_name+'_contcube'
-        print('Saving continuum profile in cube to disk:',self.contcube_dir+self.contcube_name)
-        contcube.writeto(self.contcube_dir+self.contcube_name+'.fits', overwrite=True)
+        print('Saving continuum profile in cube to disk:',self.contcube_dir+self.contcube_name+'.pkl')
+        #contcube.writeto(self.contcube_dir+self.contcube_name+'.fits', overwrite=True)
+        with open(self.contcube_dir+self.contcube_name+'.pkl', 'wb') as f:
+            pickle.dump(contcube, f)
                      
         # Write best fit as paramfile
         print('Saving init file to disk:', self.parcube_dir+self.result_file_name+'_fitpars.ini')
@@ -761,7 +759,6 @@ class specmod:
         #    pickle.dump(self, fl, protocol=pickle.HIGHEST_PROTOCOL)
 
         print('Saving figure in png to disk:',self.parcube_dir+self.result_file_name+'_fitfigure.png')
-        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(result.params, wave, self.cont_profs, comps=True)        
         gauss, drude, gauss_opc = get_feat_pars(result.params, apply_vgrad2waves=True)  # params consisting all the fitted parameters        
         # Save figure
         cafefig = cafeplot(spec_dict, phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.parcube_dir+self.result_file_name+'_fitfigure.png')
