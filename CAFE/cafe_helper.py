@@ -286,7 +286,7 @@ class CAFE_param_generator:
         
         # The goal here is to get a rough guess on what the input drude peaks should be.
         # Set the order when designating pah_ref_wave.
-        pah_inspection_order = [6.22, 11.33, 7.6, 3.3]        
+        pah_inspection_order = [6.22, 11.33, 7.6, 3.3, 17.0]        
         
         ref_pah_peak = 0.
         for ref_pah_wave in pah_inspection_order:
