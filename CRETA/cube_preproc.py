@@ -23,7 +23,7 @@ from photutils.aperture import RectangularAperture
 import os
 import glob
 
-import ipdb
+# import ipdb
 
 current_path = os.path.abspath(os.getcwd())
 from photutils.aperture import CircularAperture
