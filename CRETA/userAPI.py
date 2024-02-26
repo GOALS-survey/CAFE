@@ -16,7 +16,7 @@ from specutils import Spectrum1D
 from astropy.nddata import StdDevUncertainty
 from specutils import SpectrumList
 
-import ipdb
+# import ipdb
    
 import CRETA    
 from CRETA.cube_preproc import cube_preproc
