@@ -26,7 +26,7 @@ from CRETA.userAPI import userAPI
 from CRETA.write_single_fitscube import write_single_fitscube
 from CRETA.write_grid_fitscube import write_grid_fitscube
 
-import ipdb
+# import ipdb
 
 preprocess = cube_preproc()
 user = userAPI()
