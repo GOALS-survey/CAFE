@@ -31,7 +31,7 @@ import CRETA
 from CRETA.cube_preproc import cube_preproc
 from CRETA.mylmfit2dfun import mylmfit2dfun
 
-import ipdb
+# import ipdb
 
 # Ingests and operates on a sub-cube
 class cube_handler:
