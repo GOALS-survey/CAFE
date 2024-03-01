@@ -19,7 +19,6 @@ from photutils.aperture import aperture_photometry
 current_path = os.path.abspath(os.getcwd())
 
 import sys, glob, os
-sys.path.append('/Users/tanio/Sync/pywork/pys')
 
 import numpy as np
 from numpy import unravel_index
