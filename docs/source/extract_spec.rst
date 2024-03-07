@@ -5,7 +5,7 @@ Spectral Extraction
 Extracting a 1D spectrum from the JWST IFU cube with CRETA
 ----------------------------------------------------------
 
-(Not supported in the current v1.0.0 of ``CAFE``)
+(Enabled but not supported in the current v1.0.0 of ``CAFE``)
 
 The user can employ ``CRETA`` to extract a continuous or discontinuous spectrum from one, some, or all data cubes that the user has copied and made available in the *input_data/* directory. Currently ``CRETA`` supports the extraction of individual spectra; that is, extractions along a single line-of-sight, or position in the sky. ``CRETA`` will extract the spectrum based on a set of parameters provided by the user in a parameter file. Inside it, the user can specify:
 
