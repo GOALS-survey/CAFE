@@ -8,16 +8,16 @@ CAFE Fitting of an individual, 1D spectrum (``CAFE`` v1.0.0)
 ``CAFE`` performs spectral decomposition using the following components:
 
 * **Reprocessed continua**: Fully characterized dust continuum emission components (including accounting for grain size distribution and composition) defined by their BB emissivity at the equilibrium temperature, which itself depends on the dust grain size and composition, as well as on the type of heating source (direct light, see below). The continuum components are labeled as: *CIR* (cirrus), *CLD* (cold), *COO* (cool), *WRM* (warm), and *HOT* (hot).
-  
+\
 
 * **Direct light continua**: *STR* (stellar component mimicking the average interstellar radiation field, ISRF), *STB* (combination of 2, 10 and 100Myr starburst templates), and *DSK* (multiple power law SED characteristic of an accretion disk).
-  
+\
 
 * **Emission lines**: Hydrogen recombination lines, atomic lines, and ro-vibrational and pure-rotational molecular hydrogen (H2) lines; all described with Gaussian profiles. The lines are read from the following files (contained in the *CAFE/tables/ folder): *lines.H.recombination_?.txt*, *lines.atomic_?.txt* and *lines.molecular_?.txt*. The columns of each of these tables contain: (1) the name of the line, (2) the wavelength (in micron), (3) whether to mask it (1 = do NOT fit) or not (0 = fit); and (4) whether to add a broad component to it (double = 1) or not (double = 0).
-  
+\
 
 * **PAHs**: All described with Drude profiles. The features are read from the file *pah_template_?.txt* contained in the *CAFE/tables/* folder. The columns of this table contain: (1) the wavelength of the feature; (2) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0); (3) the initial relative peak; (4) the PAH complex to which they belong (useful to group PAHs an get an output flux for the sum of all the sub-components).
-  
+\
 
 * **Absorption features**: Broad continuum absorption or extinction profiles from amorphous graphitic and silicate grains (by default the OHMC attenuation curve). Additional absorption features can be modeled (a) as templates: water ices at 3.0 and 6.1μm (*ICE3*, *ICE6*), CO2 at 4.27μm (*CO2*), aliphatic hydrocarbons at 3.4 and 6.85μm (*HAC*), CO ro-vib absorption at 4.67μm (*CORV*), and crystalline silicates at 23.3μm (*CRYSI*) -- these features can be controlled from the *.ini* parameter file (see below); or (b) as user-defined absorption bands described by Gaussian distributions -- these features are read from the file *gauss_opacity_?.ecsv* contained in the *CAFE/tables/opacity/* folder. The columns of this table contain: (1) the name of the feature, (2) the central wavelength, (3) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0), (4) the peak (= tau at the central wavelength), (5) whether to mask it (1 = do NOT fit) or not (0 = fit).
 
