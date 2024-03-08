@@ -7,21 +7,21 @@ CAFE Fitting of an individual, 1D spectrum (``CAFE`` v1.0.0)
 
 ``CAFE`` performs spectral decomposition using the following components:
 
-* Reprocessed continua: Fully characterized dust continuum emission components (including accounting for grain size distribution and composition) defined by their BB emissivity at the equilibrium temperature, which itself depends on the dust grain size and composition, as well as on the type of heating source (direct light, see below). The continuum components are labeled as: *CIR* (cirrus), *CLD* (cold), *COO* (cool), *WRM* (warm), and *HOT* (hot).
+* **Reprocessed continua**: Fully characterized dust continuum emission components (including accounting for grain size distribution and composition) defined by their BB emissivity at the equilibrium temperature, which itself depends on the dust grain size and composition, as well as on the type of heating source (direct light, see below). The continuum components are labeled as: *CIR* (cirrus), *CLD* (cold), *COO* (cool), *WRM* (warm), and *HOT* (hot).
+\
 
-  
-* Direct light continua: *STR* (stellar component mimicking the average interstellar radiation field, ISRF), *STB* (combination of 2, 10 and 100Myr starburst templates), and *DSK* (multiple power law SED characteristic of an accretion disk).
+* **Direct light continua**: *STR* (stellar component mimicking the average interstellar radiation field, ISRF), *STB* (combination of 2, 10 and 100Myr starburst templates), and *DSK* (multiple power law SED characteristic of an accretion disk).
+\
 
-  
-* Emission lines: Hydrogen recombination lines, atomic lines, and ro-vibrational and pure-rotational molecular hydrogen (H2) lines; all described with Gaussian profiles. The lines are read from the following files (contained in the *CAFE/tables/ folder): *lines.H.recombination_?.txt*, *lines.atomic_?.txt* and *lines.molecular_?.txt*. The columns of each of these tables contain: (1) the name of the line, (2) the wavelength (in micron), (3) whether to mask it (1 = do NOT fit) or not (0 = fit); and (4) whether to add a broad component to it (double = 1) or not (double = 0).
+* **Emission lines**: Hydrogen recombination lines, atomic lines, and ro-vibrational and pure-rotational molecular hydrogen (H2) lines; all described with Gaussian profiles. The lines are read from the following files (contained in the *CAFE/tables/ folder): *lines.H.recombination_?.txt*, *lines.atomic_?.txt* and *lines.molecular_?.txt*. The columns of each of these tables contain: (1) the name of the line, (2) the wavelength (in micron), (3) whether to mask it (1 = do NOT fit) or not (0 = fit); and (4) whether to add a broad component to it (double = 1) or not (double = 0).
+\
 
-  
-* PAHs: All described with Drude profiles. The features are read from the file *pah_template_?.txt* contained in the *CAFE/tables/* folder. The columns of this table contain: (1) the wavelength of the feature; (2) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0); (3) the initial relative peak; (4) the PAH complex to which they belong (useful to group PAHs an get an output flux for the sum of all the sub-components).
+* **PAHs**: All described with Drude profiles. The features are read from the file *pah_template_?.txt* contained in the *CAFE/tables/* folder. The columns of this table contain: (1) the wavelength of the feature; (2) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0); (3) the initial relative peak; (4) the PAH complex to which they belong (useful to group PAHs an get an output flux for the sum of all the sub-components).
+\
 
-  
-* Absorption features: Broad continuum absorption or extinction profiles from amorphous graphitic and silicate grains (by default the OHMC attenuation curve). Additional absorption features can be modeled (a) as templates: water ices at 3.0 and 6.1μm (*ICE3*, *ICE6*), CO2 at 4.27μm (*CO2*), aliphatic hydrocarbons at 3.4 and 6.85μm (*HAC*), CO ro-vib absorption at 4.67μm (*CORV*), and crystalline silicates at 23.3μm (*CRYSI*) -- these features can be controlled from the *.ini* parameter file (see below); or (b) as user-defined absorption bands described by Gaussian distributions -- these features are read from the file *gauss_opacity_?.ecsv* contained in the *CAFE/tables/opacity/* folder. The columns of this table contain: (1) the name of the feature, (2) the central wavelength, (3) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0), (4) the peak (= tau at the central wavelength), (5) whether to mask it (1 = do NOT fit) or not (0 = fit).
+* **Absorption features**: Broad continuum absorption or extinction profiles from amorphous graphitic and silicate grains (by default the OHMC attenuation curve). Additional absorption features can be modeled (a) as templates: water ices at 3.0 and 6.1μm (*ICE3*, *ICE6*), CO2 at 4.27μm (*CO2*), aliphatic hydrocarbons at 3.4 and 6.85μm (*HAC*), CO ro-vib absorption at 4.67μm (*CORV*), and crystalline silicates at 23.3μm (*CRYSI*) -- these features can be controlled from the *.ini* parameter file (see below); or (b) as user-defined absorption bands described by Gaussian distributions -- these features are read from the file *gauss_opacity_?.ecsv* contained in the *CAFE/tables/opacity/* folder. The columns of this table contain: (1) the name of the feature, (2) the central wavelength, (3) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0), (4) the peak (= tau at the central wavelength), (5) whether to mask it (1 = do NOT fit) or not (0 = fit).
 
-The reprocessed and direct light continuum components, as well as the absorption features that are modeled as templates, are initialized using the *.ini* file (in particular, see below [CONTINUA INITIAL VALUES AND OPTIONS]). This file contains (1) the initial values of the parameters definig each component, (2) whether to fit them (True = yes; False = no), (3) the allowed lower and the upper limits, and (4) whether to impose any tie to other parameter. These options are equivalent to the options available within a typical ``LMFIT`` parameter object.
+The reprocessed and direct light continuum components, as well as the absorption features that are modeled as templates, are initialized using the *.ini* file (in particular, see below [CONTINUA INITIAL VALUES AND OPTIONS]). This file contains (1) the initial values of the parameters definig each component, (2) whether to fit them (True = yes; False = no), (3) the allowed lower and upper limits, and (4) whether to impose any tie to other parameter. These options are equivalent to the options available within a typical ``LMFIT`` parameter object.
 
 
 CAFE Setup Files
@@ -48,7 +48,7 @@ This file can be generic or modified accordingly to the initialization needs of 
 
 *Disclaimer: We highly discourage the modification of this file, as not all the switches and keywords have been fully tested.*
 
-Within this file the user can specify the following:
+Within this file the user can specify the following options:
 
 **[PATHS]**: Not necessary for the current ``CAFE`` release (v1.0.0). Data paths are directly defined during execution of the command. Other paths are defined automatically.
 
@@ -62,4 +62,4 @@ Within this file the user can specify the following:
 
 **[MODEL OPTIONS]**: Keywords related to including supplementary photometric data for fitting, in addition to the spectrum (not supported by the current ``CAFE`` v1.0.0 release). Use extinction or absorption curves, and selection of dust model.
 
-**[REFERENCE WAVELENGTHS]**: Reference wavelengths for the scaling of model component fluxes (*_FLX* keywords in *‘.ini’* file).
+**[REFERENCE WAVELENGTHS]**: Reference wavelengths for the scaling of the direct-light and reprocessed continuum component fluxes (*_FLX* keywords in *‘.ini’* file).
