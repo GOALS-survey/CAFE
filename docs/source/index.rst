@@ -13,8 +13,9 @@ User Documentation
    :maxdepth: 2
 
    Introduction <intro.rst>
-   Spectral fitting <fit_spec.rst>
+   Spectral Fitting <fit_spec.rst>
    Spectral Extraction <extract_spec.rst>
+   Frequently Asked Questions <faqs.rst>
    CAFE version description <version_description.rst>
 
 Installation
