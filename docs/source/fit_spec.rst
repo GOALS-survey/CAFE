@@ -27,8 +27,8 @@ The reprocessed and direct light continuum components, as well as the absorption
 CAFE Setup Files
 ----------------
 
-*‘inpars_?.ini’* within the *CAFE/init_parfiles/* folder:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*inpars_?.ini* within the *CAFE/init_parfiles/* folder:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file can be generic or modified accordingly to the initialization needs of the object to be fitted. Within the *.ini* file the user can specify the following:
 
@@ -43,8 +43,8 @@ This file can be generic or modified accordingly to the initialization needs of 
 **[CONTINUA INITIAL VALUES AND OPTIONS]**: Dust continuum components are defined by the following parameters: (relative) flux (*_FLX*), temperature (*_TMP*), depth (*_TAU*, referenced to 9.7μm), fraction of screen/mix obscuration geometry (*_MIX*), covering factor (*_COV*). For each parameter, the value, whether the parameter is fitted or not, its minimum and maximum limits, and a tie constraint (to other parameters) can be specified, in that order, via comma separated values. The fluxes are defined in terms of the relative contribution of that component to the observed spectrum at the reference wavelength of the component (defined in the *_opt.cafe* file; see below).
 
 
-*'_opt.cafe'* within the *opt_parfiles/* folder:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*_opt.cafe* within the *opt_parfiles/* folder:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 *Disclaimer: We highly discourage the modification of this file, as not all the switches and keywords have been fully tested.*
 
