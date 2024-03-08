@@ -21,7 +21,7 @@ CAFE Fitting of an individual, 1D spectrum (``CAFE`` v1.0.0)
 
 * **Absorption features**: Broad continuum absorption or extinction profiles from amorphous graphitic and silicate grains (by default the OHMC attenuation curve). Additional absorption features can be modeled (a) as templates: water ices at 3.0 and 6.1μm (*ICE3*, *ICE6*), CO2 at 4.27μm (*CO2*), aliphatic hydrocarbons at 3.4 and 6.85μm (*HAC*), CO ro-vib absorption at 4.67μm (*CORV*), and crystalline silicates at 23.3μm (*CRYSI*) -- these features can be controlled from the *.ini* parameter file (see below); or (b) as user-defined absorption bands described by Gaussian distributions -- these features are read from the file *gauss_opacity_?.ecsv* contained in the *CAFE/tables/opacity/* folder. The columns of this table contain: (1) the name of the feature, (2) the central wavelength, (3) the width, expressed as gamma (= 1/R; FWHM = gamma * wave0), (4) the peak (= tau at the central wavelength), (5) whether to mask it (1 = do NOT fit) or not (0 = fit).
 
-The reprocessed and direct light continuum components, as well as the absorption features that are modeled as templates, are initialized using the *.ini* file (in particular, see below [CONTINUA INITIAL VALUES AND OPTIONS]). This file contains (1) the initial values of the parameters definig each component, (2) whether to fit them (True = yes; False = no), (3) the allowed lower and the upper limits, and (4) whether to impose any tie to other parameter. These options are equivalent to the options available within a typical ``LMFIT`` parameter object.
+The reprocessed and direct light continuum components, as well as the absorption features that are modeled as templates, are initialized using the *.ini* file (in particular, see below [CONTINUA INITIAL VALUES AND OPTIONS]). This file contains (1) the initial values of the parameters definig each component, (2) whether to fit them (True = yes; False = no), (3) the allowed lower and upper limits, and (4) whether to impose any tie to other parameter. These options are equivalent to the options available within a typical ``LMFIT`` parameter object.
 
 
 CAFE Setup Files
@@ -48,7 +48,7 @@ This file can be generic or modified accordingly to the initialization needs of 
 
 *Disclaimer: We highly discourage the modification of this file, as not all the switches and keywords have been fully tested.*
 
-Within this file the user can specify the following:
+Within this file the user can specify the following options:
 
 **[PATHS]**: Not necessary for the current ``CAFE`` release (v1.0.0). Data paths are directly defined during execution of the command. Other paths are defined automatically.
 
