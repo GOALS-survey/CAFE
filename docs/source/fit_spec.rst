@@ -62,4 +62,4 @@ Within this file the user can specify the following options:
 
 **[MODEL OPTIONS]**: Keywords related to including supplementary photometric data for fitting, in addition to the spectrum (not supported by the current ``CAFE`` v1.0.0 release). Use extinction or absorption curves, and selection of dust model.
 
-**[REFERENCE WAVELENGTHS]**: Reference wavelengths for the scaling of model component fluxes (*_FLX* keywords in *‘.ini’* file).
+**[REFERENCE WAVELENGTHS]**: Reference wavelengths for the scaling of the direct-light and reprocessed continuum component fluxes (*_FLX* keywords in *‘.ini’* file).
