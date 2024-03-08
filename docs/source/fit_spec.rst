@@ -7,7 +7,7 @@ CAFE Fitting of an individual, 1D spectrum (``CAFE`` v1.0.0)
 
 ``CAFE`` performs spectral decomposition using the following components:
 
-* Reprocessed continua: Fully characterized dust continuum emission components (including accounting for grain size distribution and composition) defined by their BB emissivity at the equilibrium temperature, which itself depends on the dust grain size and composition, as well as on the heating source (direct light, see below). The continuum components are labeled as: *CIR* (cirrus), *CLD* (cold), *COO* (cool), *WRM* (warm), and *HOT* (hot).
+* Reprocessed continua: Fully characterized dust continuum emission components (including accounting for grain size distribution and composition) defined by their BB emissivity at the equilibrium temperature, which itself depends on the dust grain size and composition, as well as on the type of heating source (direct light, see below). The continuum components are labeled as: *CIR* (cirrus), *CLD* (cold), *COO* (cool), *WRM* (warm), and *HOT* (hot).
 
   
 * Direct light continua: *STR* (stellar component mimicking the average interstellar radiation field, ISRF), *STB* (combination of 2, 10 and 100Myr starburst templates), and *DSK* (multiple power law SED characteristic of an accretion disk).
