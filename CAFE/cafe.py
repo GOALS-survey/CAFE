@@ -720,17 +720,17 @@ class specmod:
         
         self.parcube = parcube
 
-        # Create contcube that stores the continuum profile of each component
+        # Create contdict that stores the continuum profile of each component
         CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(result.params, wave, self.cont_profs, comps=True)        
 
-        contcube = {'CompFluxes': CompFluxes,
+        contdict = {'CompFluxes': CompFluxes,
                     'CompFluxes_0': CompFluxes_0,
                     'extComps': extComps,
                     'e0': e0,
                     'tau0': tau0,
                     }
 
-        self.contcube = contcube
+        self.contdict = contdict
                      
         # Save parcube to disk
         self.parcube_dir = outPath
@@ -738,13 +738,13 @@ class specmod:
         print('Saving parameters in cube to disk:',self.parcube_dir+self.parcube_name+'.fits')
         parcube.writeto(self.parcube_dir+self.parcube_name+'.fits', overwrite=True)
 
-        # Save contcube to disk
-        self.contcube_dir = outPath
-        self.contcube_name = self.result_file_name+'_contcube'
-        print('Saving continuum profile in cube to disk:',self.contcube_dir+self.contcube_name+'.pkl')
-        #contcube.writeto(self.contcube_dir+self.contcube_name+'.fits', overwrite=True)
-        with open(self.contcube_dir+self.contcube_name+'.pkl', 'wb') as f:
-            pickle.dump(contcube, f)
+        # Save contdict to disk
+        self.contdict_dir = outPath
+        self.contdict_name = self.result_file_name+'_contdict'
+        print('Saving continuum profile in cube to disk:',self.contdict_dir+self.contdict_name+'.pkl')
+        #contdict.writeto(self.contdict_dir+self.contdict_name+'.fits', overwrite=True)
+        with open(self.contdict_dir+self.contdict_name+'.pkl', 'wb') as f:
+            pickle.dump(contdict, f)
                      
         # Write best fit as paramfile
         print('Saving init file to disk:', self.parcube_dir+self.result_file_name+'_fitpars.ini')
