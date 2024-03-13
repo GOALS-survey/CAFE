@@ -951,7 +951,6 @@ def plot_cafefit(asdf_fn):
     OUTPUT:
         A mpl axis object that can be modified for making the figure
     """
-
     af = asdf.open(asdf_fn)
     
     wave = np.asarray(af.tree['cafefit']['obsspec']['wave'])
@@ -965,6 +964,9 @@ def plot_cafefit(asdf_fn):
     
     gauss = [g['wave'], g['width'], g['peak']]
     drude = [d['wave'], d['width'], d['peak']]
-    (cafefig, ax1, ax2) = pycafe_lib.irsplot(wave, flux, flux_unc, comps, gauss, drude, pahext=extPAH)
     
-    return (cafefig, ax1, ax2)
+    spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc}
+    
+    # Assuming there is no phot input.
+    # TODO: include phot_dict as input.
+    (cafefig, ax1, ax2) = cafeplot(spec_dict, None, comps, gauss, drude, pahext=extPAH)
