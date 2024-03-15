@@ -4,7 +4,7 @@ Frequently Asked Questions
 
 (1) How precise the redshift of my source needs to be?
 
-CAFE is not designed to solve for the redshift of a source, so the input redshift should be at least as precise as the resolving power (FWHM) of the instrument used to obtain the data. CAFE performs an initial search for the emission lines the user has requested to fit via the *lines.H.recombination_?.txt*, *lines.atomic_?.txt* and *lines.molecular_?.txt* files contained in the *CAFE/inp_parfiles/* folder. The search is done at the expected rest-frame wavelength of the line (after correcting the observed spectrum to rest frame), so if the redshift is not correct, or the line is too red/blue-shifted with respect to the systemic redshift, the finder will fail and CAFE will ignore the line and will not attempt to fit it. The list of ignored lines are printed in the output given by the jupyter notebook cell that calls for the fit.
+CAFE is not designed to solve for the redshift of a source, so the input redshift should be at least as precise as the resolution of the data. CAFE performs an initial search for the emission lines the user has requested to fit via the *lines.H.recombination_?.txt*, *lines.atomic_?.txt* and *lines.molecular_?.txt* files contained in the *CAFE/inp_parfiles/* folder. The search is done at the expected rest-frame wavelength of the line (after correcting the observed spectrum to rest frame), so if the redshift is not correct, or the line is too red/blue-shifted with respect to the systemic redshift, the finder will fail and CAFE will ignore the line and will not attempt to fit it. The list of ignored lines are printed in the output given by the jupyter notebook cell that calls for the fit.
 
 
 (2) Can I fit high redshift sources with CAFE?
