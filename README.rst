@@ -18,6 +18,7 @@ Contributors
 * Tanio Diaz-Santos
 * Thomas Lai
 * Luke Finnerty
+* Kirsten Larson
 * Jason Marshall
 * Lee Armus
 * Vassilis Charmandaris
