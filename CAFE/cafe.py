@@ -25,7 +25,7 @@ from CAFE.get_fit_sequence import get_fit_sequence
 
 cafeio = cafe_io()
 
-#import ipdb
+import ipdb
 
 def cafe_grinder(self, params, spec, phot):
     """
@@ -219,8 +219,8 @@ class cubemod:
         all_params = param_gen.make_parobj(get_all=True)
         # Parcube is initialized with all possible parameters
         # Then only the ones fitted will be injected in the appropiate keys
-        parcube_gen = CAFE_parcube_generator(self, all_params)
-        parcube = parcube_gen.make_parcube()        
+        cube_gen = CAFE_cube_generator(self)
+        parcube = cube_gen.make_parcube(all_params)        
 
         ## Initiate CAFE profile loader
         #print('Generating continuum profiles')
@@ -253,7 +253,8 @@ class cubemod:
                 raise ValueError('Some of the flux values in the spectrum are NaN, which should not happen')
             
             spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
-
+            spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc, 'weight':weight}
+            
             print('##############################################################################################################')
             print('Regenerating parameter object for current spaxel:',np.flip(snr_ind), '(', spax, '/', len(ind_seq[0]), ')')        
             param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
@@ -296,7 +297,7 @@ class cubemod:
             unfixed_params = [True if params[par].vary == True else False for par in params.keys()]
             print('Fitting',unfixed_params.count(True), 'unfixed parameters, out of the', len(params), 'defined in the parameter object')
             # Fit the spectrum
-            result = cafe_grinder(self, params, {'wave':wave, 'flux':flux, 'flux_unc':flux_unc, 'weight':weight})
+            result = cafe_grinder(self, params, spec_dict, None)
             print('The VGRAD of the current spaxel is:',result.params['VGRAD'].value, '[km/s]')
 
             # Inject the result into the parameter cube
@@ -321,12 +322,8 @@ class cubemod:
         
         # Make and save tables (IMPROVE FOR CUBES: NOW WILL ONLY WRITE DOWN THE CENTRAL SPAXEL)
         # Save .asdf to disk
-        print('Saving parameters of the central spaxel in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit.asdf')
+        print('Saving components of the central spaxel in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit.asdf')
         cafeio.save_asdf(self, x=ind_seq[1][0], y=ind_seq[0][0], file_name=self.parcube_dir+self.result_file_name+'_cafefit')
-        
-        ## Save self in a pickle
-        #with open(self.parcube_dir+self.result_file_name+'_self.pkl', 'wb') as fl:
-        #    pickle.dump(self, fl, protocol=pickle.HIGHEST_PROTOCOL)
         
         self.pahs = cafeio.pah_table(parcube)
         cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable', overwrite=True)
@@ -435,56 +432,6 @@ class cubemod:
         return ax
 
 
-
-    def make_map(self, parname):
-
-        if hasattr(self, 'parcube') is False:
-            raise ValueError("The cube is not fitted yet")
-        else:
-            pass
-
-        try:
-            ind = self.parcube['PARNAME'].data['parname'].tolist().index(parname) # find the index (parameter) that matches the parname in the z dimension of the cube
-        except:
-            if 'Flux' or 'Sigma' or 'FWHM' in parname:
-                try:
-                    ind = self.parcube['PARNAME'].data['parname'].tolist().index(parname.replace('Flux', 'Wave'))
-                except:
-                    #ipdb.set_trace()
-                    raise ValueError("Parameter is not in parameter cube. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
-            else:
-                raise ValueError("Parameter is not in parameter cube or 'Flux', 'Sigma', or 'FWHM'. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
-
-        if 'Flux' in parname:
-            if parname[0] == 'g' or parname[0] == 'o':
-                fluxmap = np.sqrt(2.*np.pi) * const.c.to(u.micron/u.s) * (self.parcube['VALUE'].data[ind+2]*u.Jy) * self.parcube['VALUE'].data[ind+1]/2.35482 / (self.parcube['VALUE'].data[ind]*u.micron)
-            elif parname[0] == 'd':
-                fluxmap = np.pi / 2. * const.c.to(u.micron/u.s) * (self.parcube['VALUE'].data[ind+2]*u.Jy) * self.parcube['VALUE'].data[ind+1] / (self.parcube['VALUE'].data[ind]*u.micron)
-            # Units of [W m^-2]
-            parmap = fluxmap.to(u.Watt/u.m**2).value
-            parmap_unit = 'W/m2'
-        elif 'Sigma' in parname:
-            parmap = self.parcube['VALUE'].data[ind+1] * self.parcube['VALUE'].data[ind] / 2.35482
-            parmap_unit = 'um'
-        elif 'FWHM' in parname:
-            parmap = self.parcube['VALUE'].data[ind+1] * self.parcube['VALUE'].data[ind]
-            parmap_unit = 'um'
-        else:
-            parmap = self.parcube['VALUE'].data[ind]
-            if 'Wave' in parname: parmap_unit = 'um'
-            if 'Peak' in parname: parmap_unit = 'Jy'
-            if 'VGRAD' in parname: parmap_unit = 'km/s'
-        
-        NAXIS1, NAXIS2 = parmap.shape
-        hdu = fits.PrimaryHDU()
-        hdu_map = fits.ImageHDU(parmap, name='IMAGE')
-        hdu_map.header = self.header
-        hdu_map.header['BUNIT'] = parmap_unit
-        hdulist = fits.HDUList([hdu, hdu_map])
-        hdulist.writeto(self.parcube_dir+self.result_file_name+'_'+parname+'_map.fits', overwrite=True)
-        hdulist.close()
-
-
         #TBD
 
 
@@ -510,7 +457,6 @@ class specmod:
         #parcube.close()
 
 
-
     def read_spec(self, file_name, file_dir='./extractions/', extract='Flux_st', trim=True,
                   keep_next=False, z=0., is_SED=False, read_columns=None, flux_unc=None,
                   wave_min=None, wave_max=None):
@@ -520,7 +466,6 @@ class specmod:
         """
         if file_dir == 'input/data/': 
             file_dir = self.cafe_dir + file_dir
-
 
         print('Spec data:',file_dir+file_name)
         try:
@@ -537,6 +482,7 @@ class specmod:
             except:
                 try:
                     from astropy.table import Table
+                    # If the user wants to read selected columns from the file and/or set an arbitrary flux uncertainty if there's none
                     if read_columns != None:
                         tab = Table.read(file_dir+file_name, format='ascii.basic', data_start=0, comment='#')
                         tab_col_names = read_columns.copy()
@@ -545,21 +491,20 @@ class specmod:
                         tab = Table.read(file_dir+file_name, format='ascii.basic', names=tab_col_names, data_start=0, comment='#')
                         if flux_unc != None:
                             tab['flux_unc'] = tab['flux'] * flux_unc
+
                     else:
                         name, extension = os.path.splitext(file_dir+file_name)
 
+                        # If the file is a generic .dat or .txt file
                         if extension == '.dat' or extension == '.txt':
                             if is_SED is False:
                                 tab = Table.read(file_dir+file_name, format='ascii.basic', names=['wave', 'flux', 'flux_unc'], data_start=0, comment='#')
                             else:
                                 tab = Table.read(file_dir+file_name, format='ascii.basic', names=['name', 'wave', 'flux', 'flux_unc', 'width'], data_start=0, comment='#')
+
+                        # If the file is the .csv output from CRETA
                         if extension == '.csv':
                             df = pd.read_csv(file_dir+file_name, skiprows=31)
-
-                            if wave_min is not None:
-                                df = df[df.Wave >= wave_min]
-                            if wave_max is not None:
-                                df = df[df.Wave <= wave_max]
 
                             # Test whether the file is standard CAFE output .csv file
                             if sum(df.columns == ['Wave', 'Band_name', 'Flux_ap', 'Err_ap', 'R_ap', 'Flux_ap_st', 'Err_ap_st', 'DQ']) == 8:
@@ -570,6 +515,12 @@ class specmod:
                                 tab.rename_column('Err_ap_st', 'flux_unc')
                             else:
                                 raise IOError('Only the CAFE produced csv file can be ingested.')
+
+                    if wave_min is not None:
+                        tab = tab[tab['wave'].value >= wave_min]
+                    if wave_max is not None:
+                        tab = tab[tab['wave'].value <= wave_max]
+
                 except:
                     raise IOError('The file is not a valid .txt (column-based) or .fits (CRETA output) file. Or maybe the data are not there.')
                 else:
@@ -662,6 +613,9 @@ class specmod:
         Output result from lmfit
         """
 
+        self.inparfile = inparfile
+        self.optfile = optfile
+        
         self.inpars = cafeio.read_inifile(inparfile)
         self.inopts = cafeio.read_inifile(optfile)
 
@@ -669,8 +623,9 @@ class specmod:
         wave, flux, flux_unc, bandname, mask = mask_spec(self)
         weight = 1./flux_unc**2
         # Assemble it in a Spectrum1D for the profile generator and in a dictionary for the fitting and plotting
-        spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)        
+        spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
         spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc, 'weight':weight}
+        self.spec_dict = spec_dict
         
         # See if the user wants to fit photometric data and check whether they have been read
         self.fitphot = self.inopts['MODEL OPTIONS']['FITPHOT']
@@ -679,15 +634,16 @@ class specmod:
             phot_dict = {'wave':self.pwaves, 'flux':self.pfluxes, 'flux_unc':self.pflux_uncs, 'width':self.pwidths}
         else:
             phot_dict = None
-
+        self.phot_dict = phot_dict
+            
         # Initiate CAFE param generator
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         _, outPath = cafeio.init_paths(self.inopts, cafe_path=self.cafe_dir, file_name=self.result_file_name, output_path=output_path)
 
         print('Generating parameter cube with initial/full parameter object')
         all_params = param_gen.make_parobj(get_all=True)
-        parcube_gen = CAFE_parcube_generator(self, all_params)
-        parcube = parcube_gen.make_parcube()
+        cube_gen = CAFE_cube_generator(self)
+        parcube = cube_gen.make_parcube(all_params)
         
         print('Generating parameter object')        
         init_params = param_gen.make_parobj(force_all=force_all_lines)
@@ -715,66 +671,64 @@ class specmod:
         result = cafe_grinder(self, params, spec_dict, phot_dict)
         print('The VGRAD of the spectrum is:', result.params['VGRAD'].value, '[km/s]')
 
+        self.params = result.params
+        
         # Inject the result into the parameter cube
         parcube = parobj2parcube(result.params, parcube)
-        
         self.parcube = parcube
 
-        # Create contdict that stores the continuum profile of each component
-        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(result.params, wave, self.cont_profs, comps=True)        
+        self.save_products(outPath)
 
-        contdict = {'CompFluxes': CompFluxes,
-                    'CompFluxes_0': CompFluxes_0,
-                    'extComps': extComps,
-                    'e0': e0,
-                    'tau0': tau0,
-                    }
-
-        self.contdict = contdict
-                     
-        # Save parcube to disk
-        self.parcube_dir = outPath
-        self.parcube_name = self.result_file_name+'_parcube'
-        print('Saving parameters in cube to disk:',self.parcube_dir+self.parcube_name+'.fits')
-        parcube.writeto(self.parcube_dir+self.parcube_name+'.fits', overwrite=True)
-
-        # Save contdict to disk
-        self.contdict_dir = outPath
-        self.contdict_name = self.result_file_name+'_contdict'
-        print('Saving continuum profile in cube to disk:',self.contdict_dir+self.contdict_name+'.pkl')
-        #contdict.writeto(self.contdict_dir+self.contdict_name+'.fits', overwrite=True)
-        with open(self.contdict_dir+self.contdict_name+'.pkl', 'wb') as f:
-            pickle.dump(contdict, f)
-                     
-        # Write best fit as paramfile
-        print('Saving init file to disk:', self.parcube_dir+self.result_file_name+'_fitpars.ini')
-        cafeio.write_inifile(result.params, self.inpars, self.parcube_dir+self.result_file_name+'_fitpars.ini')
-
-        # Save .asdf to disk
-        print('Saving parameters in asdf to disk:', self.parcube_dir+self.result_file_name+'_cafefit.asdf')
-        cafeio.save_asdf(self, file_name=self.parcube_dir+self.result_file_name+'_cafefit')
-
-        ## Save self in a pickle
-        #with open(self.parcube_dir+self.result_file_name+'_self.pkl', 'wb') as fl:
-        #    pickle.dump(self, fl, protocol=pickle.HIGHEST_PROTOCOL)
-
-        print('Saving figure in png to disk:',self.parcube_dir+self.result_file_name+'_fitfigure.png')
-        gauss, drude, gauss_opc = get_feat_pars(result.params, apply_vgrad2waves=True)  # params consisting all the fitted parameters        
-        # Save figure
-        cafefig = cafeplot(spec_dict, phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.parcube_dir+self.result_file_name+'_fitfigure.png')
-
-        # Make and save tables
-        self.pahs = cafeio.pah_table(parcube)
-        cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable_int', overwrite=True)
-        self.pahs = cafeio.pah_table(parcube, pahext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
-        cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable_obs', overwrite=True)
-        self.lines = cafeio.line_table(parcube)
-        cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable_int', overwrite=True)
-        self.lines = cafeio.line_table(parcube, lineext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
-        cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable_obs', overwrite=True)
-        
         return self
 
+    
+    def save_products(self, product_dir):
+        
+        # Save products to disk
+        self.product_dir = product_dir
+        
+        # Parcube
+        self.parcube_name = self.result_file_name+'_parcube'
+        print('Saving parameters in cube to disk:',self.product_dir+self.parcube_name+'.fits')
+        self.parcube.writeto(self.product_dir+self.parcube_name+'.fits', overwrite=True)
+        
+        ## Save fCON cube to disk
+        cube_gen = CAFE_cube_generator(self)
+        self.contcube = cube_gen.make_profcube(self.inparfile, self.optfile, ['Comp', 'fCON'])
+        self.contcube_name = self.result_file_name+'_contcube'
+        print('Saving total continuum profile in cube to disk:',self.product_dir+self.contcube_name+'.fits')
+        self.contcube.writeto(self.product_dir+self.contcube_name+'.fits', overwrite=True)
+        
+        #self.compdict_name = self.result_file_name+'_compdict'
+        #print('Saving component profiles in dictionary to disk:',self.compdict_dir+self.compdict_name+'.pkl')
+        ##compcube.writeto(self.compcube_dir+self.compdict_name+'.fits', overwrite=True)
+        #with open(self.compcube_dir+self.compdict_name+'.pkl', 'wb') as f:
+        #    pickle.dump(compdict, f)
+        
+        # Write best fit as an .ini parameter file
+        print('Saving init file to disk:', self.product_dir+self.result_file_name+'_fitpars.ini')
+        cafeio.write_inifile(self.params, self.inpars, self.product_dir+self.result_file_name+'_fitpars.ini')
+
+        # Save component dictionary .asdf to disk
+        print('Saving parameters in asdf to disk:', self.product_dir+self.result_file_name+'_cafefit.asdf')
+        cafeio.save_asdf(self, file_name=self.product_dir+self.result_file_name+'_cafefit')
+
+        print('Saving figure in png to disk:',self.product_dir+self.result_file_name+'_fitfigure.png')
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True)
+        gauss, drude, gauss_opc = get_feat_pars(self.params, apply_vgrad2waves=True)  # params consisting all the fitted parameters        
+        # Save figure
+        cafefig = cafeplot(self.spec_dict, self.phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.product_dir+self.result_file_name+'_fitfigure.png')
+
+        # Make and save tables
+        self.pahs = cafeio.pah_table(self.parcube)
+        cafeio.save_pah_table(self.pahs, file_name=self.product_dir+self.result_file_name+'_pahtable_int', overwrite=True)
+        self.pahs = cafeio.pah_table(self.parcube, pahext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
+        cafeio.save_pah_table(self.pahs, file_name=self.product_dir+self.result_file_name+'_pahtable_obs', overwrite=True)
+        self.lines = cafeio.line_table(self.parcube)
+        cafeio.save_line_table(self.lines, file_name=self.product_dir+self.result_file_name+'_linetable_int', overwrite=True)
+        self.lines = cafeio.line_table(self.parcube, lineext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
+        cafeio.save_line_table(self.lines, file_name=self.product_dir+self.result_file_name+'_linetable_obs', overwrite=True)
+        
     
 
     def plot_spec_ini(self,
@@ -875,6 +829,7 @@ class specmod:
         if save_name is not None:
             cafefig[0].savefig(save_name, dpi=500, format='png', bbox_inches='tight')
 
+    
     
     def plot_spec(self, savefig=None):
 
