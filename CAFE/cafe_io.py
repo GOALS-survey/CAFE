@@ -274,87 +274,168 @@ class cafe_io:
 
 
     @staticmethod
-    def pah_table(parcube, x=0, y=0, pahext=None, parobj=False, all_pah=False):
+    def pah_table(parcube, contdict, x=0, y=0, parobj=False, 
+                  pah_complex=True, pah_obs=False, savetbl=None):
         """
         Output the table of PAH integrated powers
-
+    
         Parameters
         ----------
-            allpah : bool (default: False)
-                If allpah is True, return measurements of ALL the 
-                individual PAH features. Otherwise, return the complex 
-                PAH measurements. 
+        pah_complex : bool (default: True)
+            Whether to present the PAH complex fluxes. If set to False, "ALL" the PAH fluxes 
+            will be provided.
+    
+        pah_obs: bool (default: False)
+            In default, the presented PAH flux is the intrinsic flux, which is boosted
+            based on the measured extinction. If set to True, the output will be the 
+            "observed" flux which is measured directly from the input spectrum, without
+            considering extinction correction.
+    
+        savetbl:
+            Save the table to a .csv file
+    
+        Output
+        ------
+        PAH table as a DataFrame
         """
-        #fitPars = self.parcube.params
-        #df = self.parobj2df(fitPars)
-
         if parobj == True:
             from CAFE.cafe_helper import parobj2df
             df = parobj2df(parcube) # parcube is a parobj
         else:
             from CAFE.cafe_helper import parcube2df
             df = parcube2df(parcube, x, y)
-
+    
         pah_parname = [i[0]=='d' for i in df.index]
-
+    
         pah_name = list(set([n.split('_')[1] for n in df[pah_parname].index]))
-
-        pah_wave_list = []
+    
+        pah_lam_list = []
+        pah_gamma_list = []
+        pah_peak_list = []
         pah_strength_list = []
         pah_strength_unc_list = []
+        pah_strength_obs_list = []
+        pah_strength_obs_unc_list = []
+        eqw_list = []
+        eqw_list_indiv = []
         for n in pah_name:
             p = df.filter(like=n, axis=0)
-
+    
             # -------------
             # Flux estimate
             # -------------
-            wave = p.filter(like='Wave', axis=0).value.values[0] * u.micron
+            lam = p.filter(like='Wave', axis=0).value.iloc[0] * u.micron
             
-            gamma = p.filter(like='Gamma', axis=0).value.values[0]
-            
-            peak = p.filter(like='Peak', axis=0).value.values[0] * u.Jy
-            if pahext is not None: peak *= np.interp(wave.value, pahext['wave'], pahext['ext'])
-
-            #x = np.linspace(2.5, 38, 200) * u.micron
-            #y = peak * gamma**2 / ((x/wave - wave/x)**2 + gamma**2)
-
+            gamma = p.filter(like='Gamma', axis=0).value.iloc[0]
+            pah_gamma_list.append(gamma)
+    
+            peak = p.filter(like='Peak', axis=0).value.iloc[0] * u.Jy
+            pah_peak_list.append(peak.value)
+    
             # integrated intensity (strength) -- in unit of W/m^2
-            pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wave)# * 1e-26 # * u.watt/u.m**2
+            pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / lam)# * 1e-26 # * u.watt/u.m**2
             
-            pah_wave_list.append(wave.value)
+            pah_lam_list.append(lam.value)
             # Make unit to appear as W/m^2
             pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
-
+    
+            # Calculate the "observed" PAH flux, which is the fluxes with no extinction correction.
+            # In this case, the derived PAH flux should always be smaller or equal to the extinction-corrected PAH flux.
+            
+            wave = contdict['CompFluxes']['wave']
+    
+            ext_scale = np.interp(lam.value, wave, contdict['extComps']['extPAH'])
+    
+            pah_strength_obs_list.append(pah_strength.to(u.Watt/u.m**2).value * ext_scale)
+            
             # -------------------------
             # Flux uncertainty estimate
             # -------------------------
-            _wave_unc = p.filter(like='Wave', axis=0).stderr.values[0]
-            _gamma_unc = p.filter(like='Gamma', axis=0).stderr.values[0]
-            _peak_unc = p.filter(like='Peak', axis=0).stderr.values[0]
-            if pahext is not None: _peak_unc *= np.interp(wave.value, pahext['wave'], pahext['ext'])
-
+            _lam_unc = p.filter(like='Wave', axis=0).stderr.iloc[0]
+            _gamma_unc = p.filter(like='Gamma', axis=0).stderr.iloc[0]
+            _peak_unc = p.filter(like='Peak', axis=0).stderr.iloc[0]
+    
             # Only proceed if uncertainties exist
-            if (_wave_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
-                wave_unc = _wave_unc * u.micron
+            if (_lam_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
+                lam_unc = _lam_unc * u.micron
                 gamma_unc = _gamma_unc
                 peak_unc = _peak_unc * u.Jy
-
-                g_over_w_unc = gamma / wave * np.sqrt((gamma_unc/gamma)**2 + (wave_unc/wave)**2) # uncertainty of gamma/wave
+    
+                g_over_w_unc = gamma / lam * np.sqrt((gamma_unc/gamma)**2 + (lam_unc/lam)**2) # uncertainty of gamma/lam
                 
                 pah_strength_unc = (np.pi * const.c.to('micron/s') / 2) * \
-                                    (peak * gamma / wave) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wave))**2)# * 1e-26# * u.watt/u.m**2
-
-                # Make unit to appear as W/m^2
+                                    (peak * gamma / lam) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / lam))**2)# * 1e-26# * u.watt/u.m**2
+    
+                # Make the unit appear as W/m^2
                 pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
+                pah_strength_obs_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value * ext_scale)
             else:
                 pah_strength_unc_list.append(np.nan)
-
-            # ------------
-            # EQW estimate
-            # ------------
-
-            #EQW = np.trapz((I_nu_P - I_nu_C) / I_nu_C, x)
-
+                pah_strength_obs_unc_list.append(np.nan)
+            
+            # -------------
+            # EQW estimates
+            # -------------
+            fwhm = gamma * lam.value
+    
+            # Continuum profile
+            I_nu_C = contdict['CompFluxes']['fCON'] # The straightout continuum flux level, without extinction correction
+    
+            # PAH profile
+            I_nu_P = drude_prof(wave, [[lam.value], [gamma], [peak.value]]) + I_nu_C
+            
+            prof_df = pd.DataFrame({'wave': wave,
+                                   'I_nu_C': I_nu_C,
+                                   'I_nu_P': I_nu_P,
+                                   })
+    
+            # Set the integration range
+            int_range = 3*fwhm # set the range as +/- 3*FWHM
+            pah_range = prof_df[(prof_df.wave >= lam.value-int_range) & (prof_df.wave < lam.value+int_range)]
+    
+            EQW = np.trapz((pah_range.I_nu_P - pah_range.I_nu_C) / pah_range.I_nu_C, pah_range.wave)
+    
+            eqw_list.append(EQW)
+    
+        if pah_obs is False:
+            all_pah_df = pd.DataFrame({'pah_name': pah_name, 
+                                       'pah_lam': pah_lam_list, 
+                                       'pah_strength': pah_strength_list,
+                                       'pah_strength_unc': pah_strength_unc_list,
+                                       'pah_eqw': eqw_list,
+                                       }
+                                     )
+    
+        else:
+            all_pah_df = pd.DataFrame({'pah_name': pah_name, 
+                                       'pah_lam': pah_lam_list, 
+                                       'pah_strength': pah_strength_list,
+                                       'pah_strength_unc': pah_strength_unc_list,
+                                       'pah_strength_obs': pah_strength_obs_list,
+                                       'pah_strength_obs_unc': pah_strength_obs_unc_list,
+                                       'pah_eqw': eqw_list,
+                                       }
+                                     )
+    
+        all_pah_df['pah_gamma'] = pah_gamma_list
+        all_pah_df['pah_peak'] = pah_peak_list
+        all_pah_df = all_pah_df.sort_values('pah_lam')
+    
+        all_pah_df.set_index('pah_name', inplace=True)
+    
+        # Change the names that are supposed to be aliphatic features
+        for i in range(len(all_pah_df)):
+            if list(all_pah_df.index)[i] == 'PAH34':
+                all_pah_df.rename(index={'PAH34': 'ali34'}, inplace=True)
+            elif list(all_pah_df.index)[i] == 'PAH35':
+                all_pah_df.rename(index={'PAH35': 'ali35'}, inplace=True)
+    
+        # create the DataFrame which includes the info of gamma and will only be used in EQW calculation 
+        all_pah_df_tmp = all_pah_df.copy()
+    
+        # ===========================
+        # Calculation for PAH complex
+        # ===========================
         # Define main PAH band dictionary
         mainpah_dict = {'PAH33': {'range': [3.25, 3.32]},
                         'ali34': {'range': [3.35, 3.44]},
@@ -372,21 +453,13 @@ class cafe_io:
                         'PAH170_C': {'range': [16.4, 17.9]},
                         'PAH174': {'range': [17.35, 17.45]}
                         }
-
-        #if output_unc is True:
-        all_pah_df = pd.DataFrame({'pah_name': pah_name, 
-                                   'pah_wave': pah_wave_list, 
-                                   'pah_strength': pah_strength_list,
-                                   'pah_strength_unc': pah_strength_unc_list,}
-                                 ).sort_values('pah_wave')
-        all_pah_df.set_index('pah_name', inplace=True)
-
+    
         # Generate PAH complex table
         pah_complex_list = []                                                                                                                  
-        for pah_wave in all_pah_df.pah_wave:
+        for pah_lam in all_pah_df.pah_lam:
             match = False
             for mainpah_key in mainpah_dict.keys():
-                if (pah_wave >= mainpah_dict[mainpah_key]['range'][0]) & (pah_wave < mainpah_dict[mainpah_key]['range'][1]):
+                if (pah_lam >= mainpah_dict[mainpah_key]['range'][0]) & (pah_lam < mainpah_dict[mainpah_key]['range'][1]):
                     pah_complex_list.append(mainpah_key)
                     match = True
                     break
@@ -394,46 +467,169 @@ class cafe_io:
                 pah_complex_list.append(None)
                     
         all_pah_df['pah_complex'] = pah_complex_list
-
+    
+        # Flux and flux uncertainty
         pah_complex_strength = all_pah_df.groupby('pah_complex')['pah_strength'].sum()
-
-        # if output_unc is True:
+    
         pah_complex_strength_unc = all_pah_df.groupby('pah_complex')['pah_strength_unc'].apply(lambda x: np.sqrt(np.sum(x**2)))
-
-        pah_complex_df = pd.merge(pah_complex_strength, pah_complex_strength_unc, left_index=True, right_index=True)
-
-        pahs = pah_complex_df if all_pah is False else all_pah_df
-
+    
+        if pah_obs is False:
+            pah_complex_df = pd.concat([pah_complex_strength, pah_complex_strength_unc], 
+                                      axis=1)
+        else:
+            pah_complex_strength_obs = all_pah_df.groupby('pah_complex')['pah_strength_obs'].sum()
+    
+            pah_complex_strength_obs_unc = all_pah_df.groupby('pah_complex')['pah_strength_obs_unc'].apply(lambda x: np.sqrt(np.sum(x**2)))            
+    
+            pah_complex_df = pd.concat([pah_complex_strength, pah_complex_strength_unc, 
+                                      pah_complex_strength_obs, pah_complex_strength_obs_unc],
+                                      axis=1)
+        # ===============
+        # EQW measurement
+        # ===============
+        # define the function that will be used later to find PAH bands that are closest to the limits
+        def find_closest_limits(elements, limits):
+            lower_limit, upper_limit = min(limits), max(limits)
+    
+            # Function to perform binary search
+            def binary_search(arr, target):
+                lo, hi = 0, len(arr) - 1
+                while lo <= hi:
+                    mid = (lo + hi) // 2
+                    if arr.iloc[mid] == target:
+                        return mid
+                    elif arr.iloc[mid] < target:
+                        lo = mid + 1
+                    else:
+                        hi = mid - 1
+                # Ensure the index is within the valid range of the array
+                return min(max(lo, 0), len(arr) - 1)
+    
+            # Find the closest indices
+            lower_index = binary_search(elements, lower_limit)
+            upper_index = binary_search(elements, upper_limit)
+    
+            # Adjust indices to find the closest elements
+            if lower_index > 0 and (lower_limit - elements.iloc[lower_index - 1] < elements.iloc[lower_index] - lower_limit):
+                lower_index -= 1
+    
+            # Check if elements are within the limits
+            closest_to_lower = elements.iloc[lower_index] if lower_limit <= elements.iloc[lower_index] <= upper_limit else None
+            closest_to_upper = elements.iloc[upper_index - 1] if upper_index > 0 and lower_limit <= elements.iloc[upper_index - 1] <= upper_limit else None
+    
+            # Return None if no elements are within the limits
+            if closest_to_lower is None and closest_to_upper is None:
+                return None
+    
+            # Return a single number if both elements are identical, or if one of them is None
+            if closest_to_lower == closest_to_upper or closest_to_upper is None:
+                return [closest_to_lower]
+            elif closest_to_lower is None:
+                return [closest_to_upper]
+            return [closest_to_lower, closest_to_upper]
+        # -
+    
+        # Continuum profile
+        I_nu_C = contdict['CompFluxes']['fCON'] # The straightout continuum flux level, without extinction correction
+    
+        prof_df = pd.DataFrame({'wave': wave,
+                                'I_nu_C': I_nu_C,
+                                #'I_nu_P': I_nu_P,
+                                })
+        
+        pah_complex_eqw_list = []
+        for mainpah_key in mainpah_dict.keys():
+            pah_element = find_closest_limits(all_pah_df.pah_lam, mainpah_dict[mainpah_key]['range'])
+    
+            if pah_element is None:
+                EQW = None
+    
+            elif len(pah_element) == 1:
+                # These params are for calculating the range of the PAH complex
+                gamma = all_pah_df_tmp[all_pah_df_tmp.pah_lam == pah_element[0]].pah_gamma.values[0]
+                lam = all_pah_df_tmp[all_pah_df_tmp.pah_lam == pah_element[0]].pah_lam.values[0]
+                fwhm = gamma * lam
+    
+                # Set the integration range
+                int_range = 3*fwhm # set the range as +/- 3*FWHM
+    
+                pah_comp_wmin = lam-int_range
+                pah_comp_wmax = lam+int_range
+    
+                for i in range(len(all_pah_df_tmp.pah_lam)):
+                    lam = all_pah_df_tmp.pah_lam.iloc[i]
+                    if (lam >= mainpah_dict[mainpah_key]['range'][0]) & (lam < mainpah_dict[mainpah_key]['range'][1]):
+                        wave = prof_df.wave
+                        gamma = all_pah_df_tmp.pah_gamma.iloc[i]
+                        peak = all_pah_df_tmp.pah_peak.iloc[i]
+                        
+                        # PAH profile
+                        I_nu_Pi = drude_prof(wave, [[lam], [gamma], [peak]]) + I_nu_C
+    
+                prof_df['I_nu_P'] = I_nu_Pi
+                pah_range = prof_df[(prof_df.wave >= pah_comp_wmin) & (prof_df.wave < pah_comp_wmax)]
+    
+                EQW = np.trapz((pah_range.I_nu_P - pah_range.I_nu_C) / pah_range.I_nu_C, pah_range.wave)
+    
+            elif len(pah_element) == 2:
+                # lam of the PAH feature at the shortest(longest) wavelength within the PAH complex range
+                lam1 = all_pah_df_tmp[all_pah_df_tmp.pah_lam == pah_element[0]].pah_lam.values[0]
+                lam2 = all_pah_df_tmp[all_pah_df_tmp.pah_lam == pah_element[1]].pah_lam.values[0]
+                
+                # gamma of the PAH feature at the shortest(longest) wavelength within the complext
+                gamma1 = all_pah_df_tmp[all_pah_df_tmp.pah_lam == pah_element[0]].pah_gamma.values[0] 
+                gamma2 = all_pah_df_tmp[all_pah_df_tmp.pah_lam == pah_element[1]].pah_gamma.values[0]
+    
+                # fwhm of the PAH feature at the shortest(longest) wavelength within the PAH complex rnage
+                fwhm1 = gamma1 * lam1
+                fwhm2 = gamma2 * lam2
+    
+                # Set the integration range
+                pah_comp_wmin = lam1-3*fwhm1
+                pah_comp_wmax = lam2+3*fwhm2
+    
+                # create a zero I_nu_Pi array
+                I_nu_Pi = np.zeros(len(I_nu_C))
+                for i in range(len(all_pah_df_tmp.pah_lam)):
+                    lam = all_pah_df_tmp.pah_lam.iloc[i]
+                    if (lam >= mainpah_dict[mainpah_key]['range'][0]) & (lam < mainpah_dict[mainpah_key]['range'][1]):
+                        wave = prof_df.wave
+                        gamma = all_pah_df_tmp.pah_gamma.iloc[i]
+                        peak = all_pah_df_tmp.pah_peak.iloc[i]
+                        
+                        # PAH profile
+                        I_nu_Pi += drude_prof(wave, [[lam], [gamma], [peak]])
+                
+                # Add all the PAH profiles with the continuum
+                I_nu_Pi = I_nu_Pi + I_nu_C
+    
+                prof_df['I_nu_P'] = I_nu_Pi
+                pah_range = prof_df[(prof_df.wave >= pah_comp_wmin) & (prof_df.wave < pah_comp_wmax)]
+    
+                EQW = np.trapz((pah_range.I_nu_P - pah_range.I_nu_C) / pah_range.I_nu_C, pah_range.wave)
+            
+            pah_complex_eqw_list.append(EQW)
+    
+        pah_complex_eqw_df = pd.DataFrame({'pah_complex': list(mainpah_dict.keys()),
+                                           'pah_complex_eqw': pah_complex_eqw_list,
+                                           }).set_index('pah_complex')
+    
+        pah_complex_df = pd.merge(pah_complex_df, pah_complex_eqw_df, 
+                                  how='inner', left_index=True, right_index=True)
+    
+        pahs = pah_complex_df if pah_complex is True else all_pah_df
+    
+        if savetbl is not None:
+            pahs_reset = pahs.reset_index()
+            t = Table.from_pandas(pahs_reset)
+            t.meta = {'flux': 'W/m^2'}
+            t.write(savetbl, overwrite=True)
+            
+            print("PAH table is saved in: "+savetbl)
+        
         return pahs
 
-
-
-    @staticmethod
-    def save_pah_table(pahs, all_pah=False, file_name=None, overwrite=False):
-
-        from astropy.table import QTable
-        if all_pah == False:
-            t = QTable([pahs.index.values, pahs.pah_strength, pahs.pah_strength_unc],
-                       names = ('pah_complex', 'pah_strength', 'pah_strength_unc'),
-                       meta={'wavelength': 'micron',
-                             'flux': 'W/m^2',
-                       }
-            )
-        else:
-            t = QTable([pahs.index.values, pahs.pah_wave, pahs.pah_strength, pahs.pah_strength_unc, pahs.pah_complex],
-                       names = ('pah_name', 'pah_wave', 'pah_strength', 'pah_strength_unc', 'pah_complex'),
-                       meta={'wavelength': 'micron',
-                             'flux': 'W/m^2',
-                       }
-            )
-
-        if file_name is None:
-            t.write(self.cafe_dir+'output/last_unnamed_pahtable.asdf')
-        else:
-            t.write(file_name+'.ecsv', overwrite=overwrite)
-
-
-
+    
     @staticmethod
     def line_table(parcube, x=0, y=0, lineext=None, parobj=False):
         """
