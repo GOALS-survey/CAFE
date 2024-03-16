@@ -17,7 +17,7 @@ from asdf import AsdfFile
 
 import CAFE
 
-import ipdb
+#import ipdb
 
 
 class cafe_io:
