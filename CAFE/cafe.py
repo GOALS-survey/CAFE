@@ -25,7 +25,7 @@ from CAFE.get_fit_sequence import get_fit_sequence
 
 cafeio = cafe_io()
 
-import ipdb
+#import ipdb
 
 def cafe_grinder(self, params, spec, phot):
     """
