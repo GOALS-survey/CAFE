@@ -70,7 +70,7 @@ def pah_drude(path='tables/'):
     return {'wave0':wave0, 'gamma':gam, 'peak':peak, 'complex':comp}
 
 
-def gauss_flux(wave, gauss, ext=None):
+def gauss_prof(wave, gauss, ext=None):
     ''' Compute the flux from a gaussian profile
 
     Arguments:

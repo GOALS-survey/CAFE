@@ -17,7 +17,7 @@ import CAFE
 from CAFE.mathfunc import spline, intTab
 
 #from pycafelib_cube import *
-from CAFE.component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
+from CAFE.component_model import pah_drude, gauss_prof, drude_prof, drude_int_fluxes
 from CAFE.sourceSED import planck, sourceSED_ISRF, sourceSED_AGN, sourceSED_SB, sourceSED, load_opacity
 
 #import pdb, ipdb

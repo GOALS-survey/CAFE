@@ -13,7 +13,7 @@ from matplotlib.ticker import ScalarFormatter
 
 import CAFE
 from CAFE.dustgrainfunc import grain_totemissivity
-from CAFE.component_model import pah_drude, gauss_flux, drude_prof, drude_int_fluxes
+from CAFE.component_model import pah_drude, gauss_prof, drude_prof, drude_int_fluxes
 
 
 #import ipdb
@@ -474,7 +474,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     
     # Get variations on wavelengh vector
     logWave = np.log(wave)
-    waveMod = cont_profs['waveSED']
+    waveMod = cont_profs['waveMod']
     logWaveMod = np.log(waveMod)
     if waveMod.shape == wave.shape and np.allclose(wave, waveMod): sameWaves = True
     else: sameWaves = False
@@ -515,7 +515,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     tauFeats = np.interp(logWaveMod, np.log(waveMod * (1+p['VGRAD']/2.998e5)), tauFeats)
     
     if gauss_opc[0].size > 0:
-        tau_gopc = gauss_flux(waveMod, [gauss_opc[0], gauss_opc[1], gauss_opc[2]])
+        tau_gopc = gauss_prof(waveMod, [gauss_opc[0], gauss_opc[1], gauss_opc[2]])
     else:
         tau_gopc = np.zeros(waveMod.size)
 
@@ -833,10 +833,10 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
 
     ### Line component flux 
     if gauss[0].size > 0:
-        # fLIN = gauss_flux(waveMod, gauss)
+        # fLIN = gauss_prof(waveMod, gauss)
         # fLIN[fLIN < 0] = 0.0
         # if comps: fLIN_0 = fLIN
-        fLIN_0 = gauss_flux(waveMod, [gauss[0], gauss[1], gauss[2]])
+        fLIN_0 = gauss_prof(waveMod, [gauss[0], gauss[1], gauss[2]])
         fLIN_0[fLIN_0 < 0] = 0.0
         fLIN = extPAH * fLIN_0
     else:
@@ -852,7 +852,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
     # print('PAH', fPAH) # seems to be consistently about 2 percent off
 
     if sameWaves is True: 
-        # If the wavelengths are exactly the same
+        # If the input wavelengths are exactly the same as the model ones (only for 1.5>wave>30um only-spectra)
         flux = np.copy(fluxMod)
     else:
         # For some reason using my spline function breaks things here
@@ -860,6 +860,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
         #flux = f1(logWave)
         # TDS: Instead of interpolating, just chose the overlapping indices/wavelengths,
         # since the model waves are defined based on the given/observed wavelengths
+        # Note that this is done only for the spectrum waves, which by construction are fully contained within the WaveMod
         if cont_profs['Resolutions'][0] != 'PHOTOMETRY':
             flux = fluxMod[np.isin(logWaveMod, logWave)]
         else:
@@ -889,8 +890,8 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
         fDST = fCIR + fCLD + fCOO + fWRM + fHOT
         fSRC = fSTR + fSTB + fDSK
         fFTS = fPAH + fLIN
-
-        # "Observed" compoment fluxes
+        
+        # Observed model compoment fluxes
         CompFluxes = {'wave':waveMod, 'fCIR':fCIR, 'fCLD':fCLD, 'fCOO':fCOO, 'fWRM':fWRM, 'fHOT':fHOT, 
                  'fLIN':fLIN, 'fPAH':fPAH, 'fSTR':fSTR, 'fSTB':fSTB, 'fDSK':fDSK,
                  'fCON':fCON, 'fDST':fDST, 'fSRC':fSRC, 'fFTS': fFTS,
@@ -911,7 +912,7 @@ def get_model_fluxes(params, wave, cont_profs, comps=False, phot_dict=None):
                     'extSTR':extSTR, 'extSTB':extSTB, 'extDSK':extDSK}
 
         # E0/tau0
-        emiss = {'jCIR':jCIR, 'jCLD':jCLD, 'jCOO':jCOO, 'jWRM':jWRM, 'jHOT':jHOT, 'jPAH':jPAH}
+        emiss = {'wave':waveMod, 'jCIR':jCIR, 'jCLD':jCLD, 'jCOO':jCOO, 'jWRM':jWRM, 'jHOT':jHOT, 'jPAH':jPAH}
         tau0 = {'tau0COO':p['COO_TAU'], 'tau0WRM':p['WRM_TAU'], 'tau0HOT':p['HOT_TAU'], 'tau0PAH':p['PAH_TAU'],
                 'tauSTR':p['STR_TAU'], 'tau0STB':p['STB_TAU'], 'tau0DSK':p['DSK_TAU']}
 
@@ -1158,7 +1159,7 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     for i in range(len(gauss[0])):
         if pahext is None:
             pahext = np.ones(wavemod.shape)
-        lflux = gauss_flux(wavemod, [[gauss[0][i]], [gauss[1][i]], [gauss[2][i]]], ext=pahext)
+        lflux = gauss_prof(wavemod, [[gauss[0][i]], [gauss[1][i]], [gauss[2][i]]], ext=pahext)
         
         ax1.plot(wavemod, lflux+fCont, color='#1e6091', label='_nolegend_', alpha=alpha, linewidth=0.4)
         #if i == 0:

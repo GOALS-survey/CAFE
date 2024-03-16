@@ -3,15 +3,19 @@ import copy
 import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
 from astropy.io import fits
 from astropy.table import Table
+from specutils import Spectrum1D, SpectrumList
+from astropy.nddata import StdDevUncertainty
+import astropy.units as u
 
 import CAFE
-from CAFE.component_model import gauss_flux, drude_prof, pah_drude
+from CAFE.component_model import gauss_prof, drude_prof, pah_drude
 from CAFE.dustgrainfunc import *
 from CAFE.cafe_io import *
+from CAFE.cafe_lib import *
 
 cafeio = cafe_io()
 
-#import ipdb
+import ipdb
 
 class CAFE_param_generator:
 
@@ -251,8 +255,8 @@ class CAFE_param_generator:
                 cont = 0.5 * (fluxMinMax[0] + fluxMinMax[1])
                 peak = np.interp(wave0, wave, featflux) - cont
                 peaks += peak
-                #featflux -= gauss_flux(wave, gauss['wave'], gauss['gam'], gauss['peak'])
-                featflux -= gauss_flux(wave, [wave0, gam, peak])
+                #featflux -= gauss_prof(wave, gauss['wave'], gauss['gam'], gauss['peak'])
+                featflux -= gauss_prof(wave, [wave0, gam, peak])
 
             if force_all == False:
                 peaks[peaks < 1e-10] = 0.0
@@ -261,7 +265,7 @@ class CAFE_param_generator:
         
         gauss = [np.asarray(wave0), np.asarray(gam), np.asarray(peaks*2.0), names, np.asarray(doubs)]
 
-        flux_left = flux - gauss_flux(wave, gauss) # Not sure if this is quite right
+        flux_left = flux - gauss_prof(wave, gauss) # Not sure if this is quite right
 
         if get_all == True:
             if wave0.size != aWave0_kept.size+mWave0_kept.size+hWave0_kept.size: raise ValueError('Not all possible gauss features kept even when get_all=True')
@@ -771,9 +775,9 @@ class CAFE_prof_generator:
             maxNIR = wave[0] - (wave[1]-wave[0])
             nNIR = int(np.ceil(np.log10(maxNIR/minNIR)*eqRspec/undersampNIR))
             waveNIR = np.geomspace(minNIR, maxNIR, num=nNIR)
-            waveSED = np.concatenate((waveNIR, wave))
+            waveMod = np.concatenate((waveNIR, wave))
         else:
-            waveSED = wave
+            waveMod = wave
 
         if wave[-1] <= 30.:
             undersampMIR = 4
@@ -781,39 +785,39 @@ class CAFE_prof_generator:
             maxMIR = 30.
             nMIR = int(np.ceil(np.log10(maxMIR/minMIR)*eqRspec/undersampMIR))
             waveMIR = np.geomspace(minMIR, maxMIR, num=nMIR)
-            waveSED = np.concatenate((waveSED, waveMIR)) # waveUV, 
+            waveMod = np.concatenate((waveMod, waveMIR)) # waveUV, 
             
         if phot_dict is not None:
-            if phot_dict['wave'][0] < waveSED[0]:
+            if phot_dict['wave'][0] < waveMod[0]:
                 undersampOpt = 4.
                 minOpt = phot_dict['wave'][0] - phot_dict['width'][0]
-                maxOpt = np.nanmax((waveSED[0] - (waveSED[1]-waveSED[0]), phot_dict['wave'][0]))
+                maxOpt = np.nanmax((waveMod[0] - (waveMod[1]-waveMod[0]), phot_dict['wave'][0]))
                 nOpt = int(np.ceil(np.log10(maxOpt/minOpt)*eqRspec/undersampOpt))
                 waveOpt = np.geomspace(minOpt, maxOpt, num=nOpt)
-                waveSED = np.concatenate((waveSED, waveOpt))
+                waveMod = np.concatenate((waveMod, waveOpt))
 
-            if phot_dict['wave'][-1] > waveSED[-1]:
+            if phot_dict['wave'][-1] > waveMod[-1]:
                 undersampFIR = 4.
-                minFIR = np.nanmin((waveSED[-1] + (waveSED[-1]-waveSED[-2]), phot_dict['wave'][-1]))
+                minFIR = np.nanmin((waveMod[-1] + (waveMod[-1]-waveMod[-2]), phot_dict['wave'][-1]))
                 maxFIR = phot_dict['wave'][-1] + phot_dict['width'][-1]
                 nFIR = int(np.ceil(np.log10(maxFIR/minFIR)*eqRspec/undersampFIR))
                 waveFIR = np.geomspace(minFIR, maxFIR, num=nFIR)
-                waveSED = np.concatenate((waveSED, waveFIR))
+                waveMod = np.concatenate((waveMod, waveFIR))
             
 
         # Remove wavelengths that are too close
         close_wave_sampling = []
-        for i in range(waveSED.size-1):
-            if waveSED[i+1] - waveSED[i] < 1e-14: close_wave_sampling.append(i)
-        waveSED = np.delete(waveSED, close_wave_sampling)
+        for i in range(waveMod.size-1):
+            if waveMod[i+1] - waveMod[i] < 1e-14: close_wave_sampling.append(i)
+        waveMod = np.delete(waveMod, close_wave_sampling)
 
-        self.waveSED = waveSED
+        self.waveMod = waveMod
 
 
 
     def load_grain_emissivity(self):
 
-        waveSED = self.waveSED
+        waveMod = self.waveMod
 
         inpars = self.inpars
         inopts = self.inopts
@@ -831,15 +835,15 @@ class CAFE_prof_generator:
             scaleOHMc[:,1] = np.ones(scaleOHMc.shape[1])
         
         if 'AGN' in sourceTypes:
-            E_AGN = grain_emissivity(waveSED, T_bb, 'AGN', scaleOHMc, tablePath)
+            E_AGN = grain_emissivity(waveMod, T_bb, 'AGN', scaleOHMc, tablePath)
         if 'ISRF' in sourceTypes:
-            E_ISRF = grain_emissivity(waveSED, T_bb, 'ISRF', scaleOHMc, tablePath)
+            E_ISRF = grain_emissivity(waveMod, T_bb, 'ISRF', scaleOHMc, tablePath)
         if 'SB2Myr' in sourceTypes:
-            E_SB2Myr = grain_emissivity(waveSED, T_bb, 'SB2Myr', scaleOHMc, tablePath)
+            E_SB2Myr = grain_emissivity(waveMod, T_bb, 'SB2Myr', scaleOHMc, tablePath)
         if 'SB10Myr' in sourceTypes:
-            E_SB10Myr = grain_emissivity(waveSED, T_bb, 'SB10Myr', scaleOHMc, tablePath)
+            E_SB10Myr = grain_emissivity(waveMod, T_bb, 'SB10Myr', scaleOHMc, tablePath)
         if 'SB100Myr' in sourceTypes:
-            E_SB100Myr = grain_emissivity(waveSED, T_bb, 'SB100Myr', scaleOHMc, tablePath)
+            E_SB100Myr = grain_emissivity(waveMod, T_bb, 'SB100Myr', scaleOHMc, tablePath)
         
         if srcs['SOURCE_HOT'] == 'AGN': E_HOT = E_AGN
         elif srcs['SOURCE_HOT'] == 'ISRF': E_HOT = E_ISRF
@@ -882,14 +886,14 @@ class CAFE_prof_generator:
 
         #ipdb.set_trace()
         # Each emissivity returns:
-        # {'wave':waveSED, 't_bb':T_bb, 'SilTot':eSilTotOut, 'SilCont':eSilContOut, 'AmoFeat':eAmoFeatOut,
+        # {'wave':waveMod, 't_bb':T_bb, 'SilTot':eSilTotOut, 'SilCont':eSilContOut, 'AmoFeat':eAmoFeatOut,
         #    'FstFeat':eFstFeatOut, 'EnsFeat':eEnsFeatOut, 'Carb':eCarbOut}
         return result
 
 
     def load_grain_opacity(self):
 
-        waveSED = self.waveSED
+        waveMod = self.waveMod
 
         inpars = self.inpars
         inopts = self.inopts
@@ -902,22 +906,22 @@ class CAFE_prof_generator:
         if inopts['MODEL OPTIONS']['DRAINE_OR_OHMC'] != 'OHMc':
             scaleOHMc[:,1] = np.ones(scaleOHMc.shape[1])
         if not inopts['SWITCHES']['ORION_H2O']:
-            kIce3 = load_opacity(waveSED, tablePath+'opacity/ice_opacity_idl_3um_upsampled.txt')
+            kIce3 = load_opacity(waveMod, tablePath+'opacity/ice_opacity_idl_3um_upsampled.txt')
         else:
-            kIce3 = load_opacity(waveSED, tablePath+'opacity/ice_opacity_idl_orion.txt')
-        kIce6 = load_opacity(waveSED, tablePath+'opacity/ice_opacity_idl_6um_upsampled.txt')
-        kHac = load_opacity(waveSED, tablePath+'opacity/hac_opacity_upsampled.txt')
-        kCOrv = load_opacity(waveSED, tablePath+'opacity/corv_opacity_upsampled.txt')
-        kCO2 = load_opacity(waveSED, tablePath+'opacity/CO2_opacity_4um.ecsv')
-        kCrySi_233 = load_opacity(waveSED, tablePath+'opacity/crystallineSi_opacity_233.ecsv')
+            kIce3 = load_opacity(waveMod, tablePath+'opacity/ice_opacity_idl_orion.txt')
+        kIce6 = load_opacity(waveMod, tablePath+'opacity/ice_opacity_idl_6um_upsampled.txt')
+        kHac = load_opacity(waveMod, tablePath+'opacity/hac_opacity_upsampled.txt')
+        kCOrv = load_opacity(waveMod, tablePath+'opacity/corv_opacity_upsampled.txt')
+        kCO2 = load_opacity(waveMod, tablePath+'opacity/CO2_opacity_4um.ecsv')
+        kCrySi_233 = load_opacity(waveMod, tablePath+'opacity/crystallineSi_opacity_233.ecsv')
 
         # Temperature is set to 0 to get grain opacities
-        kAbs, kExt = grain_opacity(waveSED, 0., scaleOHMc, tablePath, noPAH=False) #, cutoff='big'
+        kAbs, kExt = grain_opacity(waveMod, 0., scaleOHMc, tablePath, noPAH=False) #, cutoff='big'
 
         # Consider absorption or absorption+scattering 
         Ext_or_Abs = inopts['MODEL OPTIONS']['EXTORABS']
 
-        result = {'wave': waveSED,
+        result = {'wave': waveMod,
                   'kIce3': kIce3,
                   'kIce6': kIce6,
                   'kHac': kHac,
@@ -940,15 +944,15 @@ class CAFE_prof_generator:
 
     def get_sed(self):
 
-        waveSED = self.waveSED
+        waveMod = self.waveMod
 
         tablePath = self.tablePath        
 
-        source2Myr = sourceSED(waveSED, 'SB2Myr', tablePath, norm=True, Jy=True)[1]
-        source10Myr = sourceSED(waveSED, 'SB10Myr', tablePath, norm=True, Jy=True)[1]
-        source100Myr = sourceSED(waveSED, 'SB100Myr', tablePath, norm=True, Jy=True)[1]
-        sourceStr = sourceSED(waveSED, 'ISRF', tablePath, norm=True, Jy=True)[1]
-        sourceDsk = sourceSED(waveSED, 'AGN', tablePath, norm=True, Jy=True)[1]
+        source2Myr = sourceSED(waveMod, 'SB2Myr', tablePath, norm=True, Jy=True)[1]
+        source10Myr = sourceSED(waveMod, 'SB10Myr', tablePath, norm=True, Jy=True)[1]
+        source100Myr = sourceSED(waveMod, 'SB100Myr', tablePath, norm=True, Jy=True)[1]
+        sourceStr = sourceSED(waveMod, 'ISRF', tablePath, norm=True, Jy=True)[1]
+        sourceDsk = sourceSED(waveMod, 'AGN', tablePath, norm=True, Jy=True)[1]
 
         #ipdb.set_trace()
         result = {'source2Myr': source2Myr,
@@ -970,9 +974,9 @@ class CAFE_prof_generator:
         inpars = self.inpars
         inopts = self.inopts
 
-        # waveSED
+        # waveMod
         # -------
-        waveSED = self.waveSED
+        waveMod = self.waveMod
         
         # wave0
         # -----
@@ -1037,7 +1041,7 @@ class CAFE_prof_generator:
         
         #ipdb.set_trace()
         # ---
-        cont_profs = {'waveSED':waveSED, # wavelength sampling
+        cont_profs = {'waveMod':waveMod, # wavelength sampling
                       'wave0':wave0, 'flux0':flux0, # reference wavelengths and fluxes at those waves of continuum features
                       
                       'E_CIR':E_CIR, 'E_COO':E_COO, 'E_CLD':E_CLD, 'E_WRM':E_WRM, 'E_HOT':E_HOT, # dust emissivities
@@ -1063,17 +1067,24 @@ class CAFE_prof_generator:
 
 
 
-class CAFE_parcube_generator:
+class CAFE_cube_generator:
 
-    def __init__(self, cube, params):
+    def __init__(self, cube):
 
-        self.parcube_header = cube.header #cube['FLUX'].header
+        self.cafe_dir = cube.cafe_dir
+        self.cube_header = cube.header #cube['FLUX'].header
+        self.cube = cube
         self.nx = cube.nx #cube[extract].header['NAXIS1']
         self.ny = cube.ny #cube[extract].header['NAXIS2']
+        self.nz = cube.nz
+        self.z = cube.z
+
+        if hasattr(cube, 'parcube'): self.parcube = cube.parcube
+
+        
+    def make_parcube(self, params):    
+
         self.params = params
-
-
-    def make_parcube(self):    
 
         keys = list(self.params.keys())
         
@@ -1084,7 +1095,7 @@ class CAFE_parcube_generator:
 
         name_list = ['VALUE', 'STDERR', 'VARY', 'MIN', 'MAX']
         for name in name_list:
-            globals()[name] = fits.ImageHDU(ini_parcube.copy(), name=name, header=self.parcube_header)
+            globals()[name] = fits.ImageHDU(ini_parcube.copy(), name=name, header=self.cube_header)
             parcube.append(globals()[name])
         
         # create Bin table to store EXPR and PARNAME
@@ -1106,11 +1117,113 @@ class CAFE_parcube_generator:
 
         parname = fits.BinTableHDU(parname_rec.copy(), name='PARNAME')
         parcube.append(parname)
+
+        self.parcube = parcube
         
         return parcube
+    
+    
+    def make_profcube(self, inparfile, optfile, prof_name):    
+ 
+        if hasattr(self, 'parcube') is False:
+            raise AttributeError('The CAFE object does not have a parameter cube (parcube) yet. The spectrum has not been fitted or a preexisting parameter cube has not been loaded. Please use cafe.read_parcube_file() to load it from disk or use cafe.fit_spec() to fit a spectrum.')
+
+        self.wave, self.flux, self.flux_unc, self.bandname, self.mask = mask_spec(self.cube)
+        self.weight = 1./self.flux_unc**2
+        self.spec = Spectrum1D(spectral_axis=self.wave*u.micron, flux=self.flux*u.Jy, uncertainty=StdDevUncertainty(self.flux_unc), redshift=self.z)
+
+        prof_gen = CAFE_prof_generator(self.spec, inparfile, optfile, None, cafe_path=self.cafe_dir)
+        self.cont_profs = prof_gen.make_cont_profs()
+        waveMod = self.cont_profs['waveMod']
+
+        ini_profcube = np.full((len(waveMod), self.ny, self.nx), np.nan)            
+        primary_hdu = fits.PrimaryHDU() # What should we put in primary?
+        
+        profcube = fits.HDUList(primary_hdu)
+
+        name_list = ['FLUX']
+        for name in name_list:
+            globals()[name] = fits.ImageHDU(ini_profcube.copy(), name=name, header=self.cube_header)
+            profcube.append(globals()[name])
+
+        for i in range(self.nx):
+            for j in range(self.ny):
+                params = parcube2parobj(self.parcube, x=i, y=j)
+                CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(params, self.wave, self.cont_profs, comps=True)
+                if prof_name[0] == 'Comp':
+                    profcube['FLUX'].data[:, j, i] = CompFluxes[prof_name[1]]
+                    
+                elif prof_name[0] == 'Feat':
+                    gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
+                    ind = [idx for idx, s in enumerate(params.keys()) if prof_name[1] in s]
+                    if len(ind) != 3: raise ValueError('More than one feature found. Make sure the name of the feature is unique')
+                    
+                    if prof_name[1][0] == 'g' or prof_name[1][0] == 'o':
+                        profcube['FLUX'].data[:, j, i] = gauss_prof(waveMod, [[param[prof_name+'_Wave'].value], [param[prof_name+'_Gamma'].value], [param[prof_name+'_Peak'].value]], ext=extComps['extPAH'])
+                    elif prof_name[1][0] == 'd':
+                        profcube['FLUX'].data[:, j, i] = drude_prof(waveMod, [[param[prof_name+'_Wave'].value], [param[prof_name+'_Gamma'].value], [param[prof_name+'_Peak'].value]], ext=extComps['extPAH'])
+                    else:
+                        ValueError('The feature you are trying to get the profile from is not among the fitted parameters')
+
+
+        waves_tbl = [(i, k) for i, k in zip(np.arange(len(waveMod)), self.cont_profs['waveMod'])]
+        waves_rec = np.rec.array(waves_tbl, formats='int16, float16', names='idx, wave')
+        
+        waves = fits.BinTableHDU(waves_rec.copy(), name='WAVE')
+        profcube.append(waves)
+
+        return profcube
 
     
+    
+    def make_map(self, parname):
 
+        if hasattr(self, 'parcube') is False:
+            raise AttributeError('The spectrum is not fitted yet. Missing fitted result - parcube.')
+
+        try:
+            ind = self.parcube['PARNAME'].data['parname'].tolist().index(parname) # find the index (parameter) that matches the parname in the z dimension of the cube
+        except:
+            if 'Flux' or 'Sigma' or 'FWHM' in parname:
+                try:
+                    ind = self.parcube['PARNAME'].data['parname'].tolist().index(parname.replace(parname.split('_')[-1], '_Wave'))
+                except:
+                    #ipdb.set_trace()
+                    raise ValueError("Parameter is not in parameter cube. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
+            else:
+                raise ValueError("Parameter is not in parameter cube or 'Flux', 'Sigma', or 'FWHM'. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
+
+        if 'Flux' in parname:
+            if parname[0] == 'g' or parname[0] == 'o':
+                fluxmap = np.sqrt(2.*np.pi) * const.c.to(u.micron/u.s) * (self.parcube['VALUE'].data[ind+2]*u.Jy) * self.parcube['VALUE'].data[ind+1]/2.35482 / (self.parcube['VALUE'].data[ind]*u.micron)
+            elif parname[0] == 'd':
+                fluxmap = np.pi / 2. * const.c.to(u.micron/u.s) * (self.parcube['VALUE'].data[ind+2]*u.Jy) * self.parcube['VALUE'].data[ind+1] / (self.parcube['VALUE'].data[ind]*u.micron)
+            # Units of [W m^-2]
+            parmap = fluxmap.to(u.Watt/u.m**2).value
+            parmap_unit = 'W/m2'
+        elif 'Sigma' in parname:
+            parmap = self.parcube['VALUE'].data[ind+1] * self.parcube['VALUE'].data[ind] / 2.35482
+            parmap_unit = 'um'
+        elif 'FWHM' in parname:
+            parmap = self.parcube['VALUE'].data[ind+1] * self.parcube['VALUE'].data[ind]
+            parmap_unit = 'um'
+        else:
+            parmap = self.parcube['VALUE'].data[ind]
+            if 'Wave' in parname: parmap_unit = 'um'
+            if 'Peak' in parname: parmap_unit = 'Jy'
+            if 'VGRAD' in parname: parmap_unit = 'km/s'
+        
+        NAXIS1, NAXIS2 = parmap.shape
+        hdu = fits.PrimaryHDU()
+        hdu_map = fits.ImageHDU(parmap, name='IMAGE')
+        hdu_map.header = self.header
+        hdu_map.header['BUNIT'] = parmap_unit
+        hdulist = fits.HDUList([hdu, hdu_map])
+        hdulist.writeto(self.parcube_dir+self.result_file_name+'_'+parname+'_map.fits', overwrite=True)
+        hdulist.close()
+
+
+        
 def parobj2parcube(parobj, parcube, x=0, y=0):
     """
     Insert values in the Parameter object into an existing parcube

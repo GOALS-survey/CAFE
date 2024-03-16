@@ -17,7 +17,7 @@ from asdf import AsdfFile
 
 import CAFE
 
-#import ipdb
+import ipdb
 
 
 class cafe_io:
@@ -450,8 +450,8 @@ class cafe_io:
             df = parcube2df(parcube, x, y)
 
         line_parname = [i[0]=='g' for i in df.index]
-
-        line_name = list(set([n.split('_')[1] for n in df[line_parname].index]))
+        #line_name = list(set([n.split('_')[1] for n in df[line_parname].index]))
+        line_name = list(set(['_'.join(n.split('_')[1:3]) for n in df[line_parname].index]))
 
         line_wave_list = []
         line_strength_list = []
@@ -553,18 +553,19 @@ class cafe_io:
         pah_power_ext = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
         
         # Quick hack for output PAH and line results
-        output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.sqrt(2.*np.pi)*2.998e5*gauss[1]*gauss[2]} #  Should add integrated gauss
-        output_drude = {'wave':drude[0], 'width':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':pah_power_int.value}
+        output_gauss = {'wave':gauss[0], 'gamma':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.sqrt(2.*np.pi)*2.998e5*gauss[1]*gauss[2]} #  Should add integrated gauss
+        output_drude = {'wave':drude[0], 'gamma':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':pah_power_int.value}
         
         # Make dict to save in .asdf
         obsspec = {'wave': wave, 'flux': flux, 'flux_unc': flux_unc}
         cafefit = {'cafefit': {'obsspec': obsspec,
                                'fitPars': fitPars.valuesdict(),
+                               'cont_profs': cafe.cont_profs,
                                'CompFluxes': CompFluxes,
                                'CompFluxes_0': CompFluxes_0,
                                'extComps': extComps,
-                               #'e0': e0,
-                               #'tau0': tau0,
+                               'e0': e0,
+                               'tau0': tau0,
                                'gauss': output_gauss,
                                'drude': output_drude
         }}

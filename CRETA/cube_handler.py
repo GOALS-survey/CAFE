@@ -427,7 +427,7 @@ class cube_handler:
         #for i in range(1,len(self.cube_before)):
         #    img = img + self.cube_before[i,:,:]
 
-        img = np.nanmedian(self.cube_before[20:40,:,:], axis=0)
+        img = np.nanmedian(self.cube_before, axis=0)
         plt.figure()
         plt.subplot(projection = self.wcs.celestial)
         im = plt.imshow(img, origin='lower', norm=LogNorm())
