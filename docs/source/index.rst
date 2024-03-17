@@ -18,7 +18,7 @@ User Documentation
    Introduction <intro.rst>
    Spectral Fitting <fit_spec.rst>
    Spectral Extraction <extract_spec.rst>
-   Frequently Asked Questions <faqs.rst>
+   Frequently Asked Questions (FAQ) <faqs.rst>
    CAFE version description <version_description.rst>
 
 Installation
