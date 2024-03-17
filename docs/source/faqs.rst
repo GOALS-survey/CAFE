@@ -1,6 +1,6 @@
-##########################
-Frequently Asked Questions
-##########################
+################################
+Frequently Asked Questions (FAQ)
+################################
 
 **(1) How precise does the redshift of my source need to be before running CAFE?**
 
