@@ -6,7 +6,7 @@ The new Continuum And Feature Extraction (``CAFE``) is a python version of the o
 
 The current release of ``CAFE`` (v1.0.0) supports the ``CAFE`` spectral fitting tool. The ``CRETA`` extraction tool will be supported and more fully described in subsequent releases of the code.
 
-If you use ``CAFE`` to fit your data, please reference it as a link to the GitHub repository: :ref: `https://github.com/GOALS-survey/CAFE <https://github.com/GOALS-survey/CAFE>`_
+If you use ``CAFE`` to fit your data, please reference it as a link to the GitHub repository: `https://github.com/GOALS-survey/CAFE <https://github.com/GOALS-survey/CAFE>`_
 
 
 User Documentation
