@@ -30,15 +30,15 @@ CAFE Setup Files
 *inpars_?.ini* within the *CAFE/init_parfiles/* folder:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This file can be generic or modified accordingly to the initialization needs of the object to be fitted. Within the *.ini* file the user can specify the following:
+This file can be generic or modified according to the initialization needs of the object to be fitted. Within the *.ini* file the user can specify the following:
 
 **[METADATA]**: Not necessary for the current ``CAFE`` release (v1.0.0).
 
 **[COMPONENT SOURCE SEDs]**: SEDs to be used as sources for the different dust components (*ISRF*, *AGN*, *SB2MYR*, *SB10MYR* or *SB100MYR*).
 
-**[MODULES & TABLES]**: (resolutions) Instrument modules (NIRSpec/IFU gratings or MIRI/MRS sub-bands) used to extract the spectra. If a module is missing, features within the wavelength range of the missing module will not be fitted, even if they exist in the spectrum). (???_input) Tables containing the names and wavelengths (together with the widths and peaks in some cases) of the hydrogen-recombination, atomic and molecular lines, PAH features, and gaussian opacities to be fitted. These tables (located in the *tables/* directory) also contain a column (*MASK*) that allows the user to switch on (0) or off (1) specific features if the user think they are not present in the spectra, depending on the nature of the target (PDR, normal star-forming galaxy, starburst, AGN, etc.). In addition, the H-recomb., atomic and molecular tables contain an additional column that allows the user to add a broad component to each line, also characterized with a Gaussian profile.
+**[MODULES & TABLES]**: (resolutions) Instrument modules (NIRSpec/IFU gratings or MIRI/MRS sub-bands) used to extract the spectra. If a module is missing, features within the wavelength range of the missing module will not be fitted, even if they exist in the spectrum). (???_input) Tables containing the names and wavelengths (together with the widths and peaks in some cases) of the hydrogen-recombination, atomic and molecular lines, PAH features, and gaussian opacities to be fitted. These tables (located in the *tables/* directory) also contain a column (*MASK*) that allows the user to switch on (0) or off (1) specific features if the user thinks they are not present in the spectra, depending on the nature of the target (PDR, normal star-forming galaxy, starburst, AGN, etc.). In addition, the H-recomb., atomic and molecular tables contain an additional column that allows the user to add a broad component to each line, also characterized with a Gaussian profile.
 
-**[PAH & LINE OPTIONS]**: *Fit???* keywords specify whether the wavelengths, widths (gammas) and peaks of the lines (*LIN*), PAHs (*_PAH*) or Gaussian opacities (*_OPC*) are allowed to vary or not. If they are allowed (= True), the *EPS???* keywords specify by how much (in relative or absolute terms, depending on the feature and parameter). The suffixes (*_N* and *_B*) for the emission line parameters refer to their narrow and broad components, respectively (see above). The EPSVgrad parameter allows for a simulataneous gradient drift of all the line, PAH and Gaussian opacity features, resembling a velocity gradient. This is useful when the redshift of the source is not precisely known.
+**[PAH & LINE OPTIONS]**: *Fit???* keywords specify whether the wavelengths, widths (gammas) and peaks of the lines (*LIN*), PAHs (*_PAH*) or Gaussian opacities (*_OPC*) are allowed to vary or not. If they are allowed (= True), the *EPS???* keywords specify by how much (in relative or absolute terms, depending on the feature and parameter). The suffixes (*_N* and *_B*) for the emission line parameters refer to their narrow and broad components, respectively (see above). The EPSVgrad parameter allows for a simultaneous gradient drift of all the line, PAH and Gaussian opacity features, resembling a velocity gradient. This is useful when the redshift of the source is not precisely known.
 
 **[CONTINUA INITIAL VALUES AND OPTIONS]**: Dust continuum components are defined by the following parameters: (relative) flux (*_FLX*), temperature (*_TMP*), depth (*_TAU*, referenced to 9.7μm), fraction of screen/mix obscuration geometry (*_MIX*), covering factor (*_COV*). For each parameter, the value, whether the parameter is fitted or not, its minimum and maximum limits, and a tie constraint (to other parameters) can be specified, in that order, via comma separated values. The fluxes are defined in terms of the relative contribution of that component to the observed spectrum at the reference wavelength of the component (defined in the *_opt.cafe* file; see below).
 
@@ -48,7 +48,7 @@ This file can be generic or modified accordingly to the initialization needs of 
 
 *Disclaimer: We highly discourage the modification of this file, as not all the switches and keywords have been fully tested.*
 
-Within this file the user can specify the following options:
+Within this file, the user can specify the following options:
 
 **[PATHS]**: Not necessary for the current ``CAFE`` release (v1.0.0). Data paths are directly defined during execution of the command. Other paths are defined automatically.
 
