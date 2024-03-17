@@ -28,8 +28,8 @@ The ``CAFE`` fitter returns a parameter (``LMFIT``) object containing the best/o
 * *_parcube.fits* : A file containing all the info necessary to recover a previous CAFE fitting session
 * *_fitpars.ini* : A file containing all the fitted parameters in the format of an *.ini* file, which can be used to initialize the fit of any other spectra
 * *_fitfigure.png* : A file containing a figure of the last fit performed
-* *_linetable_\*.ecsv* : A file containing the ??? (=int: intrinsic; =obs: observed) fluxes of the fitted emission lines
-* *_pahtable_???.ecsv* : A file containing the ??? (=int: intrinsic; =obs: observed) fluxes of the fitted PAH features
+* *_linetable_\*.ecsv* : A file containing the \* (=int: intrinsic; =obs: observed) fluxes of the fitted emission lines
+* *_pahtable_\*.ecsv* : A file containing the \* (=int: intrinsic; =obs: observed) fluxes of the fitted PAH features
 
 
 
