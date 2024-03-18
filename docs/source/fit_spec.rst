@@ -30,7 +30,7 @@ CAFE Setup Files
 *inpars_?.ini* within the *CAFE/init_parfiles/* folder:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This file can be generic or modified according to the initialization needs of the object to be fitted. Within the *.ini* file the user can specify the following:
+This file can be generic or modified by the user according to the initialization needs of the object to be fitted. Within the *.ini* file the user can specify the following:
 
 **[METADATA]**: Not necessary for the current ``CAFE`` release (v1.0.0).
 
