@@ -24,7 +24,8 @@ Output
 
 The ``CAFE`` fitter returns a parameter (``LMFIT``) object containing the best/optimized parameters from which physical quantities (e.g., temperatures) and observables (e.g. line centroids) can be extracted or constructed (e.g., fluxes, based on the line centroid and width). All the parameter information is dumped into python dictionaries for further use and stored in data tables on disk, in the *cafe_output/* directory. In addition, the parameter object is saved to disk as a *.fits* file in a ‘parameter cube‘, which can be read at any later stage to run further fits or generate new dictionaries or data tables (see the jupyter notebook section "RESTORE CAFE SESSION FROM DISK"). The optputs are stored in the *cafe_output/* folder using a default name that is the same as the input spectrum file. In summary the output files from ``CAFE`` are:
 
-* *_cafefit.asdf* : A file containing dictionaries with all the parameter information
+* *_cafefit.asdf* : A file containing dictionaries with all the parameter information, including the
+  
 * *_parcube.fits* : A file containing all the info necessary to recover a previous CAFE fitting session
 * *_fitpars.ini* : A file containing all the fitted parameters in the format of an *.ini* file, which can be used to initialize the fit of any other spectra
 * *_fitfigure.png* : A file containing a figure of the last fit performed
