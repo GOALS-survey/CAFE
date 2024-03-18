@@ -18,6 +18,8 @@ Contributors
 * Tanio Diaz-Santos
 * Thomas Lai
 * Luke Finnerty
+* George Privon
+* Paolo Bonfini
 * Kirsten Larson
 * Jason Marshall
 * Lee Armus
