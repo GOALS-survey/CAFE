@@ -671,7 +671,8 @@ class cafe_io:
 
     
     @staticmethod
-    def line_table(parcube, x=0, y=0, lineext=None, parobj=False):
+    def line_table(parcube, compdict=None, x=0, y=0, parobj=False,
+                   line_obs=False, savetbl=None):
         """
         Output the table of line integrated powers
         """
@@ -685,73 +686,124 @@ class cafe_io:
             from CAFE.cafe_helper import parcube2df
             df = parcube2df(parcube, x, y)
 
+        if (compdict is None) & (line_obs is True):
+            warnings.warn("line_obs is set True; however, no compdict is provided. Thus, observed line flux cannot be calculated.")
+
         line_parname = [i[0]=='g' for i in df.index]
         #line_name = list(set([n.split('_')[1] for n in df[line_parname].index]))
         line_name = list(set(['_'.join(n.split('_')[1:3]) for n in df[line_parname].index]))
 
-        line_wave_list = []
+        line_lam_list = []
+        line_gamma_list = []
+        line_peak_list = []
         line_strength_list = []
         line_strength_unc_list = []
+        line_strength_obs_list = []
+        line_strength_obs_unc_list = []
         for n in line_name:
             p = df.filter(like=n, axis=0)
 
-            wave = p.filter(like='Wave', axis=0).value.values[0] * u.micron
-            wave_unc = p.filter(like='Wave', axis=0).stderr.values[0] * u.micron
-            
-            gamma = p.filter(like='Gamma', axis=0).value.values[0]
-            gamma_unc = p.filter(like='Gamma', axis=0).stderr.values[0]
-            
-            peak = p.filter(like='Peak', axis=0).value.values[0] * u.Jy
-            peak_unc = p.filter(like='Peak', axis=0).stderr.values[0] * u.Jy
-            if lineext is not None:
-                ext = np.interp(wave.value, lineext['wave'], lineext['ext'])
-                peak *= ext ; peak_unc *= ext
+            # -------------
+            # Flux estimate
+            # -------------
+            lam = p.filter(like='Wave', axis=0).value.iloc[0] * u.micron
+            line_lam_list.append(lam.value)
 
-            #x = np.linspace(2.5, 38, 200) * u.micron
-            #y = peak * gamma**2 / ((x/wave - wave/x)**2 + gamma**2)
+            gamma = p.filter(like='Gamma', axis=0).value.iloc[0]
+            line_gamma_list.append(gamma)
+            
+            peak = p.filter(like='Peak', axis=0).value.iloc[0] * u.Jy
+            line_peak_list.append(peak.value)
 
             # integrated intensity (strength) -- in unit of W/m^2
             # Gauss = 1 / np.sqrt(np.pi * np.log(2)) * Drude
             # 1 / np.sqrt(np.pi * np.log(2)) ~ 0.678
-            line_strength = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / wave)# * 1e-26 # * u.watt/u.m**2
+            line_strength = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / lam)
             
-            g_over_w_unc = gamma / wave * np.sqrt((gamma_unc/gamma)**2 + (wave_unc/wave)**2) # uncertainty of gamma/wave
-            
-            line_strength_unc = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * \
-                                (peak * gamma / wave) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / wave))**2)# * 1e-26# * u.watt/u.m**2
-
-            line_wave_list.append(wave.value)
-            # Make unit to appear as W/m^2
+            # Make the unit to appear as W/m^2
             line_strength_list.append(line_strength.to(u.Watt/u.m**2).value)
-            line_strength_unc_list.append(line_strength_unc.to(u.Watt/u.m**2).value)
 
-        all_line_df = pd.DataFrame({'line_name': line_name, 
-                                    'line_wave': line_wave_list, 
-                                    'line_strength': line_strength_list,
-                                    'line_strength_unc': line_strength_unc_list,}
-                                  ).sort_values('line_wave')
+            if compdict is not None:
+                
+                wave = compdict['CompFluxes']['wave']
+        
+                if line_obs is True:
+                    # Calculate the "observed" line flux, which is the fluxes with no extinction correction.
+                    # In this case, the derived line flux should always be smaller or equal to the extinction-corrected line flux.
+                    ext_scale = np.interp(lam.value, wave, compdict['extComps']['extPAH']) # line and PAH subjected to same level of extinction
+        
+                    line_strength_obs_list.append(line_strength.to(u.Watt/u.m**2).value * ext_scale)
+
+            # -------------------------
+            # Flux uncertainty estimate
+            # -------------------------
+            _lam_unc = p.filter(like='Wave', axis=0).stderr.iloc[0]
+            _gamma_unc = p.filter(like='Gamma', axis=0).stderr.iloc[0]
+            _peak_unc = p.filter(like='Peak', axis=0).stderr.iloc[0]
+
+            # Only proceed if uncertainties exist
+            if (_lam_unc is not None) & (_gamma_unc is not None) & (_peak_unc is not None):
+                lam_unc = _lam_unc * u.micron
+                gamma_unc = _gamma_unc
+                peak_unc = _peak_unc * u.Jy
+
+                g_over_lam_unc = gamma / lam * np.sqrt((gamma_unc/gamma)**2 + (lam_unc/lam)**2) # uncertainty of gamma/lam
+
+                line_strength_unc = 1 / np.sqrt(np.pi * np.log(2)) * (np.pi * const.c.to('micron/s') / 2) * \
+                                    (peak * gamma / lam) * np.sqrt((peak_unc/peak)**2 + (g_over_lam_unc/(gamma / lam))**2)
+
+                # Make the unit appear as W/m^2
+                line_strength_unc_list.append(line_strength_unc.to(u.Watt/u.m**2).value)
+                
+                if (compdict is not None) & (line_obs is True):
+                    line_strength_obs_unc_list.append(line_strength_unc.to(u.Watt/u.m**2).value * ext_scale)
+            else:
+                line_strength_unc_list.append(np.nan)
+                
+                if (compdict is not None) & (line_obs is True):
+                    line_strength_obs_unc_list.append(np.nan)
+
+
+        if (compdict is None) | (line_obs is False): # Output the extinction corrected line fluxes
+            all_line_df = pd.DataFrame({'line_name': line_name, 
+                                       'line_lam': line_lam_list, 
+                                       'line_strength': line_strength_list,
+                                       'line_strength_unc': line_strength_unc_list,
+                                       }
+                                     )
+        
+        elif (compdict is not None) & (line_obs is True): # Output the extinction corrected and observed PAH fluxes
+            all_line_df = pd.DataFrame({'line_name': line_name, 
+                                        'line_lam': line_lam_list, 
+                                        'line_strength': line_strength_list,
+                                        'line_strength_unc': line_strength_unc_list,
+                                        'line_strength_obs': line_strength_obs_list,
+                                        'line_strength_obs_unc': line_strength_obs_unc_list,
+                                       }
+                                     )
+
+        all_line_df['line_gamma'] = line_gamma_list
+        all_line_df['line_peak'] = line_peak_list
+        all_line_df = all_line_df.sort_values('line_lam')
+    
         all_line_df.set_index('line_name', inplace=True)
 
+        if savetbl is not None:
+            lines_reset = all_line_df.reset_index()
+            t = Table.from_pandas(lines_reset)
+            
+            # Add units 
+            for col in t.colnames:
+                if col in ['line_strength', 'line_strength_unc', 'line_strength_obs', 'line_strength_obs_unc']:
+                    t[col].unit = u.W/u.m**2
+                if col in ['line_lam']:
+                    t[col].unit = u.micron
+                    
+            t.write(savetbl, overwrite=True)
+            
+            print("Line table is saved in: "+savetbl)
+
         return all_line_df
-
-
-
-    @staticmethod
-    def save_line_table(lines, file_name=None, overwrite=False):
-
-        from astropy.table import QTable
-        t = QTable([lines.index.values, lines.line_wave, lines.line_strength, lines.line_strength_unc],
-                   names = ('line_name', 'line_wave', 'line_strength', 'line_strength_unc'),
-                   meta={'wavelength': 'micron',
-                         'flux': 'W/m^2',
-                   }
-        )
-        if file_name is None:
-            t.write(self.cafe_dir+'output/last_unnamed_linetable.asdf')
-        else:
-            t.write(file_name+'.ecsv', overwrite=overwrite)
-
-
 
     @staticmethod
     def save_asdf(cafe, pah_tbl=True, line_tbl=True, file_name=None, **kwargs):
