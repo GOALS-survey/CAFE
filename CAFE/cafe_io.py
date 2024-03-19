@@ -302,7 +302,7 @@ class cafe_io:
             continuum dictionry as input. 
 
         savetbl:
-            Save the table to a .csv file
+            Save the table to a .ecsv file
     
         Output
         ------
