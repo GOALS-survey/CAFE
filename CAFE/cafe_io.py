@@ -349,7 +349,7 @@ class cafe_io:
             # integrated intensity (strength) -- in unit of W/m^2
             pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / lam)# * 1e-26 # * u.watt/u.m**2
             
-            # Make flux to appear as W/m^2
+            # Make the unit to appear as W/m^2
             pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
     
             if compdict is not None:
