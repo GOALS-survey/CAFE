@@ -677,6 +677,18 @@ class specmod:
         parcube = parobj2parcube(result.params, parcube)
         self.parcube = parcube
 
+        # Get compdict
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True)
+
+        compdict = {'CompFluxes': CompFluxes,
+                    'CompFluxes_0': CompFluxes_0,
+                    'extComps': extComps,
+                    'e0': e0,
+                    'tau0': tau0,
+                    }
+
+        self.compdict = compdict 
+                     
         self.save_products(outPath)
 
         return self
@@ -719,11 +731,14 @@ class specmod:
         # Save figure
         cafefig = cafeplot(self.spec_dict, self.phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.product_dir+self.result_file_name+'_fitfigure.png')
 
-        # Make and save tables
-        self.pahs = cafeio.pah_table(self.parcube)
-        cafeio.save_pah_table(self.pahs, file_name=self.product_dir+self.result_file_name+'_pahtable_int', overwrite=True)
-        self.pahs = cafeio.pah_table(self.parcube, pahext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
-        cafeio.save_pah_table(self.pahs, file_name=self.product_dir+self.result_file_name+'_pahtable_obs', overwrite=True)
+        # Save the PAH table
+        out_fn_int = os.path.join(self.product_dir, self.result_file_name+'_pahtable_int.ecsv')
+        out_fn_obs = os.path.join(self.product_dir, self.result_file_name+'_pahtable_obs.ecsv')
+
+        self.pahs_int = cafeio.pah_table(self.parcube, self.compdict, pah_obs=False, savetbl=out_fn_int) # intrinsic PAH fluxes
+        self.pahs_obs = cafeio.pah_table(self.parcube, self.compdict, pah_obs=True, savetbl=out_fn_obs) # observed PAH fluxes
+        
+        # Save the line table
         self.lines = cafeio.line_table(self.parcube)
         cafeio.save_line_table(self.lines, file_name=self.product_dir+self.result_file_name+'_linetable_int', overwrite=True)
         self.lines = cafeio.line_table(self.parcube, lineext={'wave':extComps['wave'], 'ext':extComps['extPAH']})
