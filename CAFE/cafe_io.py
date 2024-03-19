@@ -435,7 +435,7 @@ class cafe_io:
                                        }
                                      )
         
-        if (compdict is not None) & (pah_obs is True): # Output the extinction corrected and observed PAH fluxes with the EQW
+        elif (compdict is not None) & (pah_obs is True): # Output the extinction corrected and observed PAH fluxes with the EQW
             all_pah_df = pd.DataFrame({'pah_name': pah_name, 
                                        'pah_lam': pah_lam_list, 
                                        'pah_strength': pah_strength_list,
