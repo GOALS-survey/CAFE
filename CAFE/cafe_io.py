@@ -376,10 +376,10 @@ class cafe_io:
                 gamma_unc = _gamma_unc
                 peak_unc = _peak_unc * u.Jy
     
-                g_over_w_unc = gamma / lam * np.sqrt((gamma_unc/gamma)**2 + (lam_unc/lam)**2) # uncertainty of gamma/lam
+                g_over_lam_unc = gamma / lam * np.sqrt((gamma_unc/gamma)**2 + (lam_unc/lam)**2) # uncertainty of gamma/lam
                 
                 pah_strength_unc = (np.pi * const.c.to('micron/s') / 2) * \
-                                    (peak * gamma / lam) * np.sqrt((peak_unc/peak)**2 + (g_over_w_unc/(gamma / lam))**2)# * 1e-26# * u.watt/u.m**2
+                                    (peak * gamma / lam) * np.sqrt((peak_unc/peak)**2 + (g_over_lam_unc/(gamma / lam))**2)# * 1e-26# * u.watt/u.m**2
     
                 # Make the unit appear as W/m^2
                 pah_strength_unc_list.append(pah_strength_unc.to(u.Watt/u.m**2).value)
