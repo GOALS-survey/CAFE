@@ -338,6 +338,7 @@ class cafe_io:
             # Flux estimate
             # -------------
             lam = p.filter(like='Wave', axis=0).value.iloc[0] * u.micron
+            pah_lam_list.append(lam.value)
             
             gamma = p.filter(like='Gamma', axis=0).value.iloc[0]
             pah_gamma_list.append(gamma)
@@ -348,8 +349,7 @@ class cafe_io:
             # integrated intensity (strength) -- in unit of W/m^2
             pah_strength = (np.pi * const.c.to('micron/s') / 2) * (peak * gamma / lam)# * 1e-26 # * u.watt/u.m**2
             
-            pah_lam_list.append(lam.value)
-            # Make unit to appear as W/m^2
+            # Make flux to appear as W/m^2
             pah_strength_list.append(pah_strength.to(u.Watt/u.m**2).value)
     
             if compdict is not None:
