@@ -732,15 +732,15 @@ class specmod:
         cafefig = cafeplot(self.spec_dict, self.phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.product_dir+self.result_file_name+'_fitfigure.png')
 
         # Save the PAH table
-        out_fn_int = os.path.join(self.product_dir, self.result_file_name+'_pahtable_int.ecsv')
-        out_fn_obs = os.path.join(self.product_dir, self.result_file_name+'_pahtable_obs.ecsv')
+        out_fn_int = os.path.join(self.product_dir, self.result_file_name+'_pahtable.ecsv')
+        #out_fn_obs = os.path.join(self.product_dir, self.result_file_name+'_pahtable_obs.ecsv')
 
         self.pahs_int = cafeio.pah_table(self.parcube, self.compdict, pah_obs=False, savetbl=out_fn_int) # intrinsic PAH fluxes
         self.pahs_obs = cafeio.pah_table(self.parcube, self.compdict, pah_obs=True, savetbl=out_fn_obs) # observed PAH fluxes
         
         # Save the line table
-        out_fn_int = os.path.join(self.product_dir, self.result_file_name+'_linetable_int.ecsv')
-        out_fn_obs = os.path.join(self.product_dir, self.result_file_name+'_linetable_obs.ecsv')
+        out_fn_int = os.path.join(self.product_dir, self.result_file_name+'_linetable.ecsv')
+        #out_fn_obs = os.path.join(self.product_dir, self.result_file_name+'_linetable_obs.ecsv')
 
         self.lines_int = cafeio.line_table(self.parcube, self.compdict, line_obs=False, savetbl=out_fn_int) # intrinsic line fluxes
         self.lines_obs = cafeio.line_table(self.parcube, self.compdict, line_obs=True, savetbl=out_fn_obs) # observed line fluxes
