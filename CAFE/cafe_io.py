@@ -421,16 +421,16 @@ class cafe_io:
         if (compdict is None) & (pah_obs is False): # No EQW can be provided
             all_pah_df = pd.DataFrame({'pah_name': pah_name, 
                                        'pah_lam': pah_lam_list, 
-                                       'pah_strength': pah_strength_list,
-                                       'pah_strength_unc': pah_strength_unc_list,
+                                       'pah_strength_int': pah_strength_list,
+                                       'pah_strength_int_unc': pah_strength_unc_list,
                                        }
                                      )
         
         elif (compdict is not None) & (pah_obs is False): # Output the extinction corrected PAH fluxes with the EQW
             all_pah_df = pd.DataFrame({'pah_name': pah_name, 
                                        'pah_lam': pah_lam_list, 
-                                       'pah_strength': pah_strength_list,
-                                       'pah_strength_unc': pah_strength_unc_list,
+                                       'pah_strength_int': pah_strength_list,
+                                       'pah_strength_int_unc': pah_strength_unc_list,
                                        'pah_eqw': eqw_list,
                                        }
                                      )
@@ -438,8 +438,8 @@ class cafe_io:
         elif (compdict is not None) & (pah_obs is True): # Output the extinction corrected and observed PAH fluxes with the EQW
             all_pah_df = pd.DataFrame({'pah_name': pah_name, 
                                        'pah_lam': pah_lam_list, 
-                                       'pah_strength': pah_strength_list,
-                                       'pah_strength_unc': pah_strength_unc_list,
+                                       'pah_strength_int': pah_strength_list,
+                                       'pah_strength_int_unc': pah_strength_unc_list,
                                        'pah_strength_obs': pah_strength_obs_list,
                                        'pah_strength_obs_unc': pah_strength_obs_unc_list,
                                        'pah_eqw': eqw_list,
@@ -500,9 +500,9 @@ class cafe_io:
         all_pah_df['pah_complex'] = pah_complex_list
     
         # Flux and flux uncertainty
-        pah_complex_strength = all_pah_df.groupby('pah_complex')['pah_strength'].sum()
+        pah_complex_strength = all_pah_df.groupby('pah_complex')['pah_strength_int'].sum()
     
-        pah_complex_strength_unc = all_pah_df.groupby('pah_complex')['pah_strength_unc'].apply(lambda x: np.sqrt(np.sum(x**2)))
+        pah_complex_strength_unc = all_pah_df.groupby('pah_complex')['pah_strength_int_unc'].apply(lambda x: np.sqrt(np.sum(x**2)))
     
         if pah_obs is False:
             pah_complex_df = pd.concat([pah_complex_strength, pah_complex_strength_unc], 
@@ -658,7 +658,7 @@ class cafe_io:
             
             # Add units 
             for col in t.colnames:
-                if col in ['pah_strength', 'pah_strength_unc', 'pah_strength_obs', 'pah_strength_obs_unc']:
+                if col in ['pah_strength_int', 'pah_strength_int_unc', 'pah_strength_obs', 'pah_strength_obs_unc']:
                     t[col].unit = u.W/u.m**2
                 if col in ['pah_complex_eqw']:
                     t[col].unit = u.micron
@@ -767,16 +767,16 @@ class cafe_io:
         if (compdict is None) | (line_obs is False): # Output the extinction corrected line fluxes
             all_line_df = pd.DataFrame({'line_name': line_name, 
                                        'line_lam': line_lam_list, 
-                                       'line_strength': line_strength_list,
-                                       'line_strength_unc': line_strength_unc_list,
+                                       'line_strength_int': line_strength_list,
+                                       'line_strength_int_unc': line_strength_unc_list,
                                        }
                                      )
         
         elif (compdict is not None) & (line_obs is True): # Output the extinction corrected and observed PAH fluxes
             all_line_df = pd.DataFrame({'line_name': line_name, 
                                         'line_lam': line_lam_list, 
-                                        'line_strength': line_strength_list,
-                                        'line_strength_unc': line_strength_unc_list,
+                                        'line_strength_int': line_strength_list,
+                                        'line_strength_int_unc': line_strength_unc_list,
                                         'line_strength_obs': line_strength_obs_list,
                                         'line_strength_obs_unc': line_strength_obs_unc_list,
                                        }
@@ -794,7 +794,7 @@ class cafe_io:
             
             # Add units 
             for col in t.colnames:
-                if col in ['line_strength', 'line_strength_unc', 'line_strength_obs', 'line_strength_obs_unc']:
+                if col in ['line_strength_int', 'line_strength_int_unc', 'line_strength_obs', 'line_strength_obs_unc']:
                     t[col].unit = u.W/u.m**2
                 if col in ['line_lam']:
                     t[col].unit = u.micron
