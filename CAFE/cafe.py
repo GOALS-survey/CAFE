@@ -926,8 +926,8 @@ def plot_cafefit(asdf_fn):
     g = af['cafefit']['gauss']
     d = af['cafefit']['drude']
     
-    gauss = [g['wave'], g['width'], g['peak']]
-    drude = [d['wave'], d['width'], d['peak']]
+    gauss = [g['wave'], g['gamma'], g['peak']]
+    drude = [d['wave'], d['gamma'], d['peak']]
     
     spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc}
     
