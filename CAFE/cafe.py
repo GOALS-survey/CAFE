@@ -776,7 +776,7 @@ class specmod:
             print('The initial parameters will be set to the values from the parameter cube provided')
             cube_params = parcube2parobj(init_parcube, init_parobj=params)
             params = param_gen.make_parobj(parobj_update=cube_params, get_all=True)
-
+        
         # Initiate CAFE profile loader and make cont_profs
         prof_gen = CAFE_prof_generator(spec, inparfile, optfile, phot_dict, cafe_path=self.cafe_dir)
         cont_profs = prof_gen.make_cont_profs() # load the selected unscaled continuum profiles

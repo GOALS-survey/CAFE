@@ -546,12 +546,16 @@ class CAFE_param_generator:
                         maxW =  np.inf
                         minW = -np.inf
 
-                    params.add('g_'+name+complab[j]+'_Wave', value=gauss[0][i], vary=inpars['FITWAVE0_LIN_'+complab[j]], min=minW, max=maxW)
+                    # The broad component is initialized as j*100 km/s to the red
+                    params.add('g_'+name+complab[j]+'_Wave', value=gauss[0][i]/(1.+j*200./2.998e5), vary=inpars['FITWAVE0_LIN_'+complab[j]], min=minW, max=maxW)
                     if parobj_update:
                         ## Wavelengths are different because the VGRAD has been applied to the feature wavelengths 
                         #pass
-                        if j == 0 and params['g_'+name+complab[j]+'_Wave'].value != parobj_update['g_'+name+complab[j]+'_Wave'].value:
-                            raise ValueError('Gauss params and parobj_update wavelengths do not concide') # ipdb.set_trace()
+                        if params['g_'+name+complab[j]+'_Wave'].value != parobj_update['g_'+name+complab[j]+'_Wave'].value:
+                            if j == 0:
+                                raise ValueError('Gauss params and parobj_update wavelengths do not concide') # ipdb.set_trace()
+                            elif j == 1:
+                                params['g_'+name+complab[j]+'_Wave'].value = parobj_update['g_'+name+complab[j]+'_Wave'].value
                     
                     ### Do widths (gammas) ###
                     if inpars['EPSGAMMA_LIN_'+complab[j]] > 0:
@@ -566,8 +570,11 @@ class CAFE_param_generator:
 
                     params.add('g_'+name+complab[j]+'_Gamma', value=gauss[1][i]*(2*j+1), vary=inpars['FITGAMMA_LIN_'+complab[j]], min=minG, max=maxG) # The i'th component is initialized to have a width 2*j+1 * instrumental FWHM
                     if parobj_update:
-                        if j == 0 and params['g_'+name+complab[j]+'_Gamma'].value != parobj_update['g_'+name+complab[j]+'_Gamma'].value:
-                            raise ValueError('Gauss params and parobj_update gammas do not concide') # ipdb.set_trace()
+                        if params['g_'+name+complab[j]+'_Gamma'].value != parobj_update['g_'+name+complab[j]+'_Gamma'].value:
+                            if j == 0:
+                                raise ValueError('Gauss params and parobj_update gammas do not concide') # ipdb.set_trace()
+                            elif j == 1:
+                                params['g_'+name+complab[j]+'_Gamma'].value = parobj_update['g_'+name+complab[j]+'_Gamma'].value
                     
                     ### Do amplitudes ###
                     if inpars['EPSPEAK_LIN'] > 0:
@@ -576,11 +583,18 @@ class CAFE_param_generator:
                     else:
                         maxP = np.inf
                         minP = 0.
-
+                    
                     params.add('g_'+name+complab[j]+'_Peak', value=gauss[2][i]/(3*j+1), vary=True, min=minP, max=maxP) # The i'th component is initialized to have an amplitude = main component / (3*j+1) 
                     if parobj_update:
-                        if j == 0 and params['g_'+name+complab[j]+'_Peak'].value != parobj_update['g_'+name+complab[j]+'_Peak'].value:
-                            raise ValueError('Gauss params and parobj_update peaks do not concide') # ipdb.set_trace()
+                        if params['g_'+name+complab[j]+'_Peak'].value != parobj_update['g_'+name+complab[j]+'_Peak'].value:
+                            if j == 0:
+                                # The narrow component should have been asigned at the time of calling get_feats(), so there must be something wrong
+                                raise ValueError('Gauss params and parobj_update peaks do not concide') # ipdb.set_trace()
+                            elif j == 1:
+                                # The broad component, though, is not initialized with get_feats(), and depends on the narrow component of the parobj_update initialized through get_feats(), which might be zero!
+                                # and therefore different from the stored value of the broad component in the parobj_update
+                                # In this case, if the narrow component is zero but there is a fitted broad component, we need to set the broad component to the stored value in parobj_update
+                                params['g_'+name+complab[j]+'_Peak'].value = parobj_update['g_'+name+complab[j]+'_Peak'].value
                         if parobj_update['g_'+name+complab[j]+'_Peak'].value == 0 and params['g_'+name+complab[j]+'_Peak'].vary != parobj_update['g_'+name+complab[j]+'_Peak'].vary and init_parobj != False:
                             params['g_'+name+complab[j]+'_Peak'].value = init_parobj['g_'+name+complab[j]+'_Peak'].value
 
