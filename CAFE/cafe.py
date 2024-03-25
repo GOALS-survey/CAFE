@@ -155,7 +155,7 @@ class cubemod:
         self.extract = extract
         
         # Remove the overlapping wavelengths between the spectral modules
-        val_inds = trim_overlapping(cube.bandnames, keep_next) if trim == True else np.full(len(cube.waves),True)
+        val_inds = trim_overlapping(cube.bandnames, keep_next) if trim == True else np.full(len(cube.waves), True)
         waves = cube.waves[val_inds]
         fluxes = cube.fluxes[val_inds,:,:]
         flux_uncs = cube.flux_uncs[val_inds,:,:]
@@ -457,7 +457,7 @@ class specmod:
         #parcube.close()
 
 
-    def read_spec(self, file_name, file_dir='./extractions/', extract='Flux_st', trim=True,
+    def read_spec(self, file_name, xy=None, file_dir='./extractions/', extract='Flux_st', trim=True,
                   keep_next=False, z=0., is_SED=False, read_columns=None, flux_unc=None,
                   wave_min=None, wave_max=None):
         """
@@ -516,10 +516,10 @@ class specmod:
                             else:
                                 raise IOError('Only the CAFE produced csv file can be ingested.')
 
-                    if wave_min is not None:
-                        tab = tab[tab['wave'].value >= wave_min]
-                    if wave_max is not None:
-                        tab = tab[tab['wave'].value <= wave_max]
+                    #if wave_min is not None:
+                    #    tab = tab[tab['wave'].value >= wave_min]
+                    #if wave_max is not None:
+                    #    tab = tab[tab['wave'].value <= wave_max]
 
                 except:
                     raise IOError('The file is not a valid .txt (column-based) or .fits (CRETA output) file. Or maybe the data are not there.')
@@ -561,16 +561,31 @@ class specmod:
         
         # Remove the overlapping wavelengths between the spectral modules
         val_inds = trim_overlapping(cube.bandnames, keep_next) if trim == True else np.full(len(cube.waves), True)
-        waves = cube.waves[val_inds]
-        fluxes = cube.fluxes[val_inds]
-        flux_uncs = cube.flux_uncs[val_inds]
-        masks = cube.masks[val_inds]
-        bandnames = cube.bandnames[val_inds]
-        header = cube.header
+
+        minWave = wave_min if wave_min is not None else np.nanmin(cube.waves[val_inds])
+        maxWave = wave_max if wave_max is not None else np.nanmax(cube.waves[val_inds])
+
+        fit_wave_inds = (cube.waves[val_inds] >= minWave) & (cube.waves[val_inds] <= maxWave)
         
+        waves = cube.waves[val_inds][fit_wave_inds]
+        bandnames = cube.bandnames[val_inds][fit_wave_inds]
+        header = cube.header
+        if xy is not None:
+            cube.nx = 1
+            cube.ny = 1
+            (x,y) = xy
+            fluxes = cube.fluxes[val_inds,y,x][fit_wave_inds]
+            flux_uncs = cube.flux_uncs[val_inds,y,x][fit_wave_inds]
+            masks = cube.masks[val_inds,y,x][fit_wave_inds]
+            
+        else:
+            fluxes = cube.fluxes[val_inds][fit_wave_inds]
+            flux_uncs = cube.flux_uncs[val_inds][fit_wave_inds]
+            masks = cube.masks[val_inds][fit_wave_inds]
+
         # Warning if z=0
         if z == 0.0: print('WARNING: No redshift provided. Assuming object is already in rest-frame (z=0).')
-        
+
         self.z = z
         self.waves = waves / (1+z)
         self.fluxes = fluxes / (1+z)

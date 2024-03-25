@@ -1087,7 +1087,7 @@ class CAFE_cube_generator:
 
         self.cafe_dir = cube.cafe_dir
         self.cube_header = cube.header #cube['FLUX'].header
-        self.cube = cube
+        self.cube = cube # = self at cafe.py
         self.nx = cube.nx #cube[extract].header['NAXIS1']
         self.ny = cube.ny #cube[extract].header['NAXIS2']
         self.nz = cube.nz
