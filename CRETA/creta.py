@@ -847,7 +847,7 @@ class creta:
                 
         cubes = []
         for i in range(len(files_sort)):
-            cube =preprocess.getFITSData(data_path+files_sort[i])
+            cube =preprocess.getFITSData(data_path+files_sort[i], silent=True)
             cubes.append(cube)
 
         if lambda_ap == None:
@@ -1239,7 +1239,8 @@ class creta:
             df = df.T
             df.columns = column_names
             df = df.sort_values(by=['Wave']) 
-            df = df.fillna(value=np.nan)
+            #df = df.fillna(value=np.nan)
+            #df.replace(0., np.nan, inplace=True)
             
             #CHANGE DF data Type
             df['Wave']= df['Wave'].astype(float)
@@ -1254,7 +1255,8 @@ class creta:
             df['Flux_ap_st']= df['Flux_ap_st'].astype(float)
             df['Err_ap_st']= df['Err_ap_st'].astype(float)
             df['DQ']= df['DQ'].astype(float)
-            
+
+            #df['DQ'].replace(np.nan, 0., inplace=True)
             
             if grid_point_idx == 0:
                 fig = plt.figure(figsize=(8.5,11))
@@ -1299,7 +1301,7 @@ class creta:
 
             all_dfs.append(df)
             spec1d = self.create1DSpectrum(df, all_meta_dicts[grid_point_idx])
-            all_spec1ds.append(spec1d)            
+            all_spec1ds.append(spec1d)
             
             print("Output written in: %s seconds" % (time.time() - time_writing_output))
             
