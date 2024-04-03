@@ -30,6 +30,7 @@ def get_fit_sequence(image, snr_ind_seq=None, sorting_seq='snr', neighbor_dist=1
         
         
         if sorting_seq == 'snr':
+            print('SNR sequence selected')
                 
             x, y = np.meshgrid(np.arange(snr_image.shape[1]), np.arange(snr_image.shape[0]))
             
@@ -68,6 +69,7 @@ def get_fit_sequence(image, snr_ind_seq=None, sorting_seq='snr', neighbor_dist=1
         
         
         elif sorting_seq == 'spiral':
+            print('Spiral sequence selected')
             
             N, S, W, E = (0, -1), (0, 1), (-1, 0), (1, 0) # directions
             turn_right = {N: E, E: S, S: W, W: N} # old -> new direction

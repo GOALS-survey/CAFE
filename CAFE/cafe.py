@@ -201,7 +201,7 @@ class cubemod:
         # Convert the highest SNR spaxel to a spectrum1D
         wave, flux, flux_unc, bandname, mask = mask_spec(self,ind_seq[1][0],ind_seq[0][0])
         spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=self.z)
-        
+
         self.inpars = cafeio.read_inifile(inparfile)
         self.inopts = cafeio.read_inifile(optfile)
 
@@ -213,6 +213,7 @@ class cubemod:
         param_gen = CAFE_param_generator(spec, inparfile, optfile, cafe_path=self.cafe_dir)
         # These are keywords used by deeper layers of cafe
         _, outPath = cafeio.init_paths(self.inopts, cafe_path=self.cafe_dir, file_name=self.result_file_name, output_path=output_path)
+        self.outPath = outPath
         
         # Make parameter object with all features available
         print('Generating parameter cube using the initial/full parameter object')
@@ -263,7 +264,7 @@ class cubemod:
             print('Regenerating continuum profiles')
             prof_gen = CAFE_prof_generator(spec, inparfile, optfile, None, cafe_path=self.cafe_dir)
             self.cont_profs = prof_gen.make_cont_profs()
-
+            
             #if spax == 1:
             #    if 'AGN' in inparfile: inparfile.replace('AGN', 'SB')
             
@@ -320,17 +321,31 @@ class cubemod:
         print('Saving init file of the central spaxel to disk:', self.parcube_dir+self.result_file_name+'_fitpars.ini')
         cafeio.write_inifile(parcube2parobj(parcube, x=ind_seq[1][0], y=ind_seq[0][0]), self.inpars, self.parcube_dir+self.result_file_name+'_fitpars.ini')
         
-        # Make and save tables (IMPROVE FOR CUBES: NOW WILL ONLY WRITE DOWN THE CENTRAL SPAXEL)
-        # Save .asdf to disk
-        print('Saving components of the central spaxel in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit.asdf')
-        cafeio.save_asdf(self, x=ind_seq[1][0], y=ind_seq[0][0], file_name=self.parcube_dir+self.result_file_name+'_cafefit')
-        
-        self.pahs = cafeio.pah_table(parcube)
-        cafeio.save_pah_table(self.pahs, file_name=self.parcube_dir+self.result_file_name+'_pahtable', overwrite=True)
-        self.lines = cafeio.line_table(parcube)
-        cafeio.save_line_table(self.lines, file_name=self.parcube_dir+self.result_file_name+'_linetable', overwrite=True)
-        
+        ## Make and save tables (IMPROVE FOR CUBES: NOW WILL ONLY WRITE DOWN THE CENTRAL SPAXEL)
+        ## Save .asdf to disk
+        #print('Saving components of the central spaxel in asdf to disk:',self.parcube_dir+self.result_file_name+'_cafefit.asdf')
+        #cafeio.save_asdf(self, x=ind_seq[1][0], y=ind_seq[0][0], file_name=self.parcube_dir+self.result_file_name+'_cafefit')
+                
         return self
+
+
+    def make_map(self, parname, map_dir=''):
+
+        if map_dir == '':
+            if hasattr(self, 'outPath') is True:
+                self.map_dir = self.outPath
+            else:
+                raise ValueError('A directory where to store the map must be provided with the keyword map_dir=""')
+        else:
+            self.map_dir = map_dir
+            
+        cube_gen = CAFE_cube_generator(self)
+        self.parmap = cube_gen.make_map(parname)
+        
+        # Feature map
+        self.map_name = self.result_file_name+'_'+parname+'_map'
+        print('Saving map to disk:',self.map_dir+self.map_name+'.fits')
+        self.parmap.writeto(self.map_dir+self.map_name+'.fits', overwrite=True)
 
 
 
@@ -721,7 +736,7 @@ class specmod:
         
         ## Save fCON cube to disk
         cube_gen = CAFE_cube_generator(self)
-        self.contcube = cube_gen.make_profcube(self.inparfile, self.optfile, ['Comp', 'fCON'])
+        self.contcube = cube_gen.make_profcube(self.inparfile, self.optfile, prof_names={'fCon':['Comp', 'fCON'], 'fDSK':['Comp', 'fDSK'], 'fHOT':['Comp', 'fHOT']})
         self.contcube_name = self.result_file_name+'_contcube'
         print('Saving total continuum profile in cube to disk:',self.product_dir+self.contcube_name+'.fits')
         self.contcube.writeto(self.product_dir+self.contcube_name+'.fits', overwrite=True)
@@ -744,7 +759,7 @@ class specmod:
         CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True)
         gauss, drude, gauss_opc = get_feat_pars(self.params, apply_vgrad2waves=True)  # params consisting all the fitted parameters        
         # Save figure
-        cafefig = cafeplot(self.spec_dict, self.phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.product_dir+self.result_file_name+'_fitfigure.png')
+        cafefig = cafeplot(self.spec_dict, self.phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.product_dir+self.result_file_name+'_fitfigure.png', params=self.params)
 
         # Save the PAH table
         output_fn = os.path.join(self.product_dir, self.result_file_name+'_pahtable.ecsv')

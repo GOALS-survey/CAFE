@@ -1085,7 +1085,7 @@ def sedplot(wave, flux, sigma, comps, weights=None, npars=1):
     return fig, chiSqrTot
 
 
-def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None, save_name=False):
+def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=True, pahext=None, save_name=False, params=None):
     ''' Plot the SED and the CAFE fit over the spectrum wavelength range
 
     Arguments:
@@ -1134,18 +1134,23 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     ax1.plot(wavemod, fCont, color='gray', label='Continuum Fit', linestyle='-', zorder=4, alpha=0.8)
     ax1.plot(wavemod, fCont+fLin+fPAH, color='#4c956c', label='Total Fit', linewidth=1.5, zorder=5, alpha=0.85) # green
 
+    CLD_TMP = '' if params == None else r' ('+"{:.0f}".format(params['CLD_TMP'].value)+'$\,$K'+')'
+    COO_TMP = '' if params == None else r' ('+"{:.0f}".format(params['COO_TMP'].value)+'$\,$K'+')'
+    WRM_TMP = '' if params == None else r' ('+"{:.0f}".format(params['WRM_TMP'].value)+'$\,$K'+')'
+    HOT_TMP = '' if params == None else r' ('+"{:.0f}".format(params['HOT_TMP'].value)+'$\,$K'+')'
+        
     alpha = 0.6
     lw = 0.8
     if np.any(fCir > 0):
         ax1.plot(wavemod, fCir, label='Cirrus', c='tab:cyan', alpha=alpha, linewidth=lw)
     if np.sum(fCld > 0):
-        ax1.plot(wavemod, fCld, label='Cold', c='tab:blue', alpha=alpha, linewidth=lw)
+        ax1.plot(wavemod, fCld, label='Cold'+CLD_TMP, c='tab:blue', alpha=alpha, linewidth=lw)
     if np.any(fCoo > 0):
-        ax1.plot(wavemod, fCoo, label='Cool', c='#008080', alpha=alpha, linewidth=lw) # teal
+        ax1.plot(wavemod, fCoo, label='Cool'+COO_TMP, c='#008080', alpha=alpha, linewidth=lw) # teal
     if np.any(fWrm > 0):
-        ax1.plot(wavemod, fWrm, label='Warm', c='tab:orange', alpha=alpha, linewidth=lw)
+        ax1.plot(wavemod, fWrm, label='Warm'+WRM_TMP, c='tab:orange', alpha=alpha, linewidth=lw)
     if np.any(fHot > 0):
-        ax1.plot(wavemod, fHot, label='Hot', c='#FFD700', alpha=alpha, linewidth=lw) # gold
+        ax1.plot(wavemod, fHot, label='Hot'+HOT_TMP, c='#FFD700', alpha=alpha, linewidth=lw) # gold
     if np.any(fStb > 0): 
         ax1.plot(wavemod, fStb, label='Starburst', c='tab:brown', alpha=alpha, linewidth=lw)
     if np.any(fStr > 0):
@@ -1203,7 +1208,7 @@ def cafeplot(spec, phot, comps, gauss, drude, vgrad={'VGRAD':0.}, plot_drude=Tru
     ax1.set_yscale('log')
     #ax1.axvline(9.7, linestyle='--', alpha=0.2)
 
-    xlabs = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30]
+    xlabs = [1, 2, 3, 4, 5, 6, 8, 10, 15, 20, 30, 50, 100, 200, 500]
     ax1.set_xticks(xlabs[(np.where(xlabs > np.nanmin(wave))[0][0]):(np.where(xlabs < np.nanmax(wave))[0][-1]+1)])
     ax1.xaxis.set_major_formatter(ScalarFormatter())
 

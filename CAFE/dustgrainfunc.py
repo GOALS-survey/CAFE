@@ -20,7 +20,7 @@ from CAFE.mathfunc import spline, intTab
 from CAFE.component_model import pah_drude, gauss_prof, drude_prof, drude_int_fluxes
 from CAFE.sourceSED import planck, sourceSED_ISRF, sourceSED_AGN, sourceSED_SB, sourceSED, load_opacity
 
-#import ipdb
+import ipdb
 
 #from pycafelib_cube import drude_prof
 
@@ -238,7 +238,7 @@ def grainEQTemp(a, T_bb, sourceType, tablePath, scaleSIL=None, cAbs=None, TTable
     if type(sourceType)==str: # Why type(sourceType)==str?? This makes ISRF to be the only case.
         # Load an ISRF sed if unspecified
         #sourceType = 'ISRF'
-        print(sourceType)
+        if TTable is None: print('Generating profiles for',sourceType,'SED profile')
         sWave, sFlux = sourceSED(wave, sourceType, tablePath)
     else:
         ## Interpolate the specified SED onto the wave grid

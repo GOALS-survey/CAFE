@@ -145,7 +145,7 @@ class CAFE_param_generator:
 
         # Read the instrument wavelength coverages as DataFrames
         inst_df = cafeio.read_inst(instnames, wave, tablePath)
-
+        
         minWave = np.nanmin(wave)
         maxWave = np.nanmax(wave)
 
@@ -1137,7 +1137,7 @@ class CAFE_cube_generator:
         return parcube
     
     
-    def make_profcube(self, inparfile, optfile, prof_name):    
+    def make_profcube(self, inparfile, optfile, prof_names):    
  
         if hasattr(self, 'parcube') is False:
             raise AttributeError('The CAFE object does not have a parameter cube (parcube) yet. The spectrum has not been fitted or a preexisting parameter cube has not been loaded. Please use cafe.read_parcube_file() to load it from disk or use cafe.fit_spec() to fit a spectrum.')
@@ -1155,29 +1155,28 @@ class CAFE_cube_generator:
         
         profcube = fits.HDUList(primary_hdu)
 
-        name_list = ['FLUX']
-        for name in name_list:
-            globals()[name] = fits.ImageHDU(ini_profcube.copy(), name=name, header=self.cube_header)
-            profcube.append(globals()[name])
+        for prof_name, prof_pars in prof_names.items():
+            globals()[prof_name] = fits.ImageHDU(ini_profcube.copy(), name=prof_name, header=self.cube_header)
+            profcube.append(globals()[prof_name])
 
-        for i in range(self.nx):
-            for j in range(self.ny):
-                params = parcube2parobj(self.parcube, x=i, y=j)
-                CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(params, self.wave, self.cont_profs, comps=True)
-                if prof_name[0] == 'Comp':
-                    profcube['FLUX'].data[:, j, i] = CompFluxes[prof_name[1]]
+            for i in range(self.nx):
+                for j in range(self.ny):
+                    params = parcube2parobj(self.parcube, x=i, y=j)
+                    CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(params, self.wave, self.cont_profs, comps=True)
+                    if prof_pars[0] == 'Comp':
+                        profcube[prof_name].data[:, j, i] = CompFluxes[prof_pars[1]]
                     
-                elif prof_name[0] == 'Feat':
-                    gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
-                    ind = [idx for idx, s in enumerate(params.keys()) if prof_name[1] in s]
-                    if len(ind) != 3: raise ValueError('More than one feature found. Make sure the name of the feature is unique')
+                    elif prof_pars[0] == 'Feat':
+                        gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
+                        ind = [idx for idx, s in enumerate(params.keys()) if prof_pars[1] in s]
+                        if len(ind) != 3: raise ValueError('More than one feature found. Make sure the name of the feature is unique')
                     
-                    if prof_name[1][0] == 'g' or prof_name[1][0] == 'o':
-                        profcube['FLUX'].data[:, j, i] = gauss_prof(waveMod, [[param[prof_name+'_Wave'].value], [param[prof_name+'_Gamma'].value], [param[prof_name+'_Peak'].value]], ext=extComps['extPAH'])
-                    elif prof_name[1][0] == 'd':
-                        profcube['FLUX'].data[:, j, i] = drude_prof(waveMod, [[param[prof_name+'_Wave'].value], [param[prof_name+'_Gamma'].value], [param[prof_name+'_Peak'].value]], ext=extComps['extPAH'])
-                    else:
-                        ValueError('The feature you are trying to get the profile from is not among the fitted parameters')
+                        if prof_pars[1][0] == 'g' or prof_pars[1][0] == 'o':
+                            profcube[prof_name].data[:, j, i] = gauss_prof(waveMod, [[param[prof_pars+'_Wave'].value], [param[prof_pars+'_Gamma'].value], [param[prof_pars+'_Peak'].value]], ext=extComps['extPAH'])
+                        elif prof_pars[1][0] == 'd':
+                            profcube[prof_name].data[:, j, i] = drude_prof(waveMod, [[param[prof_pars+'_Wave'].value], [param[prof_pars+'_Gamma'].value], [param[prof_pars+'_Peak'].value]], ext=extComps['extPAH'])
+                        else:
+                            ValueError('The feature you are trying to get the profile from is not among the fitted parameters')
 
 
         waves_tbl = [(i, k) for i, k in zip(np.arange(len(waveMod)), self.cont_profs['waveMod'])]
@@ -1200,7 +1199,7 @@ class CAFE_cube_generator:
         except:
             if 'Flux' or 'Sigma' or 'FWHM' in parname:
                 try:
-                    ind = self.parcube['PARNAME'].data['parname'].tolist().index(parname.replace(parname.split('_')[-1], '_Wave'))
+                    ind = self.parcube['PARNAME'].data['parname'].tolist().index(parname.replace(parname.split('_')[-1], 'Wave'))
                 except:
                     #ipdb.set_trace()
                     raise ValueError("Parameter is not in parameter cube. Use s.parcube['PARNAME'].data['parname'] to list the available parameters")
@@ -1230,12 +1229,14 @@ class CAFE_cube_generator:
         NAXIS1, NAXIS2 = parmap.shape
         hdu = fits.PrimaryHDU()
         hdu_map = fits.ImageHDU(parmap, name='IMAGE')
-        hdu_map.header = self.header
+        hdu_map.header = self.cube_header
         hdu_map.header['BUNIT'] = parmap_unit
-        hdulist = fits.HDUList([hdu, hdu_map])
-        hdulist.writeto(self.parcube_dir+self.result_file_name+'_'+parname+'_map.fits', overwrite=True)
-        hdulist.close()
 
+        parmap = fits.HDUList([hdu, hdu_map])
+        #hdulist.writeto(self.parcube_dir+self.result_file_name+'_'+parname+'_map.fits', overwrite=True)
+        #hdulist.close()
+
+        return parmap
 
         
 def parobj2parcube(parobj, parcube, x=0, y=0):
