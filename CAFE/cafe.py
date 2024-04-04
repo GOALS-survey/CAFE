@@ -474,11 +474,27 @@ class specmod:
 
     def read_spec(self, file_name, xy=None, file_dir='./extractions/', extract='Flux_st', trim=True,
                   keep_next=False, z=0., is_SED=False, read_columns=None, flux_unc=None,
-                  wave_min=None, wave_max=None):
+                  wave_min=None, wave_max=None, rwave_min=None, rwave_max=None):
         """
-        read_columns : (list)
-            The list columns index for wavelength, flux, and flux uncertainty
+        file_name: [string] Name of the file to be read. It can be a plain text file (.txt, .dat) with wavelength, flux and
+                   flux uncertainty columns, a .csv file from CRETA, or a .fits cube from CRETA
+        xy:        [2-element touple] If the input is a cube, this specifies the spaxel that is read
+        file_dir:  [string] The directory where the file is
+        extract:   [string] The name of the extraction to be used when importing a CRETA cube (default: stitched spectrum)
+        trim:      [bool] Whether to trim overlapping wavelengths (only available for spectra extracted with CRETA)
+        keep_next: [bool] If trim=True, whether to keep the longer wavelength data/band instead of the shorter wavelength one
+        z:         [float] redshift of the source
+        is_SED:    [bool] Whether the spectrum is SED-like, i.e., it has an unknown, low resolution (active but currently not supported)
+        read_columns: [string list] If the input is a table with many columns, this specifies the names of the columns to be read
+                      Usually, 'wave', 'flux', and 'flux_unc'
+        flux_unc:  [float] If read_columns is specified, this keyword allows override the uncertainty by specifying
+                   a relative error wrt the flux. I.e., flux_unc=0.2 will force the errors to be 20% of the flux
+        wave_min:  [float] Minimum observed wavelength to be kept in the spectrum
+        wave_max:  [float] Maximum observed wavelength to be kept in the spectrum
+        rwave_min: [float] Minimum rest-frame wavelength to be kept in the spectrum
+        rwave_max: [float] Maximum rest-frame wavelength to be kept in the spectrum
         """
+        
         if file_dir == 'input/data/': 
             file_dir = self.cafe_dir + file_dir
 
@@ -577,8 +593,12 @@ class specmod:
         # Remove the overlapping wavelengths between the spectral modules
         val_inds = trim_overlapping(cube.bandnames, keep_next) if trim == True else np.full(len(cube.waves), True)
 
+        if (wave_min is not None and rwave_min is not None) or (wave_max is not None and rwave_max is not None):
+            raise ValueError('Observed and rest-frame wavelength limits cannot be set simultaneously')
         minWave = wave_min if wave_min is not None else np.nanmin(cube.waves[val_inds])
         maxWave = wave_max if wave_max is not None else np.nanmax(cube.waves[val_inds])
+        minWave = rwave_min*(1+z) if wave_min is not None else np.nanmin(cube.waves[val_inds])
+        maxWave = rwave_max*(1+z) if wave_max is not None else np.nanmax(cube.waves[val_inds])
 
         fit_wave_inds = (cube.waves[val_inds] >= minWave) & (cube.waves[val_inds] <= maxWave)
         
