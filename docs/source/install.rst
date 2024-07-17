@@ -6,7 +6,7 @@ Before installing ``CAFE``, we recommend creating a conda environment and then i
 
 .. code-block:: bash
 
-   conda create -n <cafe_env> python
+   conda create -n <cafe_env> python=3.11.5 scipy=1.11.4
    conda activate <cafe_env>
    pip install git+https://github.com/GOALS-survey/CAFE.git
 
