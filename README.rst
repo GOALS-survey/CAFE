@@ -8,7 +8,7 @@ The new Continuum And Feature Extraction (``CAFE``) is a python version of the o
 
 The current release of ``CAFE`` (v1.0.0) supports the ``CAFE`` spectral fitting tool. The ``CRETA`` extraction tool will be supported and more fully described in subsequent releases of the code.
 
-If you use ``CAFE`` to fit your data, please reference it as *Diaz-Santos et al. (2025)* (see bibcode below) and add a link to the GitHub repository: https://github.com/GOALS-survey/CAFE
+If you use ``CAFE`` to fit your data, please reference it as ***Diaz-Santos et al. (2025)*** (see bibcode below) and add a link to the GitHub repository: https://github.com/GOALS-survey/CAFE
 
 Documentation
 -------------
@@ -29,12 +29,12 @@ Contributors
 Bibcode
 -------
 @software{2025ascl.soft01001D,
-       author = {{Diaz-Santos}, Tanio and {Lai}, Thomas S. -Y. and {Finnerty}, Luke and {Privon}, George and {Bonfini}, Paolo and {Larson}, Kirsten and {Marshall}, Jason and {Armus}, Lee and {Charmandaris}, Vassilis},
-        title = "{CAFE: Continuum And Feature Extraction tool}",
- howpublished = {Astrophysics Source Code Library, record ascl:2501.001},
-         year = 2025,
-        month = jan,
-          eid = {ascl:2501.001},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2025ascl.soft01001D},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+author = {{Diaz-Santos}, Tanio and {Lai}, Thomas S. -Y. and {Finnerty}, Luke and {Privon}, George and {Bonfini}, Paolo and {Larson}, Kirsten and {Marshall}, Jason and {Armus}, Lee and {Charmandaris}, Vassilis},
+title = "{CAFE: Continuum And Feature Extraction tool}",
+howpublished = {Astrophysics Source Code Library, record ascl:2501.001},
+year = 2025,
+month = jan,
+eid = {ascl:2501.001},
+adsurl = {https://ui.adsabs.harvard.edu/abs/2025ascl.soft01001D},
+adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
