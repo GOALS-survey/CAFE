@@ -28,13 +28,13 @@ Contributors
 
 Bibcode
 -------
-@software{2025ascl.soft01001D,  
-author = {{Diaz-Santos}, Tanio and {Lai}, Thomas S. -Y. and {Finnerty}, Luke and {Privon}, George and {Bonfini}, Paolo and {Larson}, Kirsten and {Marshall}, Jason and {Armus}, Lee and {Charmandaris}, Vassilis},  
-title = "{CAFE: Continuum And Feature Extraction tool}",  
-howpublished = {Astrophysics Source Code Library, record ascl:2501.001},  
-year = 2025,  
-month = jan,  
-eid = {ascl:2501.001},  
-adsurl = {https://ui.adsabs.harvard.edu/abs/2025ascl.soft01001D},  
-adsnote = {Provided by the SAO/NASA Astrophysics Data System}  
+@software{2025ascl.soft01001D,__
+author = {{Diaz-Santos}, Tanio and {Lai}, Thomas S. -Y. and {Finnerty}, Luke and {Privon}, George and {Bonfini}, Paolo and {Larson}, Kirsten and {Marshall}, Jason and {Armus}, Lee and {Charmandaris}, Vassilis},__
+title = "{CAFE: Continuum And Feature Extraction tool}",__
+howpublished = {Astrophysics Source Code Library, record ascl:2501.001},__
+year = 2025,__
+month = jan,__
+eid = {ascl:2501.001},__
+adsurl = {https://ui.adsabs.harvard.edu/abs/2025ascl.soft01001D},__
+adsnote = {Provided by the SAO/NASA Astrophysics Data System}__
 }
