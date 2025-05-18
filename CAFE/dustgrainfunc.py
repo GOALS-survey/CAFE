@@ -1,8 +1,10 @@
-import numpy as np 
+"""
+This file contains the functions for computing the dust grain properties.
+"""
+
 import matplotlib.pyplot as plt 
 import lmfit as lm # https://dx.doi.org/10.5281/zenodo.11813
 from scipy.interpolate import interp1d, splrep, splev, RegularGridInterpolator
-from scipy.integrate import simps
 from scipy.special import erf
 import time
 import os
