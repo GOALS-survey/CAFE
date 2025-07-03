@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 """
-This module contains the function get_fit_sequence, which generates a sequence of pixel 
+This module contains the function get_fit_sequence, which generates a sequence of pixel
 indices for fitting an image
 """
 
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
+import os
 
 
 def get_fit_sequence(
@@ -100,7 +101,7 @@ def get_fit_sequence(
                 processed_pixels += 1
                 percentage = (processed_pixels / total_pixels) * 100
                 print(
-                    f"\rProcessing get cube sequence {processed_pixels}/{total_pixels} ({percentage:.1f}%)",
+                    f"\rProcessing get cube fitting sequence {processed_pixels}/{total_pixels} ({percentage:.1f}%)",
                     end="",
                     flush=True,
                 )
@@ -128,8 +129,11 @@ def get_fit_sequence(
                     if fitted_neighbor_inds.any():
                         # Chose the one with the highest SNR
                         snr_image[~fitted_neighbor_inds] = ma.masked
-                        max_snr_fitted_neighbor_ind = np.where(
-                            snr_image == ma.max(snr_image)
+                        t = np.where(snr_image == ma.max(snr_image))
+                        # This is to handle the scenario where there are multiple pixels with the same maximum SNR
+                        max_snr_fitted_neighbor_ind = (
+                            np.array([t[0][0]]),
+                            np.array([t[1][0]]),
                         )
                         snr_image.mask = (
                             image_copy.mask
@@ -142,6 +146,7 @@ def get_fit_sequence(
                         )
                         ## Assign its own index
                         # max_snr_fitted_neighbor_ind = (np.array([snr_ind[0]]), np.array([snr_ind[1]]))
+
                     # Assign the indices to the sequence
                     ind_seq = np.concatenate(
                         (
@@ -239,7 +244,7 @@ def get_fit_sequence(
                     ] = True
 
 
-def plot_fit_sequence(ind_seq):
+def plot_fit_sequence(ind_seq, output_dir=None):
     """
     Plot the fit sequence with colors representing the order of fitting.
 
@@ -257,9 +262,13 @@ def plot_fit_sequence(ind_seq):
     for i, (y, x) in enumerate(zip(ind_seq[0], ind_seq[1])):
         sequence_map[y, x] = i
 
-    plt.figure()
-    plt.imshow(sequence_map, cmap="viridis_r", origin="lower")
-    plt.colorbar(label="Fitting sequence index")
-    plt.xlabel("X")
-    plt.ylabel("Y")
-    plt.show()
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(sequence_map, cmap="viridis_r", origin="lower")
+    cbar = ax.figure.colorbar(im, ax=ax)
+    cbar.ax.set_ylabel("Fitting sequence index", rotation=-90, va="bottom")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+
+    if output_dir is not None:
+        fig.savefig(os.path.join(output_dir, "fit_sequence.png"))

@@ -442,7 +442,9 @@ class specmod(cafe_io):
     def _determine_fnu_unit(self, fluxes):
         """Determine the appropriate flux unit based on the median flux value."""
         log_f_med = np.log10(np.nanmedian(fluxes))
+        # import pdb
 
+        # pdb.set_trace()
         if log_f_med >= -2:
             return u.Jy
         elif (log_f_med < -2) & (log_f_med >= -5):
@@ -452,7 +454,11 @@ class specmod(cafe_io):
         elif (log_f_med < -8) & (log_f_med >= -11):
             return u.nJy
         else:
-            raise IOError("The input flux density values are too small.")
+            return u.pJy
+            print(
+                "The input flux density values are too small or the median of the flux is negative."
+            )
+            # raise IOError("The input flux density values are too small.")
 
     def read_spec(
         self,

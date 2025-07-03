@@ -1,4 +1,4 @@
-""" Function library for pyCAFE
+"""Function library for pyCAFE
 
 These functions are used by pyCAFE in fitting, but don't care about 1D/2D. Most of these functions
 shouldn't need to be changed to alter how CAFE is doing its fitting
@@ -1738,9 +1738,7 @@ def cafeplot(
     # #ax11.tick_params(axis='both', colors='w')
     # ax2.tick_params(direction='out', which='both', axis='both', colors='w')
 
-    if savefig is False:
-        plt.show()
-    else:
+    if savefig is True:
         fig.savefig(savefig, dpi=500, format="png", bbox_inches="tight")
         plt.close()
 
