@@ -7,7 +7,7 @@ shouldn't need to be changed to alter how CAFE is doing its fitting
 import numpy as np 
 import matplotlib.pyplot as plt 
 from scipy.interpolate import interp1d, splrep, splev, RegularGridInterpolator
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from astropy.stats import mad_std
 from matplotlib.ticker import ScalarFormatter
 
@@ -234,9 +234,9 @@ def synphot(wave, flux, z=0., filters=None, dofilter=False, filterPath='tables/f
             # Now everything is done in rest-frame since the filters/photometry (and the photo-spec itself) is already in rest-frame
             log_fwaves = np.log(fwaves[i])
             flux_fwaves = np.interp(log_fwaves, log_wave, flux)
-            trans = ftrans[i]/simps(fwaves[i]*ftrans[i], fwaves[i])
-            flux_conv = simps(fwaves[i]*trans*flux_fwaves, fwaves[i])
-            wave_conv = simps(fwaves[i]*trans*fwaves[i], fwaves[i])
+            trans = ftrans[i]/simpson(fwaves[i]*ftrans[i], fwaves[i])
+            flux_conv = simpson(fwaves[i]*trans*flux_fwaves, fwaves[i])
+            wave_conv = simpson(fwaves[i]*trans*fwaves[i], fwaves[i])
             width_conv = 1./np.nanmax(trans)
             syn_flux.append(flux_conv*wave_conv**2/2.998e14)
             syn_wave.append(wave_conv)
@@ -246,10 +246,10 @@ def synphot(wave, flux, z=0., filters=None, dofilter=False, filterPath='tables/f
             #log_fwaves_obs = np.log(fwaves_obs)
             #flux_obs = np.interp(log_fwaves_obs, log_wave, flux)*(1+z) ### due to the units we used
             #func_obs = np.interp(log_fwaves_obs, log_wave, func)*(1+z)
-            #trans = ftrans[i]/simps(fwaves_obs*ftrans[i], log_fwaves_obs)
-            #flux_conv = simps(fwaves_obs*trans*flux_obs, log_fwaves_obs)
-            #func_conv = simps(fwaves_obs*trans*func_obs, log_fwaves_obs)
-            #wave_conv = simps(fwaves_obs*trans*fwaves_obs, log_fwaves_obs)
+            #trans = ftrans[i]/simpson(fwaves_obs*ftrans[i], log_fwaves_obs)
+            #flux_conv = simpson(fwaves_obs*trans*flux_obs, log_fwaves_obs)
+            #func_conv = simpson(fwaves_obs*trans*func_obs, log_fwaves_obs)
+            #wave_conv = simpson(fwaves_obs*trans*fwaves_obs, log_fwaves_obs)
             #width_conv = 1./np.nanmax(trans)
             #scale = wave_conv**2/2.998e14
             #flux_conv*=scale/(1+z)  ### TDS add /(1+z) to come back to rest-frame
