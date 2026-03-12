@@ -821,6 +821,7 @@ class specmod(cafe_io):
             file_name=self.result_file_name,
             # output_path=output_path,
         )
+
         # Fit the spectrum
         result = cafe_grinder(self, self.params, self.spec_dict, self.phot_dict)
         print(
@@ -2218,6 +2219,7 @@ def _read_table_data(file_path, read_columns, flux_unc, is_SED):
             "Err_ap_st",
             "DQ",
         ]
+
         if sum(df.columns == expected_cols) == 8:
             out_df = df[["Wave", "Flux_ap_st", "Err_ap_st"]]
             tab = Table.from_pandas(out_df)
