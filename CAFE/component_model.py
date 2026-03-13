@@ -202,6 +202,6 @@ def drude_int_fluxes(wave, drude, ext=None, scale=1.0, flxunits=u.Jy, wvunits=u.
         ### Units
         flux = (flux*flxunits).to(u.W/u.m**2/wvunits, equivalencies=u.spectral_density(wave))
         ### Integrate
-        int_fluxes[i] = np.trapz(flux.value, wave.value)
+        int_fluxes[i] = np.trapezoid(flux.value, wave.value)
 
     return int_fluxes*(u.W/u.m**2)

@@ -27,9 +27,8 @@ from astropy.io import fits
 from astropy.convolution import convolve, Gaussian2DKernel, convolve_fft
 from lmfit import Parameters
 
-import CRETA
-from CRETA.cube_preproc import cube_preproc
-from CRETA.mylmfit2dfun import mylmfit2dfun
+from creta.cube_preproc import cube_preproc
+from creta.mylmfit2dfun import mylmfit2dfun
 
 # import ipdb
 
@@ -56,9 +55,9 @@ class cube_handler:
 
         self.preprocess = cube_preproc()
         self.head_keys = (
-            self.preprocess.getFITSData(path + file_name)
+            self.preprocess.getFITSData(os.path.join(path, file_name))
             if isPSF == False
-            else self.preprocess.getPSFData(path + file_name)
+            else self.preprocess.getPSFData(os.path.join(path, file_name))
         )
 
         self.DQ_lista = []
@@ -577,7 +576,7 @@ class cube_handler:
         plt.legend(handles=handles)
         plt.title(self.name_band)
         plt.savefig(
-            output_path + output_filebase_name + "_" + self.name_band + ".png"
+            os.path.join(output_path, output_filebase_name + "_" + self.name_band + ".png")
         )
         # plt.show()
         plt.close()

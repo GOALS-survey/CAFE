@@ -4,8 +4,7 @@ from astropy.table import Table
 import warnings
 import os
 
-import CAFE
-from CAFE.mathfunc import spline, intTab
+from cafe.mathfunc import spline, intTab
 
 # import ipdb
 
@@ -229,7 +228,7 @@ def sourceSED(wave, source, tablePath, norm=False, Jy=False):
         f_Wave = sourceSED_SB(fullWave, "100", tablePath)
 
     if norm:
-        f_Wave /= np.trapz(f_Wave * fullWave, np.log(fullWave))
+        f_Wave /= np.trapezoid(f_Wave * fullWave, np.log(fullWave))
 
     f_Wave = np.interp(np.log(wave), np.log(fullWave), f_Wave)
 

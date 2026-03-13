@@ -18,11 +18,10 @@ import pickle
 
 # import importlib as imp
 
-import CAFE
-from CAFE.cafe_io import *
-from CAFE.cafe_lib import *
-from CAFE.cafe_helper import *
-from CAFE.get_fit_sequence import get_fit_sequence
+from cafe.io import *
+from cafe.lib import *
+from cafe.params import *
+from cafe.get_fit_sequence import get_fit_sequence
 
 cafeio = cafe_io()
 
@@ -210,19 +209,20 @@ class specmod(cafe_io):
     needed for fitting a 1D spectrum and plotting the results
     """
 
-    def __init__(self, cafe_dir=None):
+    def __init__(self, output_dir=None):
         """Initialize the specmod class.
 
         Parameters
         ----------
-        cafe_dir : str, optional
-            Path to the CAFE directory. If None, will attempt to determine from
-            the package installation directory.
+        output_dir : str, optional
+            Directory where CAFE will write output files (parameter cubes,
+            plots, ASDF files). Defaults to a cafe_output/ folder in the
+            current working directory.
         """
-        if cafe_dir is None:
-            cafe_dir = os.path.dirname(os.path.abspath(CAFE.__file__))
+        if output_dir is None:
+            output_dir = os.path.join(os.getcwd(), 'cafe_output')
 
-        self.cafe_dir = cafe_dir
+        self.output_dir = output_dir
         self.file_name = None
         self.result_file_name = None
         self.extract = None
@@ -643,7 +643,7 @@ class specmod(cafe_io):
 
         # Initiate CAFE param generator
         param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts
         )
 
         print("Generating parameter cube with initial/full parameter object")
@@ -676,7 +676,7 @@ class specmod(cafe_io):
         # Initiate CAFE profile loader
         print("Generating continuum profiles")
         prof_gen = CAFE_prof_generator(
-            spec, self.inpars, self.inopts, phot_dict, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts, phot_dict
         )
 
         if self.cont_profs is None:
@@ -815,12 +815,7 @@ class specmod(cafe_io):
         # )
 
         # Set IO paths
-        _, outPath = cafeio.init_paths(
-            self.inopts,
-            cafe_path=self.cafe_dir,
-            file_name=self.result_file_name,
-            # output_path=output_path,
-        )
+        outPath = cafeio.get_output_path(self.output_dir, self.result_file_name)
 
         # Fit the spectrum
         result = cafe_grinder(self, self.params, self.spec_dict, self.phot_dict)
@@ -996,7 +991,7 @@ class specmod(cafe_io):
             "Generating continuum profiles for guess model from the .ini file"
         )
         param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts
         )
         params = param_gen.make_parobj()
 
@@ -1011,7 +1006,7 @@ class specmod(cafe_io):
 
         # Initiate CAFE profile loader and make cont_profs
         prof_gen = CAFE_prof_generator(
-            spec, self.inpars, self.inopts, phot_dict, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts, phot_dict
         )
         cont_profs = (
             prof_gen.make_cont_profs()
@@ -1076,7 +1071,7 @@ class specmod(cafe_io):
             params = parcube2parobj(self.parcube)
 
         prof_gen = CAFE_prof_generator(
-            spec, self.inpars, self.inopts, phot_dict, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts, phot_dict
         )
         cont_profs = prof_gen.make_cont_profs()
 
@@ -1215,14 +1210,13 @@ class specmod(cafe_io):
             }
 
             # Save output result to .asdf file
+            # Note: asdf 3.0 removed overwrite= parameter; write_to overwrites by default
             target = AsdfFile(cafefit)
             if file_name is None:
-                target.write_to(
-                    self.cafe_dir + "cafe_results/last_unnamed_cafefit.asdf",
-                    overwrite=True,
-                )
+                out_path = os.path.join(self.output_dir, "last_unnamed_cafefit.asdf")
             else:
-                target.write_to(file_name + ".asdf", overwrite=True)
+                out_path = file_name + ".asdf"
+            target.write_to(out_path)
 
 
 class cubemod(specmod):
@@ -1230,16 +1224,17 @@ class cubemod(specmod):
     CAFE object for cube fitting. Inherits from specmod.
     """
 
-    def __init__(self, cafe_dir=None):
+    def __init__(self, output_dir=None):
         """Initialize the cubemod class, inheriting from specmod.
 
         Parameters
         ----------
-        cafe_dir : str, optional
-            Path to the CAFE directory.
+        output_dir : str, optional
+            Directory where CAFE will write output files. Defaults to a
+            cafe_output/ folder in the current working directory.
         """
         # Initialize parent class
-        super().__init__(cafe_dir=cafe_dir)
+        super().__init__(output_dir=output_dir)
 
         # Add cube-specific attributes
         self.nx = None
@@ -1262,7 +1257,7 @@ class cubemod(specmod):
 
         # Initiate CAFE param generator
         param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts
         )
 
         print(
@@ -2013,13 +2008,13 @@ class cubemod(specmod):
             "Generating continuum profiles for guess model from the .ini file"
         )
         param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts
         )
         params = param_gen.make_parobj()
 
         # Initiate CAFE profile loader and make cont_profs
         prof_gen = CAFE_prof_generator(
-            spec, self.inpars, self.inopts, None, cafe_path=self.cafe_dir
+            spec, self.inpars, self.inopts, None
         )
         cont_profs = prof_gen.make_cont_profs()
 
@@ -2054,7 +2049,7 @@ class cubemod(specmod):
             spec_dict = {"wave": wave, "flux": flux, "flux_unc": flux_unc}
 
             prof_gen = CAFE_prof_generator(
-                spec, self.inpars, self.inopts, None, cafe_path=self.cafe_dir
+                spec, self.inpars, self.inopts, None
             )
             cont_profs = prof_gen.make_cont_profs()
 

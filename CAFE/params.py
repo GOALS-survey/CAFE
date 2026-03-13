@@ -7,11 +7,10 @@ from specutils import Spectrum1D, SpectrumList
 from astropy.nddata import StdDevUncertainty
 import astropy.units as u
 
-import CAFE
-from CAFE.component_model import gauss_prof, drude_prof
-from CAFE.dustgrainfunc import *
-from CAFE.cafe_io import *
-from CAFE.cafe_lib import *
+from cafe.component_model import gauss_prof, drude_prof
+from cafe.dustgrainfunc import *
+from cafe.io import *
+from cafe.lib import *
 
 cafeio = cafe_io()
 
@@ -20,7 +19,7 @@ cafeio = cafe_io()
 
 class CAFE_param_generator:
 
-    def __init__(self, spec, inpars, inopts, cafe_path=None):
+    def __init__(self, spec, inpars, inopts):
 
         # The data is read from a spectrum1D object
         self.wave = spec.spectral_axis.value
@@ -32,8 +31,7 @@ class CAFE_param_generator:
         self.inpars = inpars
         self.inopts = inopts
 
-        tablePath, _ = cafeio.init_paths(self.inopts, cafe_path=cafe_path)
-        self.tablePath = tablePath
+        self.tablePath = cafeio.get_table_path(self.inopts)
 
     def make_parobj(
         self, init_parobj=False, updated_parobj=False, get_all=False
@@ -1394,7 +1392,7 @@ class CAFE_prof_generator:
 
     """
 
-    def __init__(self, spec, inpars, inopts, phot_dict, cafe_path="../CAFE/"):
+    def __init__(self, spec, inpars, inopts, phot_dict):
         ## Read spec
         wave = spec.spectral_axis.value
         flux = spec.flux.value
@@ -1409,8 +1407,7 @@ class CAFE_prof_generator:
         self.inpars = inpars
         self.inopts = inopts
 
-        tablePath, _ = cafeio.init_paths(self.inopts, cafe_path=cafe_path)
-        self.tablePath = tablePath
+        self.tablePath = cafeio.get_table_path(self.inopts)
 
         # Define blackbody temperatures of ambient radiation field
         # self.T_bb = np.geomspace(3., 1750., num=30)
@@ -1855,7 +1852,6 @@ class CAFE_cube_generator:
 
     def __init__(self, cafe_obj):
 
-        self.cafe_dir = cafe_obj.cafe_dir
         self.cube_header = cafe_obj.header  # cube['FLUX'].header
         self.cube = cafe_obj  # = self at cafe.py
         self.nx = cafe_obj.nx  # cube[extract].header['NAXIS1']
@@ -1934,7 +1930,7 @@ class CAFE_cube_generator:
         )
 
         prof_gen = CAFE_prof_generator(
-            self.spec, inparfile, optfile, None, cafe_path=self.cafe_dir
+            self.spec, inparfile, optfile, None
         )
         self.cont_profs = prof_gen.make_cont_profs()
         waveMod = self.cont_profs["waveMod"]

@@ -16,8 +16,7 @@ from astropy.io import fits
 import asdf
 from asdf import AsdfFile
 
-import CAFE
-from CAFE.component_model import gauss_prof, drude_prof, drude_int_fluxes
+from cafe.component_model import gauss_prof, drude_prof, drude_int_fluxes
 
 # import ipdb
 
@@ -29,32 +28,32 @@ class cafe_io:
         pass
 
     @staticmethod
-    def init_paths(inopts, cafe_path=None, file_name=None, output_path=None):
-        # Path to load external tables
-        if not inopts["PATHS"]["TABPATH"]:
-            tablePath = os.path.join(cafe_path, "tables")
-        else:
-            tablePath = inopts["PATHS"]["TABPATH"]
+    def get_table_path(inopts):
+        """Locate the tables directory.
 
-        # Create an output directory if necessary
-        if output_path is None:
-            if inopts["PATHS"]["OUTPATH"]:
-                if not os.path.exists(inopts["PATHS"]["OUTPATH"]):
-                    os.mkdir(inopts["PATHS"]["OUTPATH"])
-                outPath = inopts["PATHS"]["OUTPATH"]
-            else:
-                outPath = os.path.join(cafe_path, "output")
-        else:
-            if not os.path.exists(output_path):
-                os.mkdir(output_path)
-            if file_name is not None:
-                if not os.path.exists(os.path.join(output_path, file_name)):
-                    os.mkdir(os.path.join(output_path, file_name))
-                outPath = os.path.join(output_path, file_name)
-            else:
-                outPath = output_path
+        Uses the built-in package data via importlib.resources unless the user
+        has explicitly set TABPATH in their options file.
+        """
+        if inopts["PATHS"]["TABPATH"]:
+            return inopts["PATHS"]["TABPATH"]
+        from cafe.paths import get_table_path as _get_table_path
+        return _get_table_path()
 
-        return tablePath, outPath
+    @staticmethod
+    def get_output_path(output_dir, file_name=None):
+        """Resolve and create the output directory for a given run.
+
+        Parameters
+        ----------
+        output_dir : str
+            Base output directory (from specmod/cubemod constructor).
+        file_name : str, optional
+            If provided, a subdirectory named file_name is created inside
+            output_dir and returned as the final path.
+        """
+        path = os.path.join(output_dir, file_name) if file_name else output_dir
+        os.makedirs(path, exist_ok=True)
+        return path
 
     ##### Function that reads a multi-extension .fits file from CRETA           ###
     ###############################################################################
@@ -383,11 +382,11 @@ class cafe_io:
         PAH table in DataFrame
         """
         if parobj == True:
-            from CAFE.cafe_helper import parobj2df
+            from cafe.params import parobj2df
 
             df = parobj2df(parcube)  # parcube is a parobj
         else:
-            from CAFE.cafe_helper import parcube2df
+            from cafe.params import parcube2df
 
             df = parcube2df(parcube, x, y)
 
@@ -526,7 +525,7 @@ class cafe_io:
                     & (prof_df.wave < lam.value + int_range)
                 ]
 
-                EQW = np.trapz(
+                EQW = np.trapezoid(
                     (pah_range.I_nu_P - pah_range.I_nu_C) / pah_range.I_nu_C,
                     pah_range.wave,
                 )
@@ -781,7 +780,7 @@ class cafe_io:
                         & (prof_df.wave < pah_comp_wmax)
                     ]
 
-                    EQW = np.trapz(
+                    EQW = np.trapezoid(
                         (pah_range.I_nu_P - pah_range.I_nu_C)
                         / pah_range.I_nu_C,
                         pah_range.wave,
@@ -837,7 +836,7 @@ class cafe_io:
                         & (prof_df.wave < pah_comp_wmax)
                     ]
 
-                    EQW = np.trapz(
+                    EQW = np.trapezoid(
                         (pah_range.I_nu_P - pah_range.I_nu_C)
                         / pah_range.I_nu_C,
                         pah_range.wave,
@@ -907,11 +906,11 @@ class cafe_io:
         # df = self.parobj2df(fitPars)
 
         if parobj == True:
-            from CAFE.cafe_helper import parobj2df
+            from cafe.params import parobj2df
 
             df = parobj2df(parcube)  # parcube is a parobj
         else:
-            from CAFE.cafe_helper import parcube2df
+            from cafe.params import parcube2df
 
             df = parcube2df(parcube, x, y)
 
@@ -1097,11 +1096,11 @@ class cafe_io:
         if hasattr(cafe, "parcube") is False:
             raise ValueError("The spectrum is not fitted yet.")
         else:
-            from CAFE.cafe_helper import parcube2parobj
+            from cafe.params import parcube2parobj
 
             fitPars = parcube2parobj(cafe.parcube, **kwargs)
 
-        from CAFE.cafe_lib import get_model_fluxes, get_feat_pars
+        from cafe.lib import get_model_fluxes, get_feat_pars
 
         wave, flux, flux_unc, bandname, mask = cafe._mask_spec()
         # spec = Spectrum1D(spectral_axis=wave*u.micron, flux=flux*u.Jy, uncertainty=StdDevUncertainty(flux_unc), redshift=cafe.z)
@@ -1123,7 +1122,7 @@ class cafe_io:
         gauss, drude, gauss_opc = get_feat_pars(fitPars, apply_vgrad2waves=True)
 
         # Get PAH powers (intrinsic/extinguished)
-        from CAFE.component_model import drude_int_fluxes
+        from cafe.component_model import drude_int_fluxes
 
         pah_power_int = drude_int_fluxes(CompFluxes["wave"], drude)
         pah_power_ext = drude_int_fluxes(
@@ -1164,8 +1163,10 @@ class cafe_io:
         }
 
         # Save output result to .asdf file
+        # Note: asdf 3.0 removed overwrite= parameter; write_to overwrites by default
         target = AsdfFile(cafefit)
         if file_name is None:
-            target.write_to(self.cafe_dir + "output/last_unnamed_cafefit.asdf")
+            out_path = os.path.join(cafe.output_dir, "last_unnamed_cafefit.asdf")
         else:
-            target.write_to(file_name + ".asdf")
+            out_path = file_name + ".asdf"
+        target.write_to(out_path)

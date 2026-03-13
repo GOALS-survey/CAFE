@@ -18,9 +18,8 @@ from specutils import SpectrumList
 
 # import ipdb
    
-import CRETA    
-from CRETA.cube_preproc import cube_preproc
-from CRETA.cube_handler import cube_handler
+from creta.cube_preproc import cube_preproc
+from creta.cube_handler import cube_handler
 
 preprocess = cube_preproc()
 current_path = os.path.abspath(os.getcwd())
@@ -74,7 +73,7 @@ class userAPI:
                 # only attempt to make the output directory if it doesn't exist
                 os.makedirs(opath)
             print('Ouput path', opath, 'created.')
-        if opath[-1] != '/': opath+'/'
+
 
         return opath
 
@@ -211,7 +210,7 @@ class userAPI:
 #%%
     def writeResultsFile(self, filename, user_params, df, final_ratio, output_path, new_ra, new_dec, ap_l_iss, grid_extraction, grid_NX, grid_NY, step_size, PSFs_path, Data_path):
 
-        df.to_csv(output_path+filename,index=False)
+        df.to_csv(os.path.join(output_path, filename), index=False)
         
         if ap_l_iss != -1:
             warning_message = "######################################## WARNING/ERRORS \n \
@@ -257,7 +256,7 @@ class userAPI:
                + '\n' +  warning_message+grid_txt\
                + '######################################## Results'
         
-        with open(output_path+filename, 'r+') as f:
+        with open(os.path.join(output_path, filename), 'r+') as f:
             content = f.read()
             f.seek(0, 0)
             f.write(line.rstrip('\n') + '\n' )

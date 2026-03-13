@@ -12,9 +12,8 @@ from scipy.integrate import simpson
 from astropy.stats import mad_std
 from matplotlib.ticker import ScalarFormatter
 
-import CAFE
-from CAFE.dustgrainfunc import grain_totemissivity
-from CAFE.component_model import (
+from cafe.dustgrainfunc import grain_totemissivity
+from cafe.component_model import (
     gauss_prof,
     drude_prof,
     drude_int_fluxes,
@@ -673,7 +672,7 @@ def get_model_fluxes(
         fCIR[fCIR < 0] = 0.0
         if verbose_output:
             fCIR_0 = np.copy(fCIR)
-            # fCIR_Tot = np.trapz(fCIR/waveMod, logWaveMod)
+            # fCIR_Tot = np.trapezoid(fCIR/waveMod, logWaveMod)
             # fDST_Tot = np.copy(fCIR_Tot)
     else:
         fCIR = np.zeros(waveMod.size)
@@ -701,7 +700,7 @@ def get_model_fluxes(
         fCLD[jCLD < 0] = 0.0
         if verbose_output:
             fCLD_0 = np.copy(fCLD)
-            # fCLD_Tot = np.trapz(fCLD/waveMod, logWaveMod)
+            # fCLD_Tot = np.trapezoid(fCLD/waveMod, logWaveMod)
             # fDST_Tot+=fCLD_Tot
     else:
         fCLD = np.zeros(waveMod.size)
@@ -741,7 +740,7 @@ def get_model_fluxes(
         if verbose_output:
             fCOO_0 = p["COO_FLX"] * cont_profs["flux0"]["COO"] / jCOO0 * jCOO_0
             fCOO_0[fCOO_0 < 0] = 0.0
-            # fCOO_Tot = np.trapz(fCOO/waveMod, logWaveMod)
+            # fCOO_Tot = np.trapezoid(fCOO/waveMod, logWaveMod)
             # fDST_Tot+=fCOO_Tot
     else:
         fCOO = np.zeros(waveMod.size)
@@ -782,7 +781,7 @@ def get_model_fluxes(
         if verbose_output:
             fWRM_0 = p["WRM_FLX"] * cont_profs["flux0"]["WRM"] / jWRM0 * jWRM_0
             fWRM_0[fWRM_0 < 0] = 0.0
-            # fWRM_Tot = np.trapz(fWRM/waveMod, logWaveMod)
+            # fWRM_Tot = np.trapezoid(fWRM/waveMod, logWaveMod)
             # fDST_Tot+=fWRM_Tot
     else:
         fWRM = np.zeros(waveMod.size)
@@ -823,7 +822,7 @@ def get_model_fluxes(
         if verbose_output:
             fHOT_0 = p["HOT_FLX"] * cont_profs["flux0"]["HOT"] / jHOT0 * jHOT_0
             fHOT_0[fHOT_0 < 0] = 0.0
-            # fHOT_Tot = np.trapz(fHOT/waveMod, logWaveMod)
+            # fHOT_Tot = np.trapezoid(fHOT/waveMod, logWaveMod)
             # fDST_Tot+=fHOT_Tot
     else:
         fHOT = np.zeros(waveMod.size)
@@ -867,7 +866,7 @@ def get_model_fluxes(
         if verbose_output:
             fPAH_0 = jPAH_0
             fPAH_0[fPAH_0 < 0] = 0.0
-            # fPAH_Tot = np.trapz(fPAH/waveMod, logWaveMod)
+            # fPAH_Tot = np.trapezoid(fPAH/waveMod, logWaveMod)
     else:
         fPAH = np.zeros(waveMod.size)
         if verbose_output:
@@ -901,7 +900,7 @@ def get_model_fluxes(
         if verbose_output:
             fSTR_0 = p["STR_FLX"] * cont_profs["flux0"]["STR"] / jSTR0 * jSTR_0
             fSTR_0[fSTR_0 < 0] = 0.0
-            # fSTR_Tot = np.trapz(fSTR/waveMod, logWaveMod)
+            # fSTR_Tot = np.trapezoid(fSTR/waveMod, logWaveMod)
     else:
         fSTR = np.zeros(waveMod.size)
         if verbose_output:
@@ -958,7 +957,7 @@ def get_model_fluxes(
             fSTB_0_002 = const * jSTB_0_002
             fSTB_0_002[fSTB_0_002 < 0] = 0.0
             fSTB_0 = fSTB_0_100 + fSTB_0_010 + fSTB_0_002
-            # fSTB_Tot = np.trapz(fSTB/waveMod, logWaveMod)
+            # fSTB_Tot = np.trapezoid(fSTB/waveMod, logWaveMod)
     else:
         fSTB = np.zeros(waveMod.size)
         if verbose_output:
@@ -995,7 +994,7 @@ def get_model_fluxes(
         if verbose_output:
             fDSK_0 = p["DSK_FLX"] * cont_profs["flux0"]["DSK"] / jDSK0 * jDSK_0
             fDSK_0[fDSK_0 < 0] = 0.0
-            # fDSK_Tot = np.trapz(fDSK/waveMod, logWaveMod)
+            # fDSK_Tot = np.trapezoid(fDSK/waveMod, logWaveMod)
     else:
         fDSK = np.zeros(waveMod.size)
         if verbose_output:
@@ -1901,7 +1900,7 @@ def parplot(pars, name, outpath="", obj="", contour=False, givefig=False):
     ### Collapse the wavelength axis if present - use trapezoid sum to integrate
     if data.ndim == 3:
         wave = pars["wave"][0][0]
-        data = np.trapz(data, x=wave)
+        data = np.trapezoid(data, x=wave)
         # print(data.shape)
     fig = plt.figure()
     if not contour:
@@ -1946,7 +1945,7 @@ def errplot(pars, name, outpath="", obj="", contour=False):
     ### Collapse the wavelength axis if present - use trapezoid sum to integrate
     if data.ndim == 3:
         wave = pars["wave"][0][0]
-        data = np.trapz(data, x=wave)
+        data = np.trapezoid(data, x=wave)
         # print(data.shape)
     fig = plt.figure()
     if not contour:
