@@ -3,6 +3,7 @@ import copy
 import lmfit as lm  # https://dx.doi.org/10.5281/zenodo.11813
 from astropy.io import fits
 from astropy.table import Table
+
 from specutils import Spectrum1D, SpectrumList
 from astropy.nddata import StdDevUncertainty
 import astropy.units as u
@@ -245,7 +246,9 @@ class CAFE_param_generator:
         # Get atomic line table
         # ---------------------
         data = np.genfromtxt(
-            resolve_table_file(tablePath, atomic_table), comments=";", dtype="str"
+            resolve_table_file(tablePath, atomic_table),
+            comments=";",
+            dtype="str",
         )
         if data.ndim == 1:
             data = np.expand_dims(data, 0)
@@ -306,7 +309,9 @@ class CAFE_param_generator:
         # Get molecular line table
         # ------------------------
         data = np.genfromtxt(
-            resolve_table_file(tablePath, molecular_table), comments=";", dtype="str"
+            resolve_table_file(tablePath, molecular_table),
+            comments=";",
+            dtype="str",
         )
         if data.ndim == 1:
             data = np.expand_dims(data, 0)
@@ -366,7 +371,9 @@ class CAFE_param_generator:
         # Get recombination line table
         # ----------------------------
         data = np.genfromtxt(
-            resolve_table_file(tablePath, hrecomb_table), comments=";", dtype="str"
+            resolve_table_file(tablePath, hrecomb_table),
+            comments=";",
+            dtype="str",
         )
         if data.ndim == 1:
             data = np.expand_dims(data, 0)
@@ -486,7 +493,9 @@ class CAFE_param_generator:
         # -------------
         # Get PAH table
         # -------------
-        pahTab = np.genfromtxt(resolve_table_file(tablePath, pah_table), comments=";")
+        pahTab = np.genfromtxt(
+            resolve_table_file(tablePath, pah_table), comments=";"
+        )
         if pahTab.ndim == 1:
             pahTab = np.expand_dims(pahTab, 0)
         wave0PAH = pahTab[:, 0]
@@ -566,7 +575,8 @@ class CAFE_param_generator:
         # Get gaussian opacity features
         # ----------------
         opcTab = Table.read(
-            resolve_table_file(tablePath, "opacity", gopacity_table), comment="#"
+            resolve_table_file(tablePath, "opacity", gopacity_table),
+            comment="#",
         )
         # if opcTab.ndim == 1: opcTab = np.expand_dims(opcTab, 0)
 
@@ -1527,7 +1537,10 @@ class CAFE_prof_generator:
 
         # Get silicate abosorption. This should be moved to opacity!!!!
         scaleOHMc = np.genfromtxt(
-            resolve_table_file(self.customTablePath, "opacity", "ohmc_scale.txt"), comments=";"
+            resolve_table_file(
+                self.customTablePath, "opacity", "ohmc_scale.txt"
+            ),
+            comments=";",
         )
         if inopts["MODEL OPTIONS"]["DRAINE_OR_OHMC"] != "OHMc":
             scaleOHMc[:, 1] = np.ones(scaleOHMc.shape[1])
@@ -1638,7 +1651,10 @@ class CAFE_prof_generator:
 
         # Load additional opacity sources and Draine/OHMc scaling factors
         scaleOHMc = np.genfromtxt(
-            resolve_table_file(self.customTablePath, "opacity", "ohmc_scale.txt"), comments=";"
+            resolve_table_file(
+                self.customTablePath, "opacity", "ohmc_scale.txt"
+            ),
+            comments=";",
         )
         if inopts["MODEL OPTIONS"]["DRAINE_OR_OHMC"] != "OHMc":
             scaleOHMc[:, 1] = np.ones(scaleOHMc.shape[1])
@@ -1652,7 +1668,9 @@ class CAFE_prof_generator:
         else:
             kIce3 = load_opacity(
                 waveMod,
-                resolve_table_file(self.customTablePath, "opacity", "ice_opacity_idl_orion.txt"),
+                resolve_table_file(
+                    self.customTablePath, "opacity", "ice_opacity_idl_orion.txt"
+                ),
             )
         kIce6 = load_opacity(
             waveMod,
@@ -1662,18 +1680,29 @@ class CAFE_prof_generator:
         )
         kHac = load_opacity(
             waveMod,
-            resolve_table_file(self.customTablePath, "opacity", "hac_opacity_upsampled.txt"),
+            resolve_table_file(
+                self.customTablePath, "opacity", "hac_opacity_upsampled.txt"
+            ),
         )
         kCOrv = load_opacity(
             waveMod,
-            resolve_table_file(self.customTablePath, "opacity", "corv_opacity_upsampled.txt"),
+            resolve_table_file(
+                self.customTablePath, "opacity", "corv_opacity_upsampled.txt"
+            ),
         )
         kCO2 = load_opacity(
-            waveMod, resolve_table_file(self.customTablePath, "opacity", "CO2_opacity_4um.ecsv")
+            waveMod,
+            resolve_table_file(
+                self.customTablePath, "opacity", "CO2_opacity_4um.ecsv"
+            ),
         )
         kCrySi_233 = load_opacity(
             waveMod,
-            resolve_table_file(self.customTablePath, "opacity", "crystallineSi_opacity_233.ecsv"),
+            resolve_table_file(
+                self.customTablePath,
+                "opacity",
+                "crystallineSi_opacity_233.ecsv",
+            ),
         )
 
         # Temperature is set to 0 to get grain opacities
@@ -1934,9 +1963,7 @@ class CAFE_cube_generator:
             redshift=self.z,
         )
 
-        prof_gen = CAFE_prof_generator(
-            self.spec, inparfile, optfile, None
-        )
+        prof_gen = CAFE_prof_generator(self.spec, inparfile, optfile, None)
         self.cont_profs = prof_gen.make_cont_profs()
         waveMod = self.cont_profs["waveMod"]
 

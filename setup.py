@@ -35,4 +35,10 @@ setup(
         "specutils>1.7.0",
         "ipykernel>6.9.1",
     ],
+    extras_require={
+        "dev": [
+            "pytest>=7.0",
+            "pyyaml",
+        ],
+    },
 )

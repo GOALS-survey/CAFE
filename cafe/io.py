@@ -6,6 +6,7 @@ import configparser
 import ast
 from os.path import exists
 import pandas as pd
+
 from specutils import Spectrum1D, SpectrumList
 import astropy
 from astropy.nddata import StdDevUncertainty
@@ -39,6 +40,7 @@ class cafe_io:
         if tabpath and os.path.isdir(tabpath):
             return tabpath
         from cafe.paths import get_table_path as _get_table_path
+
         return _get_table_path()
 
     @staticmethod
@@ -215,13 +217,17 @@ class cafe_io:
             for inst_fn in inst_files:
                 try:
                     data = np.genfromtxt(
-                        resolve_table_file(tablePath, "resolving_power", inst_fn),
+                        resolve_table_file(
+                            tablePath, "resolving_power", inst_fn
+                        ),
                         comments=";",
                     )
                 except:
                     try:
                         rfitstable = fits.open(
-                            resolve_table_file(tablePath, "resolving_power", inst_fn)
+                            resolve_table_file(
+                                tablePath, "resolving_power", inst_fn
+                            )
                         )
                         data = np.full(5, np.nan)
                         data[1] = rfitstable[1].data[0][0]  # Min wave
@@ -339,8 +345,14 @@ class cafe_io:
                     entry = [val["value"], val["vary"]]
                     bounds = val.get("bounds", None)
                     if bounds is not None:
-                        lo = -np.inf if bounds[0] in (None, "-.inf") else bounds[0]
-                        hi =  np.inf if bounds[1] in (None,  ".inf") else bounds[1]
+                        lo = (
+                            -np.inf
+                            if bounds[0] in (None, "-.inf")
+                            else bounds[0]
+                        )
+                        hi = (
+                            np.inf if bounds[1] in (None, ".inf") else bounds[1]
+                        )
                         entry += [lo, hi]
                     expr = val.get("expression", None)
                     if expr is not None:
@@ -1258,7 +1270,9 @@ class cafe_io:
         # Note: asdf 3.0 removed overwrite= parameter; write_to overwrites by default
         target = AsdfFile(cafefit)
         if file_name is None:
-            out_path = os.path.join(cafe.output_dir, "last_unnamed_cafefit.asdf")
+            out_path = os.path.join(
+                cafe.output_dir, "last_unnamed_cafefit.asdf"
+            )
         else:
             out_path = file_name + ".asdf"
         target.write_to(out_path)

@@ -2,7 +2,8 @@ import os
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
+
+# from matplotlib.backends.backend_pdf import PdfPages
 from specutils import Spectrum1D, SpectrumList
 from astropy.nddata import StdDevUncertainty
 import lmfit as lm  # https://dx.doi.org/10.5281/zenodo.11813
@@ -221,7 +222,7 @@ class specmod(cafe_io):
             current working directory.
         """
         if output_dir is None:
-            output_dir = os.path.join(os.getcwd(), 'cafe_output')
+            output_dir = os.path.join(os.getcwd(), "cafe_output")
 
         self.output_dir = output_dir
         self.file_name = None
@@ -643,9 +644,7 @@ class specmod(cafe_io):
         # ---------------------------------------------------------------------
 
         # Initiate CAFE param generator
-        param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts
-        )
+        param_gen = CAFE_param_generator(spec, self.inpars, self.inopts)
 
         print("Generating parameter cube with initial/full parameter object")
         all_params = param_gen.make_parobj(get_all=True)
@@ -991,9 +990,7 @@ class specmod(cafe_io):
         print(
             "Generating continuum profiles for guess model from the .ini file"
         )
-        param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts
-        )
+        param_gen = CAFE_param_generator(spec, self.inpars, self.inopts)
         params = param_gen.make_parobj()
 
         if self.init_parcube is not None:
@@ -1214,7 +1211,9 @@ class specmod(cafe_io):
             # Note: asdf 3.0 removed overwrite= parameter; write_to overwrites by default
             target = AsdfFile(cafefit)
             if file_name is None:
-                out_path = os.path.join(self.output_dir, "last_unnamed_cafefit.asdf")
+                out_path = os.path.join(
+                    self.output_dir, "last_unnamed_cafefit.asdf"
+                )
             else:
                 out_path = file_name + ".asdf"
             target.write_to(out_path)
@@ -1257,9 +1256,7 @@ class cubemod(specmod):
         )
 
         # Initiate CAFE param generator
-        param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts
-        )
+        param_gen = CAFE_param_generator(spec, self.inpars, self.inopts)
 
         print(
             "Generating parameter cube for cubefit with initial/full parameter object"
@@ -2008,15 +2005,11 @@ class cubemod(specmod):
         print(
             "Generating continuum profiles for guess model from the .ini file"
         )
-        param_gen = CAFE_param_generator(
-            spec, self.inpars, self.inopts
-        )
+        param_gen = CAFE_param_generator(spec, self.inpars, self.inopts)
         params = param_gen.make_parobj()
 
         # Initiate CAFE profile loader and make cont_profs
-        prof_gen = CAFE_prof_generator(
-            spec, self.inpars, self.inopts, None
-        )
+        prof_gen = CAFE_prof_generator(spec, self.inpars, self.inopts, None)
         cont_profs = prof_gen.make_cont_profs()
 
         # Scale continuum profiles with parameters and get spectra
@@ -2049,9 +2042,7 @@ class cubemod(specmod):
             )
             spec_dict = {"wave": wave, "flux": flux, "flux_unc": flux_unc}
 
-            prof_gen = CAFE_prof_generator(
-                spec, self.inpars, self.inopts, None
-            )
+            prof_gen = CAFE_prof_generator(spec, self.inpars, self.inopts, None)
             cont_profs = prof_gen.make_cont_profs()
 
             flux, CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = (
