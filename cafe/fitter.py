@@ -112,9 +112,10 @@ def cafe_grinder(cafe_model, params, spec, phot):
                 ftol=ftol,
                 max_nfev=200 * (len(params) + 1),
             )
-        except:
-            if result.success is not True:
-                raise ValueError("The fit has not been successful.")
+        except Exception as _fit_exc:
+            raise RuntimeError(
+                f"The minimizer raised an exception and the fit could not be completed: {_fit_exc}"
+            ) from _fit_exc
 
         # Do checks on parameters and rerun fit if no errors are returned or the fit is unsuccessful
         if result.success == True:
@@ -588,8 +589,8 @@ class specmod(cafe_io):
         self.inparfile = inparfile
         self.optfile = optfile
 
-        self.inpars = cafeio.read_inifile(inparfile)
-        self.inopts = cafeio.read_inifile(optfile)
+        self.inpars = cafeio.read_parfile(inparfile)
+        self.inopts = cafeio.read_parfile(optfile)
 
         self.init_parcube = init_parcube
         self.cont_profs = cont_profs
@@ -1578,8 +1579,8 @@ class cubemod(specmod):
     # #     self.inparfile = inparfile
     # #     self.optfile = optfile
 
-    # #     self.inpars = cafeio.read_inifile(inparfile)
-    # #     self.inopts = cafeio.read_inifile(optfile)
+    # #     self.inpars = cafeio.read_parfile(inparfile)
+    # #     self.inopts = cafeio.read_parfile(optfile)
 
     # #     self.init_parcube = init_parcube
     # #     self.cont_profs = cont_profs

@@ -12,7 +12,9 @@ setup(
     include_package_data=True,
     package_data={
         'cafe': [
-            'tables/**/*',
+            'tables/*',
+            'tables/resolving_power/*',
+            'tables/opacity/*',
             'inp_parfiles/*',
             'opt_parfiles/*',
         ],

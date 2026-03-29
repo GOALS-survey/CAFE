@@ -1,0 +1,127 @@
+# Converted from default_opt.cafe
+
+PATHS:
+  DATAPATH:
+    description: "Note that overriding the input path requires editing the source code, since that's what tells pyCafe where to find this file. Override default spectrum input path, otherwise input/data/"
+    value: ""
+  OUTPATH:
+    description: "Override default output path, otherwise output/<tgtname>"
+    value: ""
+  PLOTPATH:
+    description: "Override default plot path, otheriwse output/<tgtname>"
+    value: ""
+  TABPATH:
+    description: "Override default table path, otherwise tables/"
+    value: ""
+
+"FIT OPTIONS":
+  FTOL:
+    description: "These are parameters for lmfit (the least-squares fitting routine used in the fit). In most cases, they do not need to be changed. Required relative lmfit accuracy for fit"
+    value: 1e-05
+  NPROC:
+    description: "Number of processes to use if parallel. No effect on 1D fitting"
+    value: 4
+  FASTTEMP:
+    description: "Replace dust temperature interpolation with nearest"
+    value: false
+  FITLINS:
+    description: "Fit atomic/molecular and PAH features"
+    value: true
+  FITPAHS:
+    value: true
+  FITOPCS:
+    value: true
+  FIT_CHK:
+    description: "Run fit quality checks. turn off at your own risk"
+    value: true
+  MAX_LOOPS:
+    value: 5
+  REL_ERR_G_W0:
+    description: "Specify max relative error in line parameters to keep a feature"
+    value: 1.0
+  REL_ERR_G_SIG:
+    value: 2.0
+  REL_ERR_G_AMP:
+    value: 2.0
+  REL_ERR_D_W0:
+    value: 1.0
+  REL_ERR_D_SIG:
+    value: 2.0
+  REL_ERR_D_AMP:
+    value: 2.0
+  REL_ERR_O_W0:
+    value: 1.0
+  REL_ERR_O_SIG:
+    value: 2.0
+  REL_ERR_O_AMP:
+    value: 2.0
+  REL_ERR_C_FEAT:
+    value: 2.0
+
+SWITCHES:
+  ONION:
+    description: "Assume that the CLD, COO, WRN, HOT dust components are nested in concentric shells. When this option is activated, it enforces TAU_HOT > TAU_WRM > TAU_COO"
+    value: false
+  ORION_H2O:
+    description: "Use Orion template for 3um H20 feature"
+    value: false
+  ERRSPEC:
+    description: "Add a constant fractional uncertainty to spec data"
+    value: 0.0
+
+"OUTPUT FILE OPTIONS":
+  OVERWRITE:
+    description: "The fitting routine optionally outputs a number of text files, plots, and pickle files. Choose which files to output to disk here. Files are saved to the output directory indicated above"
+    value: false
+  PAH_TAB:
+    value: true
+  PRINT_PAH_TAB:
+    value: true
+
+"PLOT OPTIONS":
+  MAKE_CORR:
+    description: "Specify what plots you want to make. If you want to make new kinds of plots or adjust the plot options, either alter the source code in pycafe (not recommended) or load the 'pycafe_result_dump.p' file from the output directory and go nuts. See 'result_loader.py' for a basic script to load fit params and load/preprocess flux. MIR and overal SED plots are always generated, it's important to do a visual check of the fit!!! Note that these plots are made for every fit, so be careful using them with a large grid. Saving the plots can slow the code significantly - consider making the plots you need after the fitting is done. Correlation matrix plot"
+    value: true
+  FRAC_CON_PLOT:
+    description: "Fractional contribution to continuum (possibly borked)"
+    value: true
+
+"MODEL OPTIONS":
+  WEIGHTBINS:
+    description: "The following options control how the CAFE fitting is implemented and run. In particular, the number of logarithmic wavelength weighting bins in which to divide up the SED is set here. Read more about this in the CAFE_WEIGHTS routine in cafe.pro. Number of logarithmic weighting bins to divide SED into."
+    value: 10.0
+  FITPHOT:
+    description: "Whether to fit photometry. If photometry doesn't exist, this does nothing."
+    value: false
+  DOFILTER:
+    description: "Integrate over photometric filters if available when fitting photometric data. Set to 0 to just fit the wavelength point. Does nothing if fitphot is false"
+    value: false
+  EXTORABS:
+    description: "Use 'EXT'=K_Ext (absorption + scattering) -or- 'ABS'=K_Abs (absorption only) model when creating extinction curves."
+    value: "EXT"
+  DRAINE_OR_OHMC:
+    description: "Use 'Draine' or 'OHMc' dust model (the primary difference is in the 9.7 and 18 micron silicate features). See Marshall et al. (2018) and references therein."
+    value: "OHMc"
+
+"REFERENCE WAVELENGTHS":
+  WAVE_CIR:
+    description: "Reference wavelengths for different components, in um."
+    value: 450.0
+  WAVE_CLD:
+    value: 70.0
+  WAVE_COO:
+    value: 24.0
+  WAVE_WRM:
+    value: 14.0
+  WAVE_HOT:
+    value: 3.5
+  WAVE_STR:
+    value: 1.6
+  WAVE_STB:
+    value: 2.0
+  WAVE_DSK:
+    value: 10.0
+  WAVE_DST:
+    value: 9.7
+  WAVE_PAH:
+    value: 6.22

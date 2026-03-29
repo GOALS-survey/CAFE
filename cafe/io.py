@@ -29,15 +29,26 @@ class cafe_io:
 
     @staticmethod
     def get_table_path(inopts):
-        """Locate the tables directory.
+        """Return the resolved table directory — always a valid path.
 
-        Uses the built-in package data via importlib.resources unless the user
-        has explicitly set TABPATH in their options file.
+        Returns TABPATH if explicitly set, otherwise the bundled tables
+        directory. Use this when passing a directory to functions that
+        open multiple table files (e.g. grain_emissivity).
         """
-        if inopts["PATHS"]["TABPATH"]:
-            return inopts["PATHS"]["TABPATH"]
+        tabpath = inopts.get("PATHS", {}).get("TABPATH", "") or ""
+        if tabpath and os.path.isdir(tabpath):
+            return tabpath
         from cafe.paths import get_table_path as _get_table_path
         return _get_table_path()
+
+    @staticmethod
+    def get_custom_table_dir(inopts):
+        """Return just the raw TABPATH value (may be empty string).
+
+        Use this as the custom_dir argument to resolve_table_file() for
+        per-file fallback — empty string means use bundled tables only.
+        """
+        return inopts.get("PATHS", {}).get("TABPATH", "") or ""
 
     @staticmethod
     def get_output_path(output_dir, file_name=None):
@@ -173,6 +184,7 @@ class cafe_io:
         """
         instnames: instrument/module names, taken from the .ini list (list)
         """
+        from cafe.paths import resolve_table_file
 
         wMins = np.asarray([])
         wMaxs = np.asarray([])
@@ -181,7 +193,8 @@ class cafe_io:
 
         if instnames[0] != "PHOTOMETRY":
             # Load all files in the resolving power folder
-            files = os.listdir(os.path.join(tablePath, "resolving_power/"))
+            rp_dir = resolve_table_file(tablePath, "resolving_power")
+            files = os.listdir(rp_dir)
             for i in files:  # exclude hidden files from mac
                 if i.startswith("."):
                     files.remove(i)
@@ -202,13 +215,13 @@ class cafe_io:
             for inst_fn in inst_files:
                 try:
                     data = np.genfromtxt(
-                        os.path.join(tablePath, "resolving_power", inst_fn),
+                        resolve_table_file(tablePath, "resolving_power", inst_fn),
                         comments=";",
                     )
                 except:
                     try:
                         rfitstable = fits.open(
-                            os.path.join(tablePath, "resolving_power", inst_fn)
+                            resolve_table_file(tablePath, "resolving_power", inst_fn)
                         )
                         data = np.full(5, np.nan)
                         data[1] = rfitstable[1].data[0][0]  # Min wave
@@ -289,6 +302,85 @@ class cafe_io:
             sys.exit()
 
         return cdict
+
+    @staticmethod
+    def read_yamlfile(fname):
+        """Read a CAFE YAML parameter file and return the same dict structure
+        as read_inifile(), so the rest of the code works identically
+        regardless of which format was used.
+
+        YAML parameter entries can be either:
+          - A plain scalar value (e.g. ``SOURCE_CIR: ISRF``)
+          - A rich dict with keys ``value``, ``vary``, ``bounds``, and
+            optionally ``expression`` and ``description``.
+
+        In the rich-dict case the value is converted to the same
+        ``[value, vary, lo, hi]`` or ``[value, vary, lo, hi, expr]`` list
+        that configparser produces so downstream code sees no difference.
+        """
+        import yaml
+
+        with open(fname, "r") as f:
+            raw = yaml.safe_load(f)
+
+        cdict = {}
+        for section, contents in raw.items():
+            sdict = {}
+            if not isinstance(contents, dict):
+                cdict[section] = contents
+                continue
+            for key, val in contents.items():
+                # Skip metadata / description keys
+                if key.startswith("_"):
+                    continue
+                key_upper = key.upper()
+                if isinstance(val, dict) and "value" in val and "vary" in val:
+                    # Fit parameter entry (has value + vary) → convert to list
+                    entry = [val["value"], val["vary"]]
+                    bounds = val.get("bounds", None)
+                    if bounds is not None:
+                        lo = -np.inf if bounds[0] in (None, "-.inf") else bounds[0]
+                        hi =  np.inf if bounds[1] in (None,  ".inf") else bounds[1]
+                        entry += [lo, hi]
+                    expr = val.get("expression", None)
+                    if expr is not None:
+                        entry.append(expr)
+                    sdict[key_upper] = entry
+                elif isinstance(val, dict) and "value" in val:
+                    # Simple config entry (has value but no vary) → return scalar
+                    # Try to coerce string numerics (e.g. '1e-05') to Python numbers,
+                    # matching the ast.literal_eval behaviour in read_inifile.
+                    scalar = val["value"]
+                    if isinstance(scalar, str):
+                        try:
+                            scalar = ast.literal_eval(scalar)
+                        except (ValueError, SyntaxError):
+                            pass  # keep as string (e.g. 'ISRF', 'OHMc', '')
+                    sdict[key_upper] = scalar
+                else:
+                    # Plain scalar — same coercion for bare string values
+                    scalar = val
+                    if isinstance(scalar, str):
+                        try:
+                            scalar = ast.literal_eval(scalar)
+                        except (ValueError, SyntaxError):
+                            pass
+                    sdict[key_upper] = scalar
+            cdict[section] = sdict
+
+        return cdict
+
+    @staticmethod
+    def read_parfile(fname):
+        """Dispatcher: read a parameter file in either .ini or .yaml format.
+
+        Both return the same nested dictionary so the rest of the code is
+        format-agnostic.
+        """
+        ext = os.path.splitext(fname)[-1].lower()
+        if ext in (".yaml", ".yml"):
+            return cafe_io.read_yamlfile(fname)
+        return cafe_io.read_inifile(fname)
 
     @staticmethod
     def write_inifile(params, opts, fname):

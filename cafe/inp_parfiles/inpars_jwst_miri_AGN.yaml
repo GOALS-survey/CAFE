@@ -1,0 +1,341 @@
+# Converted from inpars_jwst_miri_AGN.ini
+
+METADATA:
+  OBJECT:
+    description: "This section is default empty, and is filled in when fit results are written out. Records all the inputs when the fit is run, the time, and the location of the outputs/logfile for the run."
+    value: ""
+  INPARS:
+    value: ""
+  Z:
+    value: ""
+  RUNOPTS:
+    value: ""
+  TIME:
+    value: ""
+  OUTDIR:
+    value: ""
+  LOGFILE:
+    value: ""
+  RA:
+    value: ""
+  DEC:
+    value: ""
+  XSPAXEL:
+    value: ""
+  YSPAXEL:
+    value: ""
+
+"COMPONENT SOURCE SEDs":
+  SOURCE_CIR:
+    description: "These are the SEDs used as the heating sources for each dust component. In other words, the radiation field SEDs listed here illuminate and heat the indicated dust component. Options for source SEDs are: 'ISRF', 'AGN', 'SB2MYR', 'SB10MYR', and 'SB100MYR' (the latter of which are SB99 models). Changing this parameter will likely have a near-negligible impact on most dust emission SEDs but the option to change the heating SED is provided for completeness and to allow experimentation in various situations."
+    value: "ISRF"
+  SOURCE_CLD:
+    value: "ISRF"
+  SOURCE_COO:
+    value: "ISRF"
+  SOURCE_WRM:
+    value: "ISRF"
+  SOURCE_HOT:
+    value: "AGN"
+
+"MODULES & TABLES":
+  RESOLUTIONS:
+    value: ["MIRI_CH1S", "MIRI_CH1M", "MIRI_CH1L", "MIRI_CH2S", "MIRI_CH2M", "MIRI_CH2L", "MIRI_CH3S", "MIRI_CH3M", "MIRI_CH3L", "MIRI_CH4S", "MIRI_CH4M", "MIRI_CH4L"]
+  ATOMIC_INPUT:
+    description: "Initial values and properties of emission lines are obtained from the files available in the 'tables' directory"
+    value: "lines.atomic_AGN.txt"
+  MOLECULAR_INPUT:
+    value: "lines.molecular_AGN.txt"
+  HRECOMB_INPUT:
+    value: "lines.H_recombination_AGN.txt"
+  PAH_INPUT:
+    value: "pah_template.txt"
+  GOPACITIES_INPUT:
+    value: "gauss_opacity.ecsv"
+
+"PAH & LINE OPTIONS":
+  FITWAVE0_PAH:
+    description: "Settings that control the fitting of the PAH complexes and emission lines. Initial values of the properties of PAH features are defined and obtained from the 'jam_pahdrude.pro' routine. Let the central wavelengths of PAHs vary during the fit?"
+    value: false
+  FITGAMMA_PAH:
+    description: "Let the widths of PAH features vary during the fit?"
+    value: false
+  FITWAVE0_LIN_N:
+    description: "Let the central wavelengths of lines vary during the fit?"
+    value: false
+  FITWAVE0_LIN_B:
+    value: true
+  FITGAMMA_LIN_N:
+    description: "Let the widths of emission lines vary during the fit?"
+    value: false
+  FITGAMMA_LIN_B:
+    value: true
+  FITWAVE0_OPC:
+    value: false
+  FITGAMMA_OPC:
+    value: false
+  FITVGRAD:
+    description: "Velocity shift applied to all narrow components, mimicking a rotation gradient."
+    value: true
+  EPSWAVE0_PAH:
+    description: "The following all set how much each of the parameters is allowed to fractionally vary. A value of -1 indicates that a parameter is allowed to vary freely from its initial value. PAHs Wave0 -> +/- [km/s]"
+    value: 500.0
+  EPSGAMMA_PAH:
+    description: "FWHM -> 0.2D = +/- 20% ; relative quantity / minimum is set to resolution."
+    value: 0.2
+  EPSPEAK_PAH:
+    description: "Peak PAH flux densities range freely by default."
+    value: -1.0
+  EPSWAVE0_LIN_N:
+    description: "Lines Wave0 -> +/- [km/s]"
+    value: 100.0
+  EPSWAVE0_LIN_B:
+    value: 500.0
+  EPSGAMMA_LIN_N:
+    description: "FWHM -> max(EPSGamma_LIN_N/B + [km/s], 1.05*resolution(lambda))"
+    value: 400.0
+  EPSGAMMA_LIN_B:
+    value: 2000.0
+  EPSPEAK_LIN:
+    description: "Peak line flux densities range freely by default."
+    value: -1.0
+  EPSWAVE0_OPC:
+    description: "Absorption features"
+    value: 500.0
+  EPSGAMMA_OPC:
+    value: 0.2
+  EPSPEAK_OPC:
+    value: 1.0
+  EPSVGRAD:
+    description: "Velocity gradient. Note that if FitVgrad = True, then EPSWave0_LIN_N, EPSWave0_PAH and EPSWave0_OPC must be > EPSVgrad"
+    value: 100.0
+
+"CONTINUA INITIAL VALUES AND OPTIONS":
+
+  # "CIRRUS" DUST COMPONENT
+  CIR_FLX:
+    description: "CIR dust component initial flux ratio @Wave_CIR (see above)."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  CIR_TMP:
+    value: 3.74
+    vary: false
+    bounds: [0.0, .inf]
+
+  # "COLD" DUST COMPONENT
+  CLD_FLX:
+    description: "-----------------------------------------------------------------------------# CLD dust component initial flux ratio @Wave_CLD."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  CLD_TMP:
+    description: "CLD dust component initial temperature."
+    value: 6.89
+    vary: false
+    bounds: [0.0, .inf]
+
+  # "COOL" DUST COMPONENT
+  COO_FLX:
+    description: "-----------------------------------------------------------------------------# COO dust component initial flux ratio @Wave_COO."
+    value: 0.65
+    vary: true
+    bounds: [0.0, 2.0]
+  COO_TMP:
+    description: "COO dust component initial temperature."
+    value: 75.0
+    vary: true
+    bounds: [0.0, .inf]
+  COO_TAU:
+    description: "Initial tau(9.7um) to COO dust component."
+    value: 2.0
+    vary: true
+    bounds: [0.0, .inf]
+  COO_MIX:
+    description: "Fraction of extinction from mixed mode ([1-exp(-tau)]/tau)."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 1.0]
+  COO_COV:
+    description: "Fraction of COO dust component covered by this extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1.0]
+
+  # "WARM" DUST COMPONENT
+  WRM_FLX:
+    description: "-----------------------------------------------------------------------------# WRM dust component initial flux ratio @Wave_WRM."
+    value: 0.3
+    vary: true
+    bounds: [0.0, 2.0]
+  WRM_TMP:
+    description: "WRM dust component initial temperature."
+    value: 135.0
+    vary: true
+    bounds: [0.0, .inf]
+  WRM_TAU:
+    description: "Initial tau(9.7um) to WRM dust component."
+    value: 0.1
+    vary: true
+    bounds: [0.0, .inf]
+  WRM_MIX:
+    description: "Fraction of extinction from mixed mode ([1-exp(-tau)]/tau)."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 1.0]
+  WRM_COV:
+    description: "Fraction of WRM dust component covered by this extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1.0]
+
+  # "HOT" DUST COMPONENT
+  HOT_FLX:
+    description: "-----------------------------------------------------------------------------# HOT dust component initial flux ratio @Wave_HOT."
+    value: 0.3
+    vary: true
+    bounds: [0.0, 2.0]
+  HOT_TMP:
+    description: "_HOT_TMP = 571.6 -> <HOT_TMP> = 1250K."
+    value: 500.0
+    vary: true
+    bounds: [100.0, 1027.2]
+  HOT_TAU:
+    description: "Initial tau(9.7um) to HOT dust component."
+    value: 0.5
+    vary: true
+    bounds: [0.0, .inf]
+  HOT_MIX:
+    description: "Fraction of extinction from mixed mode ([1-exp(-tau)]/tau)."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 1.0]
+  HOT_COV:
+    description: "Fraction of HOT dust component covered by this extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1.0]
+
+  # "STELLAR" COMPONENT (ISRF)
+  STR_FLX:
+    description: "-----------------------------------------------------------------------------# STR component initial flux ratio @Wave_STR."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  STR_TAU:
+    description: "Initial tau(9.7um) to STR component."
+    value: 0.0
+    vary: false
+    bounds: [0.0, .inf]
+  STR_MIX:
+    description: "Fraction of extinction from mixed mode ([1-exp(-tau)]/tau)."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1]
+  STR_COV:
+    description: "Fraction of STR component covered by this extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1]
+
+  # "STARBURST" COMPONENT (SB99) [See Marshall et al. (2007)]
+  STB_FLX:
+    description: "-----------------------------------------------------------------------------# STB component initial flux ratio @Wave_STB."
+    value: 0.2
+    vary: true
+    bounds: [0.0, 2.0]
+  STB_TAU:
+    description: "Initial tau(9.7um) to STB component."
+    value: 0.5
+    vary: true
+    bounds: [0.0, .inf]
+  STB_MIX:
+    description: "Fraction of extinction from mixed mode ([1-exp(-tau)]/tau)."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 1.0]
+  STB_COV:
+    description: "Fraction of STB component covered by this extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1.0]
+  STB_100:
+    description: "Fraction of STB component from SB99-100Myr model."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 1.0]
+  STB_010:
+    description: "Fraction of remaining STB component from SB99-10Myr model (the remainder is modeled from the SB99-2Myr model)."
+    value: 0.8
+    vary: true
+    bounds: [0.0, 1.0]
+
+  # "DISK" COMPONENT (AGN ACCRETION DISK) [See Marshall et al. (2007)]
+  DSK_FLX:
+    description: "-----------------------------------------------------------------------------# DSK component initial flux ratio @Wave_DSK."
+    value: 0.15
+    vary: true
+    bounds: [0.0, 2.0]
+  DSK_TAU:
+    description: "Screen extinction: tau_DSK(9.7)=2.13 -> tau_DSK(V)=25"
+    value: 0.1
+    vary: true
+    bounds: [0.0, 2.0]
+  DSK_COV:
+    description: "Fraction of DSK component covered by this screen extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1]
+
+  # "PAH" COMPONENT
+  PAH_FLX:
+    description: "-----------------------------------------------------------------------------# PAH component initial flux ratio @Wave_PAH."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 2.0]
+  PAH_TAU:
+    description: "Initial tau(9.7um) to PAH component."
+    value: 0.0
+    vary: false
+    bounds: [0.0, .inf]
+    expression: "WRM_TAU"
+  PAH_MIX:
+    description: "Fraction of extinction from mixed mode ([1-exp(-tau)]/tau)."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1.0]
+  PAH_COV:
+    description: "Fraction of PAH component covered by this extinction."
+    value: 1.0
+    vary: false
+    bounds: [0.0, 1.0]
+  ICE3_TAU:
+    description: "-----------------------------------------------------------------------------# ADDITIONAL OPACITY SOURCES (The following are added equally to all components with non-zero dust extinction. The physical model is therefore that these opacity sources exist within a cold screen surrounding all components. See 'ice_opacity.txt', 'hac_opacity.txt', and 'add_opacity.txt'.) 3.0 micron optical depth due to water ice."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  ICE6_TAU:
+    description: "6.1 micron optical depth due to water ice."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  CO2_TAU:
+    description: "4.27 micron optical depth due to CO2"
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  HAC_TAU:
+    description: "6.85 + 3.4 micron optical depth due to HAC."
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
+  CORV_TAU:
+    description: "4.67 (4.60+4.73) micron optical depth due to CO ro-vib."
+    value: 0.0
+    vary: false
+    bounds: [0, 2.0]
+  CRYSI_233_TAU:
+    description: "Crystalline silicate at 23.3 um"
+    value: 0.0
+    vary: false
+    bounds: [0.0, 2.0]
