@@ -1839,6 +1839,22 @@ class CAFE_prof_generator:
         sourceStr = sed["sourceStr"]
         sourceDsk = sed["sourceDsk"]
 
+        # =========================================================
+        # τ_crossover table for PAH effective optical-depth correction
+        # =========================================================
+        # Pre-compute the Kirchhoff self-cancellation optical depth as a
+        # function of the WRM radiation-field temperature.  At fit time we
+        # interpolate this table (one np.interp call) rather than solving
+        # for the crossover point iteratively on every function evaluation.
+        # The WRM emissivity grid is used because PAH_TAU is tied to WRM_TAU.
+        # Controlled by SWITCHES -> PAH_TAU_XOVER_CORR in the opt file:
+        #   false (default) -> original behaviour, PAH_TAU = WRM_TAU as-is
+        #   true            -> subtract τ_crossover before applying attenuation
+        tau_crossover = compute_tau_crossover_table(waveMod, E_WRM, kAbs)
+        use_tau_xover_corr = bool(
+            inopts.get("SWITCHES", {}).get("PAH_TAU_XOVER_CORR", False)
+        )
+
         # ---
         cont_profs = {
             "waveMod": waveMod,  # wavelength sampling
@@ -1857,6 +1873,8 @@ class CAFE_prof_generator:
             "kCrySi_233": kCrySi_233,  # crystalline silicate opacity
             "kAbs": kAbs,
             "kExt": kExt,  # (Carb, Sil) grain opacity
+            "tau_crossover": tau_crossover,      # Kirchhoff τ_crossover(T_bb) table
+            "use_tau_xover_corr": use_tau_xover_corr,  # toggle for PAH τ correction
             "source100Myr": source100Myr,
             "source10Myr": source10Myr,  # SED
             "source2Myr": source2Myr,
@@ -2044,7 +2062,7 @@ class CAFE_cube_generator:
             for i, k in zip(np.arange(len(waveMod)), self.cont_profs["waveMod"])
         ]
         waves_rec = np.rec.array(
-            waves_tbl, formats="int16, float16", names="idx, wave"
+            waves_tbl, formats="int32, float32", names="idx, wave"
         )
 
         waves = fits.BinTableHDU(waves_rec.copy(), name="WAVE")
@@ -2171,11 +2189,11 @@ def parobj2parcube(parobj, parcube, x=0, y=0):
             ind = (
                 parcube["PARNAME"].data["parname"].tolist().index(parname)
             )  # find the index (parameter) that matches the parname in the z dimension
-        except:
-            # ipdb.set_trace()
-            raise ValueError(
-                "Parameter in parameter object is not in parameter cube, which should have all the parameters"
-            )
+        except ValueError:
+            # Parameter not found in parcube — skip it.
+            # This happens for synthetic Onion ratio parameters (HOT_WRM, WRM_COO)
+            # which are added dynamically during fitting and have no parcube slot.
+            continue
         else:
             for i, item in zip(
                 ["VALUE", "STDERR", "VARY", "MIN", "MAX"],

@@ -827,8 +827,18 @@ class specmod(cafe_io):
 
         self.params = result.params
 
+        # If the Onion model was used, resolve the ratio expressions before writing to parcube.
+        # HOT_TAU and COO_TAU were set via lmfit expressions (HOT_WRM * WRM_TAU, WRM_TAU / WRM_COO).
+        # The parcube has no slots for HOT_WRM / WRM_COO, so we bake in the evaluated values
+        # and clear the expressions so that parcube2parobj can reconstruct independent params later.
+        for _ratio_par, _expr_par in [("HOT_WRM", "HOT_TAU"), ("WRM_COO", "COO_TAU")]:
+            if _ratio_par in self.params:
+                _val = self.params[_expr_par].value  # already evaluated by lmfit
+                self.params[_expr_par].set(value=_val, expr=None)
+                del self.params[_ratio_par]
+
         # Inject the result into the pre-existing parameter cube and update parcube with the new result
-        parcube = parobj2parcube(result.params, self.parcube)
+        parcube = parobj2parcube(self.params, self.parcube)
         self.parcube = parcube
 
         # Get compdict
@@ -1019,6 +1029,9 @@ class specmod(cafe_io):
         gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
 
         # spec_dict and phot_dict have the flux unit of Jy
+        pahext_intrinsic = pahext_intrinsic_or_none(
+            extComps["extPAH"], params, cont_profs, self.inopts
+        )
         (fig, ax1, ax2) = cafeplot(
             spec_dict,
             phot_dict,
@@ -1027,6 +1040,7 @@ class specmod(cafe_io):
             gauss,
             drude,
             pahext=extComps["extPAH"],
+            pahext_intrinsic=pahext_intrinsic,
         )
 
         return (fig, ax1, ax2)
@@ -1085,6 +1099,9 @@ class specmod(cafe_io):
         # cafefig, ax1, ax2 = cafeplot(spec_dict, phot_dict, CompFluxes, gauss, drude, fnu_unit=self.fnu_unit, vgrad=vgrad, pahext=extComps['extPAH'])
 
         # spec_dict and phot_dict have the flux unit of Jy
+        pahext_intrinsic = pahext_intrinsic_or_none(
+            extComps["extPAH"], params, cont_profs, self.inopts
+        )
         fig, ax1, ax2 = cafeplot(
             spec_dict,
             phot_dict,
@@ -1093,6 +1110,7 @@ class specmod(cafe_io):
             gauss,
             drude,
             pahext=extComps["extPAH"],
+            pahext_intrinsic=pahext_intrinsic,
         )
 
         if savefig is not None:

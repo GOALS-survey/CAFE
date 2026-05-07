@@ -388,35 +388,40 @@ def chisquare(params, spec, phot, cont_profs, show=True):
         )
     )
 
-    # *** Need to use the params to get the total continuum profile, and perform
-    # a smoothness penalty on it
-
-    # Note that this is the root of the thing who's sum you want to minimize
-    # lmfit is kind of weird like that
-    # redchi = (weights*(flux-model)**2).sum()/(wave.size-np.size(params))
-    # redchis.append(redchi)
-    # print(redchis[-1])
-    # if len(redchis) > 1:
-    #    if redchis[-1] != redchis[-2]: print('chi^2/DOF:', redchi)
-    # if show and redchis[-2] - redchis[-1] > 1e-3:
-    # txt = 'chi^2/DOF: ' +  str(np.round(redchi,3)).ljust(6)
-    # sys.stdout.write('\r'+txt)
-    # sys.stdout.flush()
-    # print('chi^2/DOF:', np.round(redchi,3))
-
-    # ipdb.set_trace()
+    # Soft upper-bound penalty on continuum component TAU parameters.
+    # Extremely large tau values produce unphysical kinks in the continuum
+    # driven by the steep opacity profile.  Each entry is
+    # (param_name, threshold, penalty_weight).  The penalty contributes
+    # sqrt(weight) * max(0, tau - threshold) as an extra residual element,
+    # adding weight * max(0, tau - threshold)^2 to the effective chi^2.
+    _TAU_PENALTIES = [
+        ("COO_TAU", 10.0, 1e-2),
+        ("WRM_TAU", 10.0, 1e-0),
+        ("HOT_TAU", 20.0, 1e-0),
+        ("STR_TAU", 5.0, 1e-1),
+        ("STB_TAU", 5.0, 1e-1),
+        ("DSK_TAU", 5.0, 1e-1),
+    ]
+    penalty_terms = []
+    for _pname, _threshold, _weight in _TAU_PENALTIES:
+        if _pname in params:
+            _excess = max(0.0, params[_pname].value - _threshold)
+            penalty_terms.append(np.sqrt(_weight) * _excess)
+    penalty = np.array(penalty_terms)
 
     if phot is None:
         weights = 1.0 / spec["flux_unc"] ** 2
 
-        return (spec["flux"] - model) * np.sqrt(weights)
+        return np.concatenate(
+            [(spec["flux"] - model) * np.sqrt(weights), penalty]
+        )
     else:
         weights = np.concatenate(
             (1.0 / spec["flux_unc"] ** 2, 1.0 / phot["flux_unc"] ** 2)
         )
         flux = np.concatenate((spec["flux"], phot["flux"]))
 
-        return (flux - model) * np.sqrt(weights)
+        return np.concatenate([(flux - model) * np.sqrt(weights), penalty])
 
 
 # def redchi(obs, model, weights, npars=0):
@@ -1393,6 +1398,68 @@ def get_temp_from_params(params, comp_name):
     return f" ({params[f'{comp_name}_TMP'].value:.0f}$\\,$K)"
 
 
+def pahext_intrinsic_or_none(extPAH, params, cont_profs, inopts):
+    """Return the intrinsic PAH attenuation curve when PAH_TAU_XOVER_CORR is
+    enabled, or None when the toggle is off (preserving original behaviour).
+
+    Intended as a thin helper for fitter.py call sites so the toggle logic
+    lives in one place rather than being duplicated at every cafeplot call.
+    """
+    use_xover = bool(
+        inopts.get("SWITCHES", {}).get("PAH_TAU_XOVER_CORR", False)
+    )
+    if not use_xover or "tau_crossover" not in cont_profs:
+        return None
+    tc = cont_profs["tau_crossover"]
+    tau_xover = float(np.interp(
+        float(params["WRM_TMP"].value),
+        tc["T_bb"], tc["tau"],
+        left=tc["tau"][0], right=tc["tau"][-1],
+    ))
+    return compute_pahext_intrinsic(extPAH, tau_xover, cont_profs)
+
+
+def compute_pahext_intrinsic(extPAH, tau_xover, cont_profs):
+    """Return the intrinsic PAH attenuation curve after removing Kirchhoff
+    self-cancellation from the silicate column (post-fit, for plotting only).
+
+    The model is always run with the full WRM_TAU applied to PAHs.  This
+    function corrects the *plotted* attenuation curve by subtracting
+    tau_xover — the optical depth at which silicate grain emissivity and
+    screen absorption cancel exactly — so the curve reflects the column
+    that genuinely attenuates the PAH emission rather than the inflated
+    WRM_TAU.
+
+    Derivation (exact for screen mode / PAH_MIX = 0):
+        extPAH_orig      = exp(-PAH_TAU * kTot - tauFeats)
+        extPAH_intrinsic = exp(-pah_tau_intrinsic * kTot - tauFeats)
+                         = extPAH_orig * exp(+tau_xover * kTot)
+
+    For PAH_MIX > 0 the correction is approximate but the standard
+    CAFE setup uses PAH_MIX = 0 (screen), so this is exact in practice.
+
+    Parameters
+    ----------
+    extPAH : ndarray
+        PAH attenuation curve from the model (extComps["extPAH"]).
+    tau_xover : float
+        τ_crossover interpolated at WRM_TMP from cont_profs["tau_crossover"].
+    cont_profs : dict
+        As returned by make_cont_profs(); provides waveMod and kAbs.
+
+    Returns
+    -------
+    ndarray
+        Intrinsic PAH attenuation curve, clipped to [0, 1].
+    """
+    waveMod  = cont_profs["waveMod"]
+    kAbsTot  = cont_profs["kAbs"]["Carb"] + cont_profs["kAbs"]["SilAmoTot"]
+    idxMax   = (waveMod > 8.5) & (waveMod < 11.0)
+    kAbsTot0 = np.nanmax(kAbsTot[idxMax])
+    kTot_norm = kAbsTot / kAbsTot0
+    return np.clip(extPAH * np.exp(tau_xover * kTot_norm), 0.0, 1.0)
+
+
 def cafeplot(
     spec,
     phot,
@@ -1403,6 +1470,7 @@ def cafeplot(
     vgrad={"VGRAD": 0.0},
     plot_drude=True,
     pahext=None,
+    pahext_intrinsic=None,
     savefig=False,
     params=None,
 ):
@@ -1658,7 +1726,19 @@ def cafeplot(
         color="gray",
         alpha=0.5,
         linewidth=0.6,
+        label=r"Attenuation (WRM$_\tau$)",
     )
+    if pahext_intrinsic is not None:
+        ax11.plot(
+            wavemod,
+            pahext_intrinsic,
+            linestyle="dashed",
+            color="tab:orange",
+            alpha=0.7,
+            linewidth=0.8,
+            label=r"Attenuation (intrinsic PAH$_\tau$)",
+        )
+        ax11.legend(loc="upper right", fontsize=8)
     ax11.set_ylim(0, 1.1)
     ax11.set_ylabel(
         r"Attenuation fraction $_{\rm{Warm\,dust, PAHs, Lines}}$", fontsize=14
@@ -1666,8 +1746,19 @@ def cafeplot(
     ax11.tick_params(axis="y", labelsize=10)
     # ax11.tick_params(direction='in', which='both', length=4, width=0.8, right=True)
 
-    min_flux = np.nanmin(spec["flux"][np.r_[0:5, -5 : len(spec["flux"])]])
-    max_flux = np.nanmax(spec["flux"][np.r_[0:5, -5 : len(spec["flux"])]])
+    # Compute y-axis limits using only positive flux values across the full
+    # spectrum, since log-scale axes cannot handle zero or negative limits.
+    # Negative fluxes are noise realizations — they are kept in the fit but
+    # cannot be displayed on a log scale and are simply clipped below the axis.
+    _pos_flux = spec["flux"][spec["flux"] > 0] * fnu_scaling
+    if len(_pos_flux) > 0:
+        _plot_bottom = 0.1 * np.nanmin(_pos_flux)
+        _plot_top = 2.0 * np.nanmax(_pos_flux)
+    else:
+        # Pathological case: entire spectrum is non-positive.
+        # Use model flux range as fallback.
+        _plot_bottom = 1e-6
+        _plot_top = 1.0
 
     # if fnu_unit == u.Jy:
     #     print_fnu_unit = 'Jy'
@@ -1682,10 +1773,7 @@ def cafeplot(
     ax1.tick_params(direction="in", which="both", length=6, width=1, top=True)
     ax1.tick_params(axis="x", labelsize=0)
     ax1.tick_params(axis="y", labelsize=12)
-    ax1.set_ylim(
-        bottom=0.1 * np.nanmin(min_flux) * fnu_scaling,
-        top=2.0 * np.nanmax(max_flux) * fnu_scaling,
-    )
+    ax1.set_ylim(bottom=_plot_bottom, top=_plot_top)
     # ax1.set_xlim(left=2.5, right=36)
     ax1.set_xlim(np.nanmin(wave) / 1.2, 1.2 * np.nanmax(wave))
     ax1.set_ylabel(r"$f_\nu$ ({})".format(fnu_unit.name), fontsize=14)
@@ -1704,8 +1792,16 @@ def cafeplot(
     ax1.xaxis.set_major_formatter(ScalarFormatter())
 
     interpMod = np.interp(wave, comps["wave"], fMod)
-    res = (flux - interpMod) / flux * 100  # in percentage
-    std = np.nanstd(res)
+    # Normalise residuals by the model rather than the data to avoid division
+    # by zero / very small numbers when flux is near zero or negative.
+    with np.errstate(divide="ignore", invalid="ignore"):
+        res = np.where(
+            interpMod != 0, (flux - interpMod) / np.abs(interpMod) * 100, np.nan
+        )
+    # Use only finite residuals for the std so that Inf values from noisy
+    # regions don't propagate into the axis limits.
+    res_finite = res[np.isfinite(res)]
+    std = np.nanstd(res_finite) if len(res_finite) > 0 else 1.0
     ax2.plot(wave, res, color="k", linewidth=1)
     # ax2.plot(wave, (spec['flux']-interpMod)/func, color='k')
     ax2.axhline(0.0, color="k", linestyle="--")
@@ -1714,7 +1810,9 @@ def cafeplot(
     )
     ax2.tick_params(axis="x", labelsize=12)
     ax2.tick_params(axis="y", labelsize=12)
-    ax2.set_ylim(-4 * std, 4 * std)
+    # Guard against non-finite std (e.g. if all residuals are NaN)
+    _res_lim = 4 * std if np.isfinite(std) and std > 0 else 100.0
+    ax2.set_ylim(-_res_lim, _res_lim)
     # ax2.set_ylim(bottom=-4, top=4)
     ax2.set_xlabel(r"$\lambda_{\rm{rest}}$ $(\mu \rm{m})$", fontsize=14)
     # ax2.set_ylabel(r'$f^{data}_\nu - f^{tot}_\nu$ $(\sigma)$', fontsize=14)
@@ -2055,25 +2153,33 @@ def check_fit_pars(
 
             ### Deal with onion parameters hitting a bound
             elif fit_params[par].vary and par in ["HOT_WRM", "WRM_COO"]:
+                # HOT_WRM and WRM_COO are synthetic ratio parameters not in inpars;
+                # only check whether they have collapsed to their minimum (=1),
+                # which means the data do not support the Onion ordering constraint.
                 if np.allclose(
                     fit_params[par].min,
                     fit_params[par].value,
                     atol=0.0,
                     rtol=1e-5,
-                ) or np.allclose(
-                    fit_params[par].value,
-                    self.inpars["CONTINUA INITIAL VALUES AND OPTIONS"][par][0],
-                    atol=0.0,
-                    rtol=1e-5,
-                ):  # relative comparisons
-                    raise RuntimeError(
-                        "Onion parameter "
-                        + par
-                        + " failed, rerunning fit without Onion constrains."
+                ):
+                    print(
+                        f"WARNING: Onion parameter {par} collapsed to its minimum — "
+                        "the data do not support the layered geometry for this source. "
+                        "Disabling Onion and rerunning fit with independent TAU parameters."
                     )
-                    # logFile.write(par+' failed, turning off onion\n')
+                    # Strip Onion expressions and ratio params from params so the
+                    # next iteration runs with HOT_TAU and COO_TAU as free parameters.
+                    for _ratio_par, _expr_par in [
+                        ("HOT_WRM", "HOT_TAU"),
+                        ("WRM_COO", "COO_TAU"),
+                    ]:
+                        if _ratio_par in params:
+                            params[_expr_par].set(
+                                value=params[_expr_par].value, expr=None
+                            )
+                            del params[_ratio_par]
                     self.inopts["SWITCHES"]["ONION"] = False
-                    # acceptFit = False
+                    return False  # trigger a rerun without Onion constraints
 
         else:
             # ---------------------------------

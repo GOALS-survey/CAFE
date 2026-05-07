@@ -68,6 +68,9 @@ SWITCHES:
   ERRSPEC:
     description: "Add a constant fractional uncertainty to spec data"
     value: 0.0
+  PAH_TAU_XOVER_CORR:
+    description: "Subtract τ_crossover(WRM_TMP) from PAH_TAU before computing PAH attenuation. τ_crossover is the 9.7 µm optical depth at which silicate grain emissivity and screen absorption cancel (Kirchhoff self-cancellation), so WRM_TAU is inflated relative to the column actually seen by PAHs. Setting this to true recovers a less-overcorrected intrinsic PAH flux. Set to false to revert to the original behaviour (PAH_TAU = WRM_TAU applied directly)."
+    value: true
 
 "OUTPUT FILE OPTIONS":
   OVERWRITE:
