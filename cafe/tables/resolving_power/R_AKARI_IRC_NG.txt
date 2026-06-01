@@ -1,0 +1,71 @@
+;+ ===========================================================================
+; DESCRIPTION: 
+;       Linear dependence of resolving power from wavelength, for the
+;           AKARI IRC
+;       instrument, expressed in the form:
+;           R(nu) = R_SLOPE * nu + R_BIAS
+;
+;       The value for the NG module is the results of the discussion with
+;       the AKARI team, from which it emerged that:
+;
+;       - As a first approximation, delta_lambda is constant in
+;         the IRC/NIR/NG system, so that R = lambda / delta_lambda
+;         depends on lamda.
+;       - Tiny correction from the wavelength dependency of refractive index
+;         is derived by Baba-san and going to be published in the PASJ AKARI
+;         special issue as well as Baba et al. 2016, PASJ, 68, 27.
+;       - delta_lambda from pre-flight (laboratory) measurements is given
+;         in the observation manual etc. as 0.0097 um/pixel.
+;       - Practically the resolution (delta_lambda) depends on the PSF size
+;         on the detector (for point sources) or slit width (for diffuse light).
+;        It is approximately 3 pix (see IRC Data User's Manual).
+;                          
+;       See also:
+;         Ohyama et al. 2007, PASJ, 59, S411-422 - Table 1
+;         http://esoads.eso.org/abs/2007PASJ...59S.411O
+;
+;       Therefore, the resolution dependence from wavelength is here
+;       approximated as:
+;
+;         R ~ lambda [um] / delta_lambda [um]
+;           ~ lambda [um] / (0.0097 [um/pixel] *  3 [pixel])
+;           ~ lambda [um] / 0.0291 [um]
+;
+;       Or, equivalently, that the slope of R as a function of lambda is:
+;
+;         R_slope ~ 1 / 0.0291 = 34.4
+;
+;       for the IRC/NIR/NG module.
+;
+;
+; MODIFICATION HISTORY:
+;
+;       09/11/2018: created
+;
+;       > Updated:   -
+;       > Corrected: -
+;       > Fixed:     -  
+;
+; MEMO:
+; 
+; NOTICE:
+;
+;-
+;-------------------------------------------------------------------------------
+
+;+
+;> Instrument module  = ''
+;> Wavelength - min   = 'um'
+;> Wavelength - MAX   = 'um'
+;> Resolution - slope = ''
+;> Resolution - bias  = ''
+;-
+
+;~ MODULE WAVE_MIN  WAVE_MAX  R_SLOPE  R_BIAS
+;
+;  'NP'        1.8       5.5     999.    999.
+   'NG'        2.5       5.0    34.4     0.0
+;  'SG1'        4.6       9.2     999.    999.
+;  'SG2'        7.2      13.4     999.    999.
+;  'LG1'       11.0      19.0     999.    999.
+;  'LG2'       17.5      26.5     999.    999.

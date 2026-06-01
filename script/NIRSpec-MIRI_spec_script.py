@@ -7,10 +7,10 @@ import matplotlib as mpl
 import matplotlib.ticker
 from matplotlib.backends.backend_pdf import PdfPages
 
-import creta
-import cafe_io
-import cafe_helper
-import cafe
+from creta.extractor import creta
+from cafe.fitter import specmod, cubemod
+from cafe.io import cafe_io
+from cafe.params import CAFE_param_generator, CAFE_prof_generator, CAFE_cube_generator
 
 source = 'NGC7469'
 #source = 'IIZw096'
@@ -44,7 +44,7 @@ inppar_fn = '../CAFE/inp_parfiles/inpars_jwst_nirspec-miri_'+tplt+'.ini'
 
 optpar_fn = '../CAFE/opt_parfiles/default_opt.cafe'
 
-s = cafe.specmod()
+s = specmod()
 
 s.read_spec(source_fn, file_dir=source_fd, z=z)
 

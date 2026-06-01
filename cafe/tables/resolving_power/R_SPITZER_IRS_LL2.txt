@@ -1,0 +1,38 @@
+;+ ===========================================================================
+; DESCRIPTION: 
+;       Linear dependence of resolving power from wavelength, for the
+;           SPITZER IRS
+;       instrument, expressed in the form:
+;           R(nu) = R_SLOPE * nu + R_BIAS
+;
+;       The values are the results of fits to the SPITZER calibrations
+;
+; MODIFICATION HISTORY:
+;
+;       06/11/2018: created
+;
+;       > Updated:   -
+;       > Corrected: -
+;       > Fixed:     -  
+;
+; MEMO:
+; 
+; NOTICE:
+;
+;-
+;-------------------------------------------------------------------------------
+
+;+
+;> Instrument module  = ''
+;> Wavelength - min   = 'um'
+;> Wavelength - MAX   = 'um'
+;> Resolution - slope = ''
+;> Resolution - bias  = ''
+;-
+
+;~ MODULE WAVE_MIN  WAVE_MAX  R_SLOPE  R_BIAS
+;
+;  'SL2'        5.2      7.40  16.5333     0.0
+; 'SL1B'        7.4     14.25   8.2667     0.0
+  'LL2'      14.25     19.50   5.9048     0.0
+; 'LL1B'      19.50     40.10   2.9524     0.0

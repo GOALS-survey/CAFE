@@ -7,10 +7,10 @@ import matplotlib as mpl
 import matplotlib.ticker
 from matplotlib.backends.backend_pdf import PdfPages
 
-import cafe
-import cafe_io
-import cafe_lib
-import cafe_helper
+from cafe.fitter import specmod, cubemod
+from cafe.io import cafe_io
+from cafe.lib import cafeplot, get_feat_pars, get_model_fluxes
+from cafe.params import CAFE_param_generator, CAFE_prof_generator, CAFE_cube_generator
 
 source = 'NGC7469'
 #source = 'IIZw096'
@@ -40,7 +40,7 @@ inppar_fn = './inp_parfiles/inpars_jwst_nirspec-miri_'+tplt+'.ini'
 
 optpar_fn = './opt_parfiles/default_opt.cafe'
 
-s = cafe.cubemod()
+s = cubemod()
 
 s.read_cube(source_fn, file_dir=source_fd, z=z)
 

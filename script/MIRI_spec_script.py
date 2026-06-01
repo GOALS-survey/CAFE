@@ -6,10 +6,10 @@ import matplotlib as mpl
 import matplotlib.ticker
 from matplotlib.backends.backend_pdf import PdfPages
 
-#import creta
-import cafe_io
-import cafe_helper
-import cafe
+#from creta.extractor import creta
+from cafe.fitter import specmod, cubemod
+from cafe.io import cafe_io
+from cafe.params import CAFE_param_generator, CAFE_prof_generator, CAFE_cube_generator
 
 #source = 'NGC7469'
 source = 'IIZw096'
@@ -40,7 +40,7 @@ cafe_dir = '../'
 inppar_fn = cafe_dir+'inp_parfiles/inpars_jwst_miri_IIZw096.ini'
 optpar_fn = cafe_dir+'opt_parfiles/default_opt.cafe'
 
-s = cafe.specmod(cafe_dir)
+s = specmod(cafe_dir)
 
 s.read_spec(source_fn, file_dir=source_fd, z=z)
 #s.plot_spec_ini(inppar_fn, optpar_fn)
@@ -61,7 +61,7 @@ s.read_parcube_file(parcube_fn, file_dir=parcube_fd)
 
 #s.plot_spec_ini(inppar_fn, optpar_fn)
 
-ini = cafe.specmod(cafe_dir)
+ini = specmod(cafe_dir)
 ini.read_parcube_file(parcube_fn, file_dir=parcube_fd)
 
 #s.plot_spec_ini(inppar_fn, optpar_fn, ini_parcube=ini.parcube)
@@ -72,7 +72,7 @@ s.fit_spec(inppar_fn, optpar_fn, ini_parcube=ini.parcube)
 print(s.parcube['VALUE'].data[-1,0,0])
 print(s.parcube['VALUE'].data[-1,0,0]/2.998e5)
 
-ini2 = cafe.specmod(cafe_dir)
+ini2 = specmod(cafe_dir)
 ini2.read_parcube_file(parcube_fn, file_dir=parcube_fd)
 
 s.fit_spec(inppar_fn, optpar_fn, ini_parcube=ini2.parcube)
