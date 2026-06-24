@@ -24,10 +24,20 @@ User Documentation
 Installation
 ============
 
-.. toctree::
-  :maxdepth: 2
+You can install the latest development version from the
+Github master branch:
 
-   How to install <install>
+.. code-block:: bash
+
+   conda create -n <cafe_env> python
+   conda activate <cafe_env>
+   pip install git+https://github.com/GOALS-survey/CAFE.git
+
+You may want to install jupyter lab to run the tutorial notebook:
+
+.. code-block:: bash
+   
+   pip install jupyterlab
 
 Repository
 ==========
