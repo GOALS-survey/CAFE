@@ -728,7 +728,7 @@ class specmod:
         self.parcube = parcube
 
         # Get compdict
-        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True)
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True, phot_dict=phot_dict)
 
         compdict = {'CompFluxes': CompFluxes,
                     'CompFluxes_0': CompFluxes_0,
@@ -776,7 +776,7 @@ class specmod:
         cafeio.save_asdf(self, file_name=self.product_dir+self.result_file_name+'_cafefit')
 
         print('Saving figure in png to disk:',self.product_dir+self.result_file_name+'_fitfigure.png')
-        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True)
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(self.params, self.spec_dict['wave'], self.cont_profs, comps=True, phot_dict=self.phot_dict)
         gauss, drude, gauss_opc = get_feat_pars(self.params, apply_vgrad2waves=True)  # params consisting all the fitted parameters        
         # Save figure
         cafefig = cafeplot(self.spec_dict, self.phot_dict, CompFluxes, gauss, drude, vgrad=vgrad, pahext=extComps['extPAH'], save_name=self.product_dir+self.result_file_name+'_fitfigure.png', params=self.params)
@@ -832,7 +832,7 @@ class specmod:
         cont_profs = prof_gen.make_cont_profs() # load the selected unscaled continuum profiles
 
         # Scale continuum profiles with parameters and get spectra
-        CompFluxes, CompFluxes_0, extComps, e0, tau0, _ = get_model_fluxes(params, wave, cont_profs, comps=True)
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, _ = get_model_fluxes(params, wave, cont_profs, comps=True, phot_dict=phot_dict)
 
         # Get feature spectrum out of the feature parameters
         gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)
@@ -871,7 +871,7 @@ class specmod:
         prof_gen = CAFE_prof_generator(spec, inparfile, optfile, phot_dict, cafe_path=self.cafe_dir)
         cont_profs = prof_gen.make_cont_profs()
         
-        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(params, wave, cont_profs, comps=True)
+        CompFluxes, CompFluxes_0, extComps, e0, tau0, vgrad = get_model_fluxes(params, wave, cont_profs, comps=True, phot_dict=phot_dict)
         
         gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)  # params consisting all the fitted parameters
         
