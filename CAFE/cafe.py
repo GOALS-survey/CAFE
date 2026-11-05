@@ -912,51 +912,6 @@ class specmod:
         return ax
 
 
-    # TO BE DEPRECATED AS ALL READ AND WRITE FUNCTIONS SHOULD BE IN CAFE IO
-    def save_result(self, asdf=True, pah_tbl=True, line_tbl=True, file_name=None):
-
-        if hasattr(self, 'parcube') is False:
-            raise AttributeError('The spectrum is not fitted yet. Missing fitted result - parcube.')
-
-        params = self.parcube.params
-        wave = self.spec.spectral_axis.value
-
-        if asdf is True:
-            params_dict = params.valuesdict()
-            
-            # Get fitted results
-            gauss, drude, gauss_opc = get_feat_pars(params, apply_vgrad2waves=True)  # params consisting all the fitted parameters
-            CompFluxes, CompFluxes_0, extComps, e0, tau0, _ = get_model_fluxes(params, wave, self.cont_profs, comps=True)
-
-            # Get PAH powers (intrinsic/extinguished)
-            pah_power_int = drude_int_fluxes(CompFluxes['wave'], drude)
-            pah_power_ext = drude_int_fluxes(CompFluxes['wave'], drude, ext=extComps['extPAH'])
-
-            # Quick hack for output PAH and line results
-            output_gauss = {'wave':gauss[0], 'width':gauss[1], 'peak':gauss[2], 'name':gauss[3], 'strength':np.zeros(len(gauss[3]))} #  Should add integrated gauss
-            output_drude = {'wave':drude[0], 'width':drude[1], 'peak':drude[2], 'name':drude[3], 'strength':pah_power_int.value}
-
-            # Make dict to save in .asdf
-            obsspec = {'wave': self.wave, 'flux': self.flux, 'flux_unc': self.flux_unc}
-            cafefit = {'cafefit': {'obsspec': obsspec,
-                                   'fitPars': params_dict,
-                                   'CompFluxes': CompFluxes,
-                                   'CompFluxes_0': CompFluxes_0,
-                                   'extComps': extComps,
-                                   'e0': e0,
-                                   'tau0': tau0,
-                                   'gauss': output_gauss,
-                                   'drude': output_drude
-                                   }
-                       }
-
-            # Save output result to .asdf file
-            target = AsdfFile(cafefit)
-            if file_name is None:
-                target.write_to(self.cafe_dir+'cafe_results/last_unnamed_cafefit.asdf', overwrite=True)
-            else:
-                target.write_to(file_name+'.asdf', overwrite=True)
-
 
 def plot_cafefit(asdf_fn):
     """ Recover the CAFE plot based on the input asdf file
