@@ -808,7 +808,7 @@ class CAFE_prof_generator:
                 maxOpt = np.nanmax((waveMod[0] - (waveMod[1]-waveMod[0]), phot_dict['wave'][0]))
                 nOpt = int(np.ceil(np.log10(maxOpt/minOpt)*eqRspec/undersampOpt))
                 waveOpt = np.geomspace(minOpt, maxOpt, num=nOpt)
-                waveMod = np.concatenate((waveMod, waveOpt))
+                waveMod = np.concatenate((waveOpt, waveMod))
 
             if phot_dict['wave'][-1] > waveMod[-1]:
                 undersampFIR = 4.
