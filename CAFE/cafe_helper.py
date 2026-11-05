@@ -1180,7 +1180,7 @@ class CAFE_cube_generator:
 
 
         waves_tbl = [(i, k) for i, k in zip(np.arange(len(waveMod)), self.cont_profs['waveMod'])]
-        waves_rec = np.rec.array(waves_tbl, formats='int16, float16', names='idx, wave')
+        waves_rec = np.rec.array(waves_tbl, formats='int16, float32', names='idx, wave')
         
         waves = fits.BinTableHDU(waves_rec.copy(), name='WAVE')
         profcube.append(waves)
