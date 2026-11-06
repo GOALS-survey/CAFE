@@ -1098,8 +1098,14 @@ class cafe_io:
             "gamma": gauss[1],
             "peak": gauss[2],
             "name": gauss[3],
-            "strength": np.sqrt(2.0 * np.pi) * 2.998e5 * gauss[1] * gauss[2],
-        }  #  Should add integrated gauss
+            "strength": (
+                np.sqrt(2.0 * np.pi)
+                * (const.c.to("micron/s").value / gauss[0])
+                * (gauss[1] / 2.35482)
+                * gauss[2]
+                * 1e-26
+            ),
+        }
         output_drude = {
             "wave": drude[0],
             "gamma": drude[1],
