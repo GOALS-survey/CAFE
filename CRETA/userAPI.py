@@ -74,7 +74,7 @@ class userAPI:
                 # only attempt to make the output directory if it doesn't exist
                 os.makedirs(opath)
             print('Ouput path', opath, 'created.')
-        if opath[-1] != '/': opath+'/'
+        if opath[-1] != '/': opath += '/'
 
         return opath
 
