@@ -597,8 +597,8 @@ class specmod:
             raise ValueError('Observed and rest-frame wavelength limits cannot be set simultaneously')
         minWave = wave_min if wave_min is not None else np.nanmin(cube.waves[val_inds])
         maxWave = wave_max if wave_max is not None else np.nanmax(cube.waves[val_inds])
-        minWave = rwave_min*(1+z) if rwave_min is not None else np.nanmin(cube.waves[val_inds])
-        maxWave = rwave_max*(1+z) if rwave_max is not None else np.nanmax(cube.waves[val_inds])
+        minWave = rwave_min*(1+z) if rwave_min is not None else minWave
+        maxWave = rwave_max*(1+z) if rwave_max is not None else maxWave
 
         fit_wave_inds = (cube.waves[val_inds] >= minWave) & (cube.waves[val_inds] <= maxWave)
         
