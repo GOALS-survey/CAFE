@@ -642,7 +642,7 @@ class CAFE_param_generator:
 
                 if inpars['EPSPEAK_PAH'] > 0:
                     maxP = drude[2][i]*(1.+inpars['EPSPEAK_PAH']) #EPSPEAK_PAH in fraction
-                    minP = drude[2][i]/(1.*inpars['EPSPEAK_PAH'])
+                    minP = drude[2][i]/(1.+inpars['EPSPEAK_PAH'])
                 else:
                     maxP =  np.inf
                     minP =  0.
