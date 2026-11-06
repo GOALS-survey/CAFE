@@ -1496,22 +1496,22 @@ def cafeplot(
     CLD_TMP = (
         ""
         if params == None
-        else r" (" + "{:.0f}".format(params["CLD_TMP"].value) + "$\,$K" + ")"
+        else r" (" + "{:.0f}".format(params["CLD_TMP"].value) + r"$\,$K" + ")"
     )
     COO_TMP = (
         ""
         if params == None
-        else r" (" + "{:.0f}".format(params["COO_TMP"].value) + "$\,$K" + ")"
+        else r" (" + "{:.0f}".format(params["COO_TMP"].value) + r"$\,$K" + ")"
     )
     WRM_TMP = (
         ""
         if params == None
-        else r" (" + "{:.0f}".format(params["WRM_TMP"].value) + "$\,$K" + ")"
+        else r" (" + "{:.0f}".format(params["WRM_TMP"].value) + r"$\,$K" + ")"
     )
     HOT_TMP = (
         ""
         if params == None
-        else r" (" + "{:.0f}".format(params["HOT_TMP"].value) + "$\,$K" + ")"
+        else r" (" + "{:.0f}".format(params["HOT_TMP"].value) + r"$\,$K" + ")"
     )
 
     alpha = 0.6
