@@ -73,7 +73,7 @@ def cafe_grinder(self, params, spec, phot):
             
         else:
             end = time.time()
-            raise RuntimeError('The fitter reached the maximum number of function evaluations after', result.nfev, 'steps in', np.round(end-start, 2)/60., 'minutes')
+            print('WARNING: The fitter reached the maximum number of function evaluations after', result.nfev, 'steps in', np.round(end-start, 2)/60., 'minutes')
             acceptFit = False
             
         if self.inopts['FIT OPTIONS']['FIT_CHK'] and niter < self.inopts['FIT OPTIONS']['MAX_LOOPS']:
@@ -186,7 +186,7 @@ class cubemod:
                  init_parcube=False,
                  cont_profs=None,
                  force_all_lines=False,
-                 pattern=None):
+                 pattern='snr'):
         """
         Main function setting up the parameters and profiles for cafe_grinder()
         """
@@ -597,8 +597,8 @@ class specmod:
             raise ValueError('Observed and rest-frame wavelength limits cannot be set simultaneously')
         minWave = wave_min if wave_min is not None else np.nanmin(cube.waves[val_inds])
         maxWave = wave_max if wave_max is not None else np.nanmax(cube.waves[val_inds])
-        minWave = rwave_min*(1+z) if rwave_min is not None else np.nanmin(cube.waves[val_inds])
-        maxWave = rwave_max*(1+z) if rwave_max is not None else np.nanmax(cube.waves[val_inds])
+        minWave = rwave_min*(1+z) if rwave_min is not None else minWave
+        maxWave = rwave_max*(1+z) if rwave_max is not None else maxWave
 
         fit_wave_inds = (cube.waves[val_inds] >= minWave) & (cube.waves[val_inds] <= maxWave)
         
@@ -931,8 +931,8 @@ def plot_cafefit(asdf_fn):
     g = af['cafefit']['gauss']
     d = af['cafefit']['drude']
     
-    gauss = [g['wave'], g['width'], g['peak']]
-    drude = [d['wave'], d['width'], d['peak']]
+    gauss = [g['wave'], g['gamma'], g['peak']]
+    drude = [d['wave'], d['gamma'], d['peak']]
     
     spec_dict = {'wave':wave, 'flux':flux, 'flux_unc':flux_unc}
     

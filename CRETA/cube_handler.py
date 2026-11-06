@@ -54,9 +54,9 @@ class cube_handler:
         else:
             self.zero_mask = self.DQ != 0
 
-        self.cube_before[self.zero_mask] = np.NaN      #Replace zero with NaN
+        self.cube_before[self.zero_mask] = np.nan      #Replace zero with NaN
         self.error_data = self.head_keys['err_data']               #The flux Error data 
-        self.error_data[self.zero_mask] = np.NaN
+        self.error_data[self.zero_mask] = np.nan
 
         self.aperture_type = aperture_type
         
@@ -235,7 +235,7 @@ class cube_handler:
              # width_pix = width / self.pixel_scale
                r_out.append(r_in[i]+width_pix)
         self.cube_after, self.med_sigma, self.annulus, self.annulus_centroid, self.annulus_aperture, self.routs = self.preprocess.subtractUserBackground(self, r_in, r_out)
-        self.cube_after[self.zero_mask] = np.NaN
+        self.cube_after[self.zero_mask] = np.nan
         
         # create the background flux spectrum
         self.background_spectrum = []

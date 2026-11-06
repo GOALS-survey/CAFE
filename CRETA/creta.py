@@ -83,14 +83,14 @@ class creta:
         user = userAPI()
         # print(parfile_name)
         
-        if data_path[-1] != '/': data_path+'/'
-        if parfile_path[-1] != '/': parfile_path+'/'
+        if data_path[-1] != '/': data_path += '/'
+        if parfile_path[-1] != '/': parfile_path += '/'
 
         output_path = user.create_output_path(output_path)
 
         if PSFs_path is None:
             PSFs_path = self.creta_dir+'PSFs/'
-        if PSFs_path[-1] != '/': PSFs_path+'/'
+        if PSFs_path[-1] != '/': PSFs_path += '/'
 
         # Read the parameter file
         if parameter_file:
@@ -762,14 +762,14 @@ class creta:
         import time
         start_time = time.time()
 
-        if data_path[-1] != '/': data_path+'/'
-        if parfile_path[-1] != '/': parfile_path+'/'
+        if data_path[-1] != '/': data_path += '/'
+        if parfile_path[-1] != '/': parfile_path += '/'
 
         output_path = user.create_output_path(output_path)
 
         if PSFs_path is None:
             PSFs_path = self.creta_dir+'PSFs/'
-        if PSFs_path[-1] != '/': PSFs_path+'/'
+        if PSFs_path[-1] != '/': PSFs_path += '/'
 
 
         if parameter_file:
@@ -864,7 +864,7 @@ class creta:
             CDELT3 = last_cube['CDELT3']
             
             nan_mask = DQ != 0
-            last_cube_data[nan_mask] = np.NaN 
+            last_cube_data[nan_mask] = np.nan 
             wcs = WCS(last_cube['headers'])
             ls = []
             for i in range(last_cube_data.shape[0]):
