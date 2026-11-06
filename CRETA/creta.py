@@ -864,7 +864,7 @@ class creta:
             CDELT3 = last_cube['CDELT3']
             
             nan_mask = DQ != 0
-            last_cube_data[nan_mask] = np.NaN 
+            last_cube_data[nan_mask] = np.nan 
             wcs = WCS(last_cube['headers'])
             ls = []
             for i in range(last_cube_data.shape[0]):
