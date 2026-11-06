@@ -186,7 +186,7 @@ class cubemod:
                  init_parcube=False,
                  cont_profs=None,
                  force_all_lines=False,
-                 pattern=None):
+                 pattern='snr'):
         """
         Main function setting up the parameters and profiles for cafe_grinder()
         """
