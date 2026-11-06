@@ -191,7 +191,7 @@ class cubemod:
         cube = self.cube
         
         # Get the fitting sequence
-        snr_image = np.nansum(self.fluxes[10:20,:,:], axis=0)
+        snr_image = np.nansum(self.fluxes, axis=0)
         ind_seq, ref_ind_seq = get_fit_sequence(snr_image, sorting_seq=pattern)
         print('Highest SNR spaxel is:',np.flip((ind_seq[0][0],ind_seq[1][0])))
         
