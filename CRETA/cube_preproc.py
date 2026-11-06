@@ -343,7 +343,7 @@ class cube_preproc:
                 aper = RectangularAperture([x,y], r[i]*2., r[i]*2.)
             apers.append(aper)
 
-        phot_table = aperture_photometry(data, apers, wcs=w, error=error)
+        phot_table = aperture_photometry(data, apers, wcs=w.celestial, error=error)
         rs_photometry = []
         rs_error = []
         rs_area = []

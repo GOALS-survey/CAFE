@@ -163,9 +163,8 @@ class cafe_io:
         if instnames[0] != "PHOTOMETRY":
             # Load all files in the resolving power folder
             files = os.listdir(tablePath + "resolving_power/")
-            for i in files:  # exclude hidden files from mac
-                if i.startswith("."):
-                    files.remove(i)
+            # exclude hidden files from mac
+            files = [i for i in files if not i.startswith(".")]
 
             # Get the names of the files for each instrument/module
             inst_files = []

@@ -89,7 +89,7 @@ def sourceSED_ISRF(wave, T_bb=None):
     if T_bb is not None:
         sigma_SB = 5.67e-5
         uWaveOld = uWave
-        uTotOld = intTab(wave * uWaveOld, np.log(wave))
+        uTotOld = intTab(wave * uWaveOld, np.log(wave[1] / wave[0]))
         tBBOld = np.power(3e10 / 4.0 / sigma_SB * uTotOld, 0.25)
         uWave *= (T_bb / tBBOld) ** 4
 
@@ -145,7 +145,7 @@ def sourceSED_AGN(wave, lTot=1e11, r=None, T_bb=None):
         sigmaSB = 5.67e-5
         fWaveOld = np.copy(fWave)
         fTotOld = intTab(wave * fWaveOld, np.log(wave[1] / wave[0]))
-        T_bb_old = np.pow(fTotOld / (2 * sigmaSB), 0.25)
+        T_bb_old = np.power(fTotOld / (2 * sigmaSB), 0.25)
         scale = (T_bb / T_bb_old) ** 4
         fWave *= scale
         fTot = fTotOld * scale
