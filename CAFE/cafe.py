@@ -56,10 +56,7 @@ def cafe_grinder(self, params, spec, phot):
         method = 'least_squares' #'nelder' if len(spec['wave']) >= 10000 else 'least_squares'
         fitter = lm.Minimizer(chisquare, params, nan_policy='omit', fcn_args=(spec, phot, self.cont_profs, show))
         
-        try:
-            result = fitter.minimize(method=method, ftol=ftol, max_nfev=200*(len(params)+1))
-        except:
-            if result.success is not True: raise ValueError('The fit has not been successful.')
+        result = fitter.minimize(method=method, ftol=ftol, max_nfev=200*(len(params)+1))
 
         # Do checks on parameters and rerun fit if no errors are returned or the fit is unsuccessful
         if result.success == True:

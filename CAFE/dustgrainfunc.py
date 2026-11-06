@@ -244,7 +244,7 @@ def grainEQTemp(a, T_bb, sourceType, tablePath, scaleSIL=None, cAbs=None, TTable
         ## Interpolate the specified SED onto the wave grid
         # This functionality is disabled and the user needs to select
         # from the sources available, calling them by their name
-        ipdb.set_trace()
+        raise TypeError("Custom SED arrays are disabled: sourceType must be the name of a source SED ('ISRF', 'AGN', 'SB2Myr', 'SB10Myr' or 'SB100Myr').")
 
         sWave = sourceSED[0]
         sFlux = sourceSED[1]
